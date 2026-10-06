@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faculty Codes – ClashFree</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav>
+    <a class="brand" href="/">⏰ ClashFree</a>
+    <a href="/">Home</a>
+    <a href="/upload">Upload Excel</a>
+    <a href="/data">View Data</a>
+    <a href="/faculty_codes">Faculty Codes</a>
+    <a href="/generate">Generate Timetable</a>
+</nav>
+
+<div class="container">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% endwith %}
+
+    <h1>🏷️ Faculty Short Codes</h1>
+    <p>
+        Each faculty member is assigned a unique short code automatically.
+        This code appears in the timetable to save space.
+    </p>
+
+    <!-- How codes are generated — useful to explain in viva -->
+    <div style="background:#fff; border-radius:8px; padding:16px; margin:16px 0;
+                box-shadow:0 2px 8px rgba(0,0,0,0.08); border-left:4px solid #1a73e8;">
+        <strong>How codes are generated:</strong><br>
+        Take the first letter of the first name + first letter of the last name.<br>
+        Example: <strong>Kunal Patil</strong> → <strong>KP</strong><br>
+        If two people get the same code, numbers are added:
+        <strong>KP1</strong>, <strong>KP2</strong>, etc.
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Full Name</th>
+                    <th>Short Code</th>
+                    <th>Subjects</th>
+                    <th>Preferred Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in faculty_list %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ f.name }}</td>
+                    <td>
+                        <span style="font-size:18px; font-weight:bold; color:#1a73e8;">
+                            {{ f.code }}
+                        </span>
+                    </td>
+                    <td>{{ f.subjects | join(", ") }}</td>
+                    <td>
+                        {% if f.preferred_time == "Morning" %}
+                            🌅 Morning
+                        {% elif f.preferred_time == "Afternoon" %}
+                            🌇 Afternoon
+                        {% else %}
+                            🕐 Any
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <p style="margin-top:20px; font-size:13px; color:#777;">
+        Total: {{ faculty_list|length }} faculty members
+    </p>
+
+</div>
+
+<footer>ClashFree – College Mini Project | BTech CSE</footer>
+</body>
+</html>

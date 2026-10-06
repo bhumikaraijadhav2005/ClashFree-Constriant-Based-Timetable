@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Timetable – ClashFree</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav>
+    <a class="brand" href="/">⏰ ClashFree</a>
+    <a href="/">Home</a>
+    <a href="/upload">Upload Excel</a>
+    <a href="/data">View Data</a>
+    <a href="/faculty_codes">Faculty Codes</a>
+    <a href="/generate">Generate Timetable</a>
+</nav>
+
+<div class="container">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% endwith %}
+
+    <h1>📅 Generate Timetable</h1>
+
+    {% if success is none %}
+        <!-- First time on this page — show the generate button -->
+        <p>
+            Click the button below to run the scheduler.
+            The system will use <strong>CSP + MRV + Backtracking</strong> to generate a
+            conflict-free timetable for all sections.
+        </p>
+
+        <form method="POST">
+            <button type="submit" class="btn btn-success btn-large">
+                ▶ Generate Timetable
+            </button>
+        </form>
+
+        <div style="background:#fff; border-radius:8px; padding:16px; margin:24px 0;
+                    box-shadow:0 2px 8px rgba(0,0,0,0.08); border-left:4px solid #28a745;">
+            <strong>What happens when you click Generate:</strong><br><br>
+            1. <strong>CSP</strong> — Each class/lab session is treated as a variable needing a value.<br>
+            2. <strong>MRV</strong> — The session with the fewest valid options is scheduled first.<br>
+            3. <strong>Backtracking</strong> — If stuck, undo the last step and try another option.<br>
+            4. <strong>Hard Constraints</strong> — No double-booking of faculty, rooms, or sections.
+        </div>
+
+    {% elif success == True %}
+        <!-- Timetable was generated successfully -->
+        <p>✅ Timetable generated! Total entries: <strong>{{ timetable|length }}</strong></p>
+
+        <!-- Filter by section -->
+        <div class="filter-bar">
+            <label for="sectionFilter"><strong>Filter by Section:</strong></label>
+            <select id="sectionFilter" onchange="filterTable()">
+                <option value="ALL">All Sections</option>
+                {% set seen_sections = [] %}
+                {% for row in timetable %}
+                    {% if row.section not in seen_sections %}
+                        <option value="{{ row.section }}">{{ row.section }}</option>
+                        {% if seen_sections.append(row.section) %}{% endif %}
+                    {% endif %}
+                {% endfor %}
+            </select>
+
+            <label for="dayFilter" style="margin-left:12px;"><strong>Filter by Day:</strong></label>
+            <select id="dayFilter" onchange="filterTable()">
+                <option value="ALL">All Days</option>
+                {% for day in ["Monday","Tuesday","Wednesday","Thursday","Friday"] %}
+                    <option value="{{ day }}">{{ day }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Timetable Table -->
+        <div class="table-wrap">
+            <table id="timetableTable">
+                <thead>
+                    <tr>
+                        <th>Day</th>
+                        <th>Period</th>
+                        <th>Section</th>
+                        <th>Subject</th>
+                        <th>Type</th>
+                        <th>Faculty</th>
+                        <th>Room</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in timetable %}
+                    <tr data-section="{{ row.section }}" data-day="{{ row.day }}">
+                        <td>{{ row.day }}</td>
+                        <td>{{ row.period }}</td>
+                        <td><strong>{{ row.section }}</strong></td>
+                        <td>{{ row.subject }}</td>
+                        <td>
+                            {% if row.is_lab %}
+                                <span class="badge-lab">🔬 Lab</span>
+                            {% else %}
+                                <span class="badge-lecture">📚 Lecture</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>{{ row.faculty_code }}</strong>
+                            <!-- Show full name on hover using title attribute -->
+                            {% for f in faculty_list %}
+                                {% if f.code == row.faculty_code %}
+                                    <span style="font-size:12px; color:#777;"
+                                          title="{{ f.name }}">({{ f.name }})</span>
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>{{ row.room }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <form method="POST" style="margin-top:16px;">
+            <button type="submit" class="btn btn-primary">🔄 Regenerate Timetable</button>
+        </form>
+
+    {% else %}
+        <!-- Generation failed -->
+        <p>❌ Timetable could not be generated.</p>
+        <div class="flash error">{{ message }}</div>
+        <form method="POST" style="margin-top:16px;">
+            <button type="submit" class="btn btn-primary">🔄 Try Again</button>
+        </form>
+    {% endif %}
+
+</div>
+
+<!-- Simple JavaScript for filtering the timetable table -->
+<script>
+function filterTable() {
+    var sectionVal = document.getElementById("sectionFilter").value;
+    var dayVal     = document.getElementById("dayFilter").value;
+    var rows       = document.querySelectorAll("#timetableTable tbody tr");
+
+    rows.forEach(function(row) {
+        var rowSection = row.getAttribute("data-section");
+        var rowDay     = row.getAttribute("data-day");
+
+        var sectionOk = (sectionVal === "ALL" || rowSection === sectionVal);
+        var dayOk     = (dayVal === "ALL"     || rowDay === dayVal);
+
+        row.style.display = (sectionOk && dayOk) ? "" : "none";
+    });
+}
+</script>
+
+<footer>ClashFree – College Mini Project | BTech CSE</footer>
+</body>
+</html>

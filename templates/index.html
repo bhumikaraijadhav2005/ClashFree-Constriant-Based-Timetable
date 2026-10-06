@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClashFree – Timetable Scheduler</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- Navigation Bar -->
+<nav>
+    <a class="brand" href="/">⏰ ClashFree</a>
+    <a href="/">Home</a>
+    <a href="/upload">Upload Excel</a>
+    <a href="/data">View Data</a>
+    <a href="/faculty_codes">Faculty Codes</a>
+    <a href="/generate">Generate Timetable</a>
+</nav>
+
+<!-- Main Content -->
+<div class="container">
+
+    <!-- Flash messages (success / error) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Hero Section -->
+    <h1>ClashFree</h1>
+    <p style="font-size:16px; color:#555; margin-bottom:8px;">
+        Constraint-Based Timetable &amp; Lab Scheduling System
+    </p>
+
+    <!-- Data status -->
+    <p>
+        Data Status:
+        {% if data_loaded %}
+            <span class="status-loaded">✅ Excel Loaded</span>
+        {% else %}
+            <span class="status-not-loaded">❌ No Data Loaded — Upload Excel First</span>
+        {% endif %}
+    </p>
+
+    <!-- Quick Action Cards -->
+    <div class="card-grid">
+
+        <a class="card" href="/upload">
+            <div class="icon">📂</div>
+            <div class="card-title">Upload Excel</div>
+            <div class="card-desc">Load faculty, rooms, subjects and sections from an Excel file</div>
+        </a>
+
+        <a class="card" href="/data">
+            <div class="icon">📋</div>
+            <div class="card-title">View Data</div>
+            <div class="card-desc">See all loaded faculty, rooms, subjects and sections</div>
+        </a>
+
+        <a class="card" href="/faculty_codes">
+            <div class="icon">🏷️</div>
+            <div class="card-title">Faculty Codes</div>
+            <div class="card-desc">See the short unique code assigned to each faculty member</div>
+        </a>
+
+        <a class="card" href="/generate">
+            <div class="icon">📅</div>
+            <div class="card-title">Generate Timetable</div>
+            <div class="card-desc">Run the CSP + MRV + Backtracking scheduler</div>
+        </a>
+
+    </div>
+
+    <!-- How it Works Section -->
+    <h2>How it Works</h2>
+    <p>
+        1. <strong>Upload Excel</strong> — The admin uploads a simple Excel file with faculty,
+        rooms, subjects, and sections.
+    </p>
+    <p>
+        2. <strong>CSP Modelling</strong> — Every class/lab session becomes a variable that
+        needs a value (day + period + room + faculty).
+    </p>
+    <p>
+        3. <strong>MRV</strong> — The scheduler always picks the session with the
+        <em>fewest</em> valid options first (Minimum Remaining Values).
+    </p>
+    <p>
+        4. <strong>Backtracking</strong> — If the scheduler gets stuck, it undoes the
+        last assignment and tries another option.
+    </p>
+    <p>
+        5. <strong>Hard Constraints</strong> — No faculty clash, no room clash, no section clash,
+        room capacity respected, labs in labs only.
+    </p>
+
+</div>
+
+<footer>ClashFree – College Mini Project | BTech CSE</footer>
+</body>
+</html>

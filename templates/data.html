@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Data – ClashFree</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav>
+    <a class="brand" href="/">⏰ ClashFree</a>
+    <a href="/">Home</a>
+    <a href="/upload">Upload Excel</a>
+    <a href="/data">View Data</a>
+    <a href="/faculty_codes">Faculty Codes</a>
+    <a href="/generate">Generate Timetable</a>
+</nav>
+
+<div class="container">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% endwith %}
+
+    <h1>📋 View Loaded Data</h1>
+    <p>All data currently loaded from the Excel file.</p>
+
+    <!-- ============ FACULTY TABLE ============ -->
+    <h2>👨‍🏫 Faculty ({{ faculty_list|length }})</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Code</th>
+                    <th>Subjects</th>
+                    <th>Available From</th>
+                    <th>Available To</th>
+                    <th>Preferred Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in faculty_list %}
+                <tr>
+                    <td>{{ f.name }}</td>
+                    <td><strong>{{ f.code }}</strong></td>
+                    <td>{{ f.subjects | join(", ") }}</td>
+                    <td>{{ f.available_from }}</td>
+                    <td>{{ f.available_to }}</td>
+                    <td>
+                        {% if f.preferred_time == "Morning" %}
+                            🌅 Morning
+                        {% elif f.preferred_time == "Afternoon" %}
+                            🌇 Afternoon
+                        {% else %}
+                            🕐 Any
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ============ ROOMS TABLE ============ -->
+    <h2>🏫 Rooms & Labs ({{ room_list|length }})</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Room Name</th>
+                    <th>Type</th>
+                    <th>Capacity</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in room_list %}
+                <tr>
+                    <td>{{ r.name }}</td>
+                    <td>
+                        {% if r.type == "Lab" %}
+                            🔬 Lab
+                        {% else %}
+                            📚 Classroom
+                        {% endif %}
+                    </td>
+                    <td>{{ r.capacity }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ============ SUBJECTS TABLE ============ -->
+    <h2>📚 Subjects ({{ subject_list|length }})</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th>Lectures / Week</th>
+                    <th>Labs / Week</th>
+                    <th>Requires Lab</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in subject_list %}
+                <tr>
+                    <td>{{ s.name }}</td>
+                    <td>{{ s.lectures_per_week }}</td>
+                    <td>{{ s.labs_per_week }}</td>
+                    <td>
+                        {% if s.requires_lab %}
+                            ✅ Yes
+                        {% else %}
+                            ❌ No
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ============ SECTIONS TABLE ============ -->
+    <h2>🎓 Sections ({{ section_list|length }})</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Section Name</th>
+                    <th>Student Strength</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sec in section_list %}
+                <tr>
+                    <td>{{ sec.name }}</td>
+                    <td>{{ sec.strength }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div style="margin-top: 16px;">
+        <a href="/generate" class="btn btn-success">📅 Generate Timetable</a>
+        <a href="/upload" class="btn btn-primary" style="margin-left:10px;">📂 Re-upload Excel</a>
+    </div>
+
+</div>
+
+<footer>ClashFree – College Mini Project | BTech CSE</footer>
+</body>
+</html>

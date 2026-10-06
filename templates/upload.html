@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Excel – ClashFree</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav>
+    <a class="brand" href="/">⏰ ClashFree</a>
+    <a href="/">Home</a>
+    <a href="/upload">Upload Excel</a>
+    <a href="/data">View Data</a>
+    <a href="/faculty_codes">Faculty Codes</a>
+    <a href="/generate">Generate Timetable</a>
+</nav>
+
+<div class="container">
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% endwith %}
+
+    <h1>📂 Upload Excel File</h1>
+    <p>Upload your Excel file (.xlsx) containing faculty, rooms, subjects, and sections data.</p>
+
+    <!-- Upload Form -->
+    <div class="upload-area">
+        <p style="font-size:36px;">📊</p>
+        <p style="font-size:16px; color:#555; margin-bottom:12px;">
+            Select your <strong>sample_data.xlsx</strong> file to get started
+        </p>
+
+        <form method="POST" enctype="multipart/form-data">
+            <input type="file" name="excel_file" accept=".xlsx" required>
+            <br>
+            <button type="submit" class="btn btn-primary btn-large" style="margin-top:16px;">
+                ⬆️ Upload Excel
+            </button>
+        </form>
+    </div>
+
+    <!-- Required Excel format explanation -->
+    <h2>Required Excel Format</h2>
+    <p>Your Excel file must have <strong>4 sheets</strong> with these exact names:</p>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Sheet Name</th>
+                    <th>Required Columns</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Faculty</strong></td>
+                    <td>Name | Subjects | AvailableFrom | AvailableTo | PreferredTime</td>
+                </tr>
+                <tr>
+                    <td><strong>Rooms</strong></td>
+                    <td>RoomName | Type | Capacity</td>
+                </tr>
+                <tr>
+                    <td><strong>Subjects</strong></td>
+                    <td>Subject | LecturesPerWeek | LabsPerWeek | RequiresLab</td>
+                </tr>
+                <tr>
+                    <td><strong>Sections</strong></td>
+                    <td>SectionName | Strength</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Summary after successful upload -->
+    {% if summary %}
+    <h2>✅ Upload Summary</h2>
+    <div class="summary-box">
+        <div class="summary-item">
+            <div class="num">{{ summary.faculty }}</div>
+            <div class="label">Faculty</div>
+        </div>
+        <div class="summary-item">
+            <div class="num">{{ summary.rooms }}</div>
+            <div class="label">Rooms / Labs</div>
+        </div>
+        <div class="summary-item">
+            <div class="num">{{ summary.subjects }}</div>
+            <div class="label">Subjects</div>
+        </div>
+        <div class="summary-item">
+            <div class="num">{{ summary.sections }}</div>
+            <div class="label">Sections</div>
+        </div>
+    </div>
+
+    <p>
+        Data loaded successfully!
+        <a href="/data" class="btn btn-primary" style="margin:0 8px;">View Data</a>
+        <a href="/generate" class="btn btn-success">Generate Timetable</a>
+    </p>
+    {% endif %}
+
+</div>
+
+<footer>ClashFree – College Mini Project | BTech CSE</footer>
+</body>
+</html>
