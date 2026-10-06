@@ -28,8 +28,8 @@ style_header(ws_faculty, ["Name", "Subjects", "AvailableFrom", "AvailableTo", "P
 
 faculty_data = [
     # Kunal Patil and Kiran Patil both get "KP" → will become KP1 and KP2
-    ["Kunal Patil",      "DSA, OS",      "09:00", "16:00", "Morning"],
-    ["Kiran Patil",      "DBMS, CN",     "09:00", "17:00", "Morning"],
+    ["Aniket Joshi",      "DSA, OS",      "09:00", "16:00", "Morning"],
+    ["Kiran shaw",      "DBMS, CN",     "09:00", "17:00", "Morning"],
     ["Amit Sharma",      "Maths, TOC",   "09:00", "17:00", "Any"],
     ["Sneha Desai",      "DSA, CN",      "11:00", "17:00", "Afternoon"],
     ["Rahul Mehta",      "OS, TOC",      "09:00", "17:00", "Any"],
