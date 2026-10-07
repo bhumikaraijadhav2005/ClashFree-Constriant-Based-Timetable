@@ -9,7 +9,7 @@
 # List of faculty members.
 # Each entry is a dict, e.g.:
 #   {
-#       "name": "Kunal Patil",
+#       "name": "Karn Mishra",
 #       "code": "KP1",
 #       "subjects": ["DSA", "OS"],
 #       "available_from": "09:00",
