@@ -31,6 +31,18 @@ DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 DAY_ORDER = {d: i for i, d in enumerate(DAYS)}
 
 _session_lookup = {}
+_period_order_map = {}
+_active_days = list(DAYS)
+_day_order = dict(DAY_ORDER)
+
+
+def _are_periods_consecutive(p1: str, p2: str) -> bool:
+    """Return True if p1 and p2 are consecutive in chronological period order."""
+    idx1 = _period_order_map.get(p1)
+    idx2 = _period_order_map.get(p2)
+    if idx1 is not None and idx2 is not None:
+        return abs(idx1 - idx2) == 1
+    return False
 
 
 def _time_to_minutes(time_str: str) -> int:
@@ -230,6 +242,7 @@ def _build_sessions(subject_list: list, division_list: list, batch_list: list, d
                     "strength": div_strength,
                     "lab_type": "",
                     "index": i,
+                    "total_sessions": lec_count,
                 })
                 sid += 1
 
@@ -246,6 +259,7 @@ def _build_sessions(subject_list: list, division_list: list, batch_list: list, d
                         "strength": batch.get("strength", 30),
                         "lab_type": subj.get("lab_type") or "Computer Lab",
                         "index": i,
+                        "total_sessions": lab_count,
                     })
                     sid += 1
 
@@ -308,9 +322,16 @@ def _build_domain(session: dict, faculty_list: list, active_rooms: list, teachin
         elif pref == "Afternoon" and is_morning:
             pref_score = 2
 
-        # Balanced day distribution bias
-        day_bias = DAY_ORDER.get(day, 0) * 0.1
-        return pref_score + day_bias
+        # Balanced day distribution:
+        # Distribute lectures of each subject across distinct days with hash offset
+        num_days = max(1, len(_active_days))
+        total_s = max(1, session.get("total_sessions", 3))
+        subj_hash = sum(ord(c) for c in session["subject"])
+        ideal_day_idx = (int(session.get("index", 0) * (num_days / total_s)) + subj_hash) % num_days
+        curr_day_idx = _day_order.get(day, 0)
+        day_dist = min(abs(curr_day_idx - ideal_day_idx), num_days - abs(curr_day_idx - ideal_day_idx))
+
+        return pref_score + (day_dist * 2.5)
 
     domain.sort(key=sort_key)
     return domain
@@ -329,16 +350,22 @@ def _is_valid(session: dict, slot: tuple, room: dict, faculty: dict, assignment:
     5. A batch cannot have two classes at the same time.
     6. Parallel lab batches of same division cannot clash on batch, faculty, or room.
     7. No division lecture while a lab batch is scheduled, and vice versa.
+    8. No back-to-back duplicate lecture of the same subject on the same day for same division.
+    9. Even distribution: division cannot have more than ceil(total_sessions / num_days) of same subject on same day.
+    10. Faculty fatigue limit: faculty cannot teach > 3 consecutive periods on the same day.
     """
     day, period = slot
 
+    same_fac_consec = 0
+
     for assigned_id, (a_slot, a_room, a_faculty) in assignment.items():
         a_day, a_period = a_slot
-        if a_day == day and a_period == period:
-            a_session = _session_lookup.get(assigned_id)
-            if not a_session:
-                continue
+        a_session = _session_lookup.get(assigned_id)
+        if not a_session:
+            continue
 
+        # Check same slot clashes
+        if a_day == day and a_period == period:
             # Constraint 1: Faculty clash
             if a_faculty.get("code") == faculty.get("code"):
                 return False
@@ -356,6 +383,37 @@ def _is_valid(session: dict, slot: tuple, room: dict, faculty: dict, assignment:
                 if a_session.get("batch") == session.get("batch"):
                     return False
                 # If different batches of the same division (e.g. A1 and A2), they CAN run in parallel in different labs with different faculty!
+
+        # Constraint 8: Same day division checks for theory lectures
+        if a_day == day and a_session["division"] == session["division"]:
+            if not session.get("is_lab") and not a_session.get("is_lab"):
+                if a_session["subject"] == session["subject"]:
+                    # Never consecutive periods (no back-to-back same class)
+                    if _are_periods_consecutive(a_period, period):
+                        return False
+
+        # Constraint 10: Faculty consecutive fatigue check on same day
+        if a_day == day and a_faculty.get("code") == faculty.get("code"):
+            if _are_periods_consecutive(a_period, period):
+                same_fac_consec += 1
+                if same_fac_consec >= 3:
+                    return False
+
+    # Constraint 9: Enforce daily lecture limit per subject for a division
+    if not session.get("is_lab"):
+        total_s = session.get("total_sessions", 3)
+        num_days = max(1, len(_active_days))
+        max_daily = max(1, (total_s + num_days - 1) // num_days)
+        same_day_count = sum(
+            1 for aid, (aslot, _, _) in assignment.items()
+            if aslot[0] == day and
+               _session_lookup.get(aid) and
+               _session_lookup[aid]["division"] == session["division"] and
+               _session_lookup[aid]["subject"] == session["subject"] and
+               not _session_lookup[aid].get("is_lab")
+        )
+        if same_day_count >= max_daily:
+            return False
 
     return True
 
@@ -498,25 +556,34 @@ def generate_timetable(
     time_slots: list = None,
     resource_config: dict = None,
     department: str = "CSE",
-    approved_sharing: list = None
+    approved_sharing: list = None,
+    days: list = None
 ):
     """
     Main timetable generator with CSP + MRV + Backtracking.
     Returns: (success: bool, message: str, timetable_rows: list, conflicts: list, metadata: dict)
     """
-    global _session_lookup
+    global _session_lookup, _period_order_map, _active_days, _day_order
 
     if batch_list is None:
         batch_list = []
     if approved_sharing is None:
         approved_sharing = []
 
+    if days:
+        _active_days = list(days)
+    else:
+        _active_days = list(DAYS)
+    _day_order = {d: i for i, d in enumerate(_active_days)}
+
     # Standardize time slots: only TEACHING slots are schedulable
     if not time_slots:
         time_slots = DEFAULT_SCHEDULE
 
+    _period_order_map = {slot["period"]: idx for idx, slot in enumerate(time_slots)}
+
     teaching_slots = []
-    for d in DAYS:
+    for d in _active_days:
         for slot in time_slots:
             if slot.get("type") == "TEACHING":
                 teaching_slots.append((d, slot["period"], slot.get("is_morning", False)))
@@ -590,7 +657,7 @@ def generate_timetable(
             is_morning = any(slot[2] for slot in teaching_slots if slot[0] == day and slot[1] == period)
             timetable_rows.append({
                 "day": day,
-                "day_order": DAY_ORDER.get(day, 99),
+                "day_order": _day_order.get(day, 99),
                 "period": period,
                 "is_morning": is_morning,
                 "department": department,
@@ -603,7 +670,7 @@ def generate_timetable(
                 "is_lab": s["is_lab"]
             })
 
-    timetable_rows.sort(key=lambda r: (r["day_order"], r["period"], r["section"], r.get("batch") or ""))
+    timetable_rows.sort(key=lambda r: (r["day_order"], _period_order_map.get(r["period"], 99), r["section"], r.get("batch") or ""))
 
     summary_msg = (
         f"Timetable generated successfully! {len(timetable_rows)} sessions scheduled "

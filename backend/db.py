@@ -821,6 +821,27 @@ def save_time_slots(slots_list: list):
     _memory_store["time_slots"] = list(slots_list)
     _save_local_store(_memory_store)
 
+DEFAULT_TIME_SETTINGS = {
+    "start_time": "09:00",
+    "period_duration": 60,
+    "morning_periods": 2,
+    "short_break_1_duration": 10,
+    "pre_lunch_periods": 2,
+    "lunch_duration": 40,
+    "afternoon_periods": 2,
+    "short_break_2_duration": 10,
+    "final_periods": 1,
+    "working_days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+}
+
+def get_time_settings():
+    return _memory_store.get("time_settings", DEFAULT_TIME_SETTINGS)
+
+def save_time_settings(settings: dict):
+    _memory_store["time_settings"] = dict(settings)
+    _save_local_store(_memory_store)
+    return _memory_store["time_settings"]
+
 # ---------------------------------------------------------------------------
 # TIMETABLE & VERSIONS
 # ---------------------------------------------------------------------------

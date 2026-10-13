@@ -1457,33 +1457,58 @@ function ResourcesView({ department, currentRole, notify }) {
 // =============================================================
 // 6. MASTER TIMETABLE VIEW (Master + Multiple Filtered Views)
 // =============================================================
+// =============================================================
+// 6. MASTER TIMETABLE VIEW (Matches Reference College Formats)
+// =============================================================
 function TimetableView({ department, currentRole, notify }) {
   const [timetable, setTimetable] = useState([]);
-  const [viewFilter, setViewFilter] = useState("MASTER"); // MASTER, DIVISION, BATCH, FACULTY, CLASSROOM, LAB
-  const [selectedEntity, setSelectedEntity] = useState("ALL");
+  const [timeSlots, setTimeSlots] = useState([]);
+  const [timeSettings, setTimeSettings] = useState(null);
+  const [divisions, setDivisions] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [faculty, setFaculty] = useState([]);
+  const [rooms, setRooms] = useState([]);
+
+  // View Mode: "MASTER" (All classes/years - Image 3), "DIVISION" (College layout - Image 2), "FACULTY", "ROOM"
+  const [viewFilter, setViewFilter] = useState("MASTER");
+  const [selectedDivision, setSelectedDivision] = useState("");
+  const [selectedFaculty, setSelectedFaculty] = useState("");
+  const [selectedRoom, setSelectedRoom] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
-  const PERIODS = [
-    { label: "09:00-10:00", type: "TEACHING" },
-    { label: "10:00-11:00", type: "TEACHING" },
-    { label: "11:00-11:15", type: "SHORT_BREAK" },
-    { label: "11:15-12:15", type: "TEACHING" },
-    { label: "12:15-13:00", type: "LUNCH" },
-    { label: "13:00-14:00", type: "TEACHING" },
-    { label: "14:00-15:00", type: "TEACHING" },
-    { label: "15:00-15:15", type: "SHORT_BREAK" },
-    { label: "15:15-16:15", type: "TEACHING" },
-  ];
-
   useEffect(() => {
-    loadTimetable();
+    loadAll();
   }, [department]);
 
-  const loadTimetable = async () => {
+  const loadAll = async () => {
     try {
-      const data = await api.fetchTimetable(department);
-      setTimetable(data || []);
+      const [ttData, slotsData, settingsData, divData, subData, facData, roomData] = await Promise.all([
+        api.fetchTimetable(department),
+        api.fetchTimeSlots(),
+        api.fetchTimeSettings(),
+        api.fetchDivisions(department),
+        api.fetchSubjects(department),
+        api.fetchFaculty(department),
+        api.fetchRooms(department)
+      ]);
+
+      setTimetable(ttData || []);
+      setTimeSlots(slotsData || []);
+      setTimeSettings(settingsData);
+      setDivisions(divData || []);
+      setSubjects(subData || []);
+      setFaculty(facData || []);
+      setRooms(roomData || []);
+
+      if (divData && divData.length > 0) {
+        setSelectedDivision(divData[0].name);
+      }
+      if (facData && facData.length > 0) {
+        setSelectedFaculty(facData[0].code);
+      }
+      if (roomData && roomData.length > 0) {
+        setSelectedRoom(roomData[0].name);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -1496,6 +1521,7 @@ function TimetableView({ department, currentRole, notify }) {
       if (res.success) {
         notify(res.message, "success");
         setTimetable(res.timetable);
+        loadAll();
       } else {
         notify(res.message || "Scheduling dead-end reached.", "error");
       }
@@ -1506,53 +1532,71 @@ function TimetableView({ department, currentRole, notify }) {
     }
   };
 
-  // Distinct lists from the single source of truth
-  const divisions = Array.from(new Set(timetable.map((t) => t.section))).filter(Boolean);
-  const batches = Array.from(new Set(timetable.map((t) => t.batch))).filter(Boolean);
-  const faculties = Array.from(new Set(timetable.map((t) => t.faculty_code))).filter(Boolean);
-  const classrooms = Array.from(new Set(timetable.filter((t) => !t.is_lab).map((t) => t.room))).filter(Boolean);
-  const labs = Array.from(new Set(timetable.filter((t) => t.is_lab).map((t) => t.room))).filter(Boolean);
+  // Determine working days from settings or timetable or default
+  const activeDays = (timeSettings && timeSettings.working_days && timeSettings.working_days.length > 0)
+    ? timeSettings.working_days
+    : ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-  // Filtered session checker
-  const filterSession = (s) => {
-    if (viewFilter === "MASTER") return true;
-    if (viewFilter === "DIVISION") return selectedEntity === "ALL" || s.section === selectedEntity;
-    if (viewFilter === "BATCH") return selectedEntity === "ALL" || s.batch === selectedEntity;
-    if (viewFilter === "FACULTY") return selectedEntity === "ALL" || s.faculty_code === selectedEntity;
-    if (viewFilter === "CLASSROOM") return selectedEntity === "ALL" || s.room === selectedEntity;
-    if (viewFilter === "LAB") return selectedEntity === "ALL" || s.room === selectedEntity;
-    return true;
-  };
+  // Sort slots by order_index
+  const orderedSlots = [...timeSlots].sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+
+  // Build Course Legend for the currently viewed division
+  const curDivObj = divisions.find(d => d.name === selectedDivision) || divisions[0];
+  const divTimetableSessions = timetable.filter(t => t.section === (curDivObj?.name || selectedDivision));
+  const distinctSubjectNames = Array.from(new Set(divTimetableSessions.map(t => t.subject)));
+
+  const courseLegend = distinctSubjectNames.map((sName, idx) => {
+    const subObj = subjects.find(s => s.name === sName);
+    const subSessions = divTimetableSessions.filter(t => t.subject === sName);
+    const facCodes = Array.from(new Set(subSessions.map(t => t.faculty_code)));
+    const facNames = facCodes.map(fc => {
+      const fObj = faculty.find(f => f.code === fc);
+      return fObj ? `${fObj.name} (${fc})` : fc;
+    }).join(", ");
+
+    return {
+      srNo: idx + 1,
+      abbr: subObj?.code || sName.slice(0, 4).toUpperCase(),
+      code: subObj?.code || `BTCSE03${idx + 1}`,
+      title: sName,
+      facultyName: facNames || "Department Faculty",
+    };
+  });
 
   return (
     <div>
+      {/* Top Filter and Action Bar */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px" }}>
-        {/* View Filter Switchers (Requirement 15) */}
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-          {[
-            { id: "MASTER", label: "Master Timetable" },
-            { id: "DIVISION", label: "Division-wise" },
-            { id: "BATCH", label: "Batch-wise" },
-            { id: "FACULTY", label: "Faculty-wise" },
-            { id: "CLASSROOM", label: "Classroom-wise" },
-            { id: "LAB", label: "Lab-wise" },
-          ].map((vf) => (
-            <button
-              key={vf.id}
-              className={`filter-pill ${viewFilter === vf.id ? "active" : ""}`}
-              onClick={() => {
-                setViewFilter(vf.id);
-                setSelectedEntity("ALL");
-              }}
-            >
-              {vf.label}
-            </button>
-          ))}
+          <button
+            className={`filter-pill ${viewFilter === "MASTER" ? "active" : ""}`}
+            onClick={() => setViewFilter("MASTER")}
+          >
+            🏛️ Master Timetable (All Classes/Years)
+          </button>
+          <button
+            className={`filter-pill ${viewFilter === "DIVISION" ? "active" : ""}`}
+            onClick={() => setViewFilter("DIVISION")}
+          >
+            📋 Class / Division Timetable (College Format)
+          </button>
+          <button
+            className={`filter-pill ${viewFilter === "FACULTY" ? "active" : ""}`}
+            onClick={() => setViewFilter("FACULTY")}
+          >
+            👨‍🏫 Faculty-wise Timetable
+          </button>
+          <button
+            className={`filter-pill ${viewFilter === "ROOM" ? "active" : ""}`}
+            onClick={() => setViewFilter("ROOM")}
+          >
+            🏫 Room / Lab Occupancy
+          </button>
         </div>
 
         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           <button className="btn btn-secondary" onClick={() => window.print()}>
-            🖨️ Print / PDF
+            🖨️ Print / Save PDF
           </button>
           <a href={api.getExportTimetableUrl(department)} className="btn btn-secondary" target="_blank" rel="noreferrer">
             📥 Export Excel
@@ -1563,88 +1607,433 @@ function TimetableView({ department, currentRole, notify }) {
         </div>
       </div>
 
-      {/* Sub-Entity Selector when a specific view is chosen */}
-      {viewFilter !== "MASTER" && (
+      {/* Sub-selector depending on view mode */}
+      {viewFilter === "DIVISION" && (
         <div style={{ background: "#fff", padding: "10px 16px", borderRadius: "8px", border: "1px solid #e2e8f0", marginBottom: "16px", display: "flex", alignItems: "center", gap: "10px" }}>
-          <label style={{ fontSize: "0.85rem", fontWeight: "600" }}>
-            Filter {viewFilter.charAt(0) + viewFilter.slice(1).toLowerCase()}:
-          </label>
+          <label style={{ fontSize: "0.85rem", fontWeight: "700" }}>Select Division / Class:</label>
           <select
-            value={selectedEntity}
-            onChange={(e) => setSelectedEntity(e.target.value)}
-            style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #ccc" }}
+            value={selectedDivision}
+            onChange={(e) => setSelectedDivision(e.target.value)}
+            style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #ccc", fontWeight: "600" }}
           >
-            <option value="ALL">All {viewFilter}s</option>
-            {viewFilter === "DIVISION" && divisions.map((d) => <option key={d} value={d}>{d}</option>)}
-            {viewFilter === "BATCH" && batches.map((b) => <option key={b} value={b}>{b}</option>)}
-            {viewFilter === "FACULTY" && faculties.map((f) => <option key={f} value={f}>{f}</option>)}
-            {viewFilter === "CLASSROOM" && classrooms.map((r) => <option key={r} value={r}>{r}</option>)}
-            {viewFilter === "LAB" && labs.map((l) => <option key={l} value={l}>{l}</option>)}
+            {divisions.map((d) => (
+              <option key={d.name} value={d.name}>
+                {d.name} ({d.year || "Second Year"} - {d.department_code || department})
+              </option>
+            ))}
           </select>
         </div>
       )}
 
-      {/* Timetable Grid with Breaks & Lunch visibly highlighted */}
-      <div className="timetable-grid">
-        <div className="grid-cell grid-header">Time / Day</div>
-        {DAYS.map((d) => (
-          <div key={d} className="grid-cell grid-header">{d}</div>
-        ))}
+      {viewFilter === "FACULTY" && (
+        <div style={{ background: "#fff", padding: "10px 16px", borderRadius: "8px", border: "1px solid #e2e8f0", marginBottom: "16px", display: "flex", alignItems: "center", gap: "10px" }}>
+          <label style={{ fontSize: "0.85rem", fontWeight: "700" }}>Select Faculty Member:</label>
+          <select
+            value={selectedFaculty}
+            onChange={(e) => setSelectedFaculty(e.target.value)}
+            style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #ccc", fontWeight: "600" }}
+          >
+            {faculty.map((f) => (
+              <option key={f.code} value={f.code}>
+                {f.name} ({f.code}) - {f.designation}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
-        {PERIODS.map((p) => {
-          if (p.type !== "TEACHING") {
-            return (
-              <React.Fragment key={p.label}>
-                <div className="grid-cell" style={{ fontWeight: "600" }}>{p.label}</div>
-                <div className="grid-cell grid-break" style={{ gridColumn: "span 5" }}>
-                  {p.type === "LUNCH" ? "🥗 LUNCH BREAK (12:15 - 13:00)" : "☕ SHORT BREAK"}
-                </div>
-              </React.Fragment>
-            );
-          }
+      {viewFilter === "ROOM" && (
+        <div style={{ background: "#fff", padding: "10px 16px", borderRadius: "8px", border: "1px solid #e2e8f0", marginBottom: "16px", display: "flex", alignItems: "center", gap: "10px" }}>
+          <label style={{ fontSize: "0.85rem", fontWeight: "700" }}>Select Classroom / Laboratory:</label>
+          <select
+            value={selectedRoom}
+            onChange={(e) => setSelectedRoom(e.target.value)}
+            style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #ccc", fontWeight: "600" }}
+          >
+            {rooms.map((r) => (
+              <option key={r.name} value={r.name}>
+                {r.name} ({r.type} - Cap: {r.capacity} {r.type === "Lab" ? `| ${r.num_pcs} PCs` : ""})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
-          return (
-            <React.Fragment key={p.label}>
-              <div className="grid-cell" style={{ fontWeight: "600" }}>{p.label}</div>
-              {DAYS.map((day) => {
-                const slotSessions = timetable.filter(
-                  (t) => t.day === day && t.period === p.label && filterSession(t)
-                );
+      {/* VIEW 1: MASTER TIMETABLE (All Classes & Years - Matches Image 3) */}
+      {viewFilter === "MASTER" && (
+        <div className="college-container">
+          <div className="college-header">
+            <h2>MASTER TIME TABLE (ACADEMIC YEAR 2026 - 2027)</h2>
+            <h3>Department of {department === "CSE" ? "Computer Science and Engineering" : department}</h3>
+            <div className="academic-year-tag">All Academic Classes, Years & Divisions</div>
+          </div>
 
-                return (
-                  <div key={day} className="grid-cell">
-                    {slotSessions.map((s, idx) => (
-                      <div
-                        key={idx}
-                        className="grid-session"
-                        style={{
-                          padding: "6px",
-                          marginBottom: "4px",
-                          borderRadius: "4px",
-                          borderLeft: s.is_lab ? "3px solid #8b5cf6" : "3px solid #2563eb",
-                          background: s.is_lab ? "#f5f3ff" : "#eff6ff"
-                        }}
-                      >
-                        {s.is_lab && (
-                          <div className="session-badge-lab">
-                            🔬 LAB {s.batch ? `(${s.batch})` : ""}
-                          </div>
+          <div className="college-table-wrapper">
+            <table className="college-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "65px" }}>Time / Day</th>
+                  <th style={{ width: "110px" }}>Class / Div</th>
+                  {orderedSlots.map((slot, idx) => (
+                    <th key={idx} style={{ minWidth: slot.type === "TEACHING" ? "110px" : "36px" }}>
+                      {slot.period}
+                      <span className="th-period-time">
+                        {slot.type === "LUNCH" ? "LUNCH" : slot.type === "SHORT_BREAK" ? "BREAK" : "LECTURE"}
+                      </span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {activeDays.map((day) => {
+                  const dayDivisions = divisions.length > 0 ? divisions : [{ name: "Division A", year: "Second Year" }];
+
+                  return dayDivisions.map((div, divIdx) => {
+                    return (
+                      <tr key={`${day}-${div.name}`}>
+                        {divIdx === 0 && (
+                          <td rowSpan={dayDivisions.length} className="cell-day">
+                            {day.toUpperCase().slice(0, 3)}
+                          </td>
                         )}
-                        <div style={{ fontWeight: "700", color: "#0f172a" }}>
-                          {s.subject} <span style={{ fontSize: "0.8rem", color: "#64748b" }}>({s.section})</span>
-                        </div>
-                        <div style={{ color: "#475569", fontSize: "0.78rem", marginTop: "2px" }}>
-                          📍 {s.room} | 👨‍🏫 <strong>{s.faculty_code}</strong>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
-            </React.Fragment>
-          );
-        })}
-      </div>
+                        <td className="cell-class">
+                          <strong>{div.year ? div.year.split(" ")[0].slice(0, 2).toUpperCase() : "SY"}</strong>
+                          <div style={{ fontSize: "0.75rem", color: "#64748b" }}>{div.name}</div>
+                        </td>
+
+                        {orderedSlots.map((slot, slotIdx) => {
+                          if (slot.type === "SHORT_BREAK" || slot.type === "LUNCH") {
+                            if (divIdx === 0) {
+                              return (
+                                <td
+                                  key={slotIdx}
+                                  rowSpan={dayDivisions.length}
+                                  className="break-col"
+                                >
+                                  {slot.type === "LUNCH" ? "L U N C H   B R E A K" : "S H O R T   B R E A K"}
+                                </td>
+                              );
+                            }
+                            return null;
+                          }
+
+                          // Teaching slot sessions for this day, slot, and division
+                          const slotSessions = timetable.filter(
+                            (t) => t.day === day && t.period === slot.period && t.section === div.name
+                          );
+
+                          if (!slotSessions || slotSessions.length === 0) {
+                            return <td key={slotIdx} style={{ color: "#cbd5e1" }}>-</td>;
+                          }
+
+                          // If batch lab sessions
+                          if (slotSessions[0].is_lab) {
+                            return (
+                              <td key={slotIdx} style={{ padding: 0 }}>
+                                <div className="cell-lab-container">
+                                  {slotSessions.map((ls, bIdx) => (
+                                    <div key={bIdx} className="cell-lab-batch">
+                                      <span className="batch-tag">{ls.batch || `B${bIdx + 1}`}</span>
+                                      <span className="course-tag">{ls.subject}</span>
+                                      <span className="fac-tag">{ls.faculty_code}</span>
+                                      <span className="room-tag">{ls.room}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </td>
+                            );
+                          }
+
+                          // Regular theory lecture
+                          const s = slotSessions[0];
+                          return (
+                            <td key={slotIdx}>
+                              <div className="cell-lecture">
+                                <div className="course-code">{s.subject}</div>
+                                <div className="fac-code">{s.faculty_code}</div>
+                                <div className="room-tag">{s.room}</div>
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  });
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="college-signatures">
+            <div className="sig-box"><div className="sig-line">HoD</div></div>
+            <div className="sig-box"><div className="sig-line">Dean</div></div>
+            <div className="sig-box"><div className="sig-line">Dean, Academics</div></div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 2: DIVISION / CLASS TIMETABLE (Official Format with Legend - Image 2) */}
+      {viewFilter === "DIVISION" && (
+        <div className="college-container">
+          <div className="college-header">
+            <h2>CLASS TIME TABLE (ACADEMIC YEAR 2026 - 2027)</h2>
+            <h3>Department of {department === "CSE" ? "Computer Science and Engineering" : department}</h3>
+            <div className="academic-year-tag">{curDivObj?.year || "Second Year"} - {selectedDivision} (Semester III)</div>
+          </div>
+
+          {/* Metadata Banner Box */}
+          <div className="college-meta-grid">
+            <div><strong>Department:</strong> {department === "CSE" ? "Computer Science & Engineering" : department}</div>
+            <div><strong>Academic Year:</strong> 2026-27</div>
+            <div><strong>Class / Div:</strong> {curDivObj?.year || "Second Year"} - {selectedDivision} (Sem III)</div>
+            <div><strong>Semester:</strong> Semester III</div>
+            <div><strong>HoD:</strong> Mr. Naresh A. Kamble</div>
+            <div><strong>Status:</strong> Approved Official Schedule</div>
+          </div>
+
+          <div className="college-table-wrapper">
+            <table className="college-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "80px" }}>Time/Day</th>
+                  <th style={{ width: "60px" }}>Class</th>
+                  {orderedSlots.map((slot, idx) => (
+                    <th key={idx} style={{ minWidth: slot.type === "TEACHING" ? "105px" : "36px" }}>
+                      {slot.period}
+                      <span className="th-period-time">
+                        {slot.type === "LUNCH" ? "LUNCH" : slot.type === "SHORT_BREAK" ? "BREAK" : ""}
+                      </span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {activeDays.map((day) => (
+                  <tr key={day}>
+                    <td className="cell-day">{day.toUpperCase().slice(0, 3)}</td>
+                    <td className="cell-class">
+                      {curDivObj?.year ? curDivObj.year.split(" ")[0].slice(0, 2).toUpperCase() : "SY"}
+                    </td>
+
+                    {orderedSlots.map((slot, slotIdx) => {
+                      if (slot.type === "SHORT_BREAK" || slot.type === "LUNCH") {
+                        return (
+                          <td key={slotIdx} className="break-col">
+                            {slot.type === "LUNCH" ? "LUNCH" : "BREAK"}
+                          </td>
+                        );
+                      }
+
+                      const slotSessions = timetable.filter(
+                        (t) => t.day === day && t.period === slot.period && t.section === selectedDivision
+                      );
+
+                      if (!slotSessions || slotSessions.length === 0) {
+                        return <td key={slotIdx} style={{ color: "#cbd5e1" }}>-</td>;
+                      }
+
+                      if (slotSessions[0].is_lab) {
+                        return (
+                          <td key={slotIdx} style={{ padding: 0 }}>
+                            <div className="cell-lab-container">
+                              {slotSessions.map((ls, bIdx) => (
+                                <div key={bIdx} className="cell-lab-batch">
+                                  <span className="batch-tag">{ls.batch || `B${bIdx + 1}`}</span>
+                                  <span className="course-tag">{ls.subject}</span>
+                                  <span className="fac-tag">{ls.faculty_code}</span>
+                                  <span className="room-tag">{ls.room}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                        );
+                      }
+
+                      const s = slotSessions[0];
+                      return (
+                        <td key={slotIdx}>
+                          <div className="cell-lecture">
+                            <div className="course-code">{s.subject}</div>
+                            <div className="fac-code">{s.faculty_code}</div>
+                            <div className="room-tag">{s.room}</div>
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Course Abbreviation & Faculty Legend Table (from Image 2) */}
+          <div style={{ marginTop: "24px" }}>
+            <h4 style={{ marginBottom: "10px", fontSize: "0.9rem", color: "#1e293b" }}>
+              📖 Course Abbreviations & Qualified Faculty Code Legend:
+            </h4>
+            <div className="table-container" style={{ margin: 0 }}>
+              <table style={{ fontSize: "0.85rem" }}>
+                <thead>
+                  <tr style={{ background: "#f8fafc" }}>
+                    <th style={{ width: "60px" }}>Sr. No</th>
+                    <th style={{ width: "160px" }}>Course Abbreviation</th>
+                    <th style={{ width: "140px" }}>Course Code</th>
+                    <th>Course Title</th>
+                    <th>Assigned Faculty Name & Code</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {courseLegend.map((c) => (
+                    <tr key={c.srNo}>
+                      <td>{c.srNo}</td>
+                      <td><strong style={{ color: "#1e40af" }}>{c.abbr}</strong></td>
+                      <td>{c.code}</td>
+                      <td><strong>{c.title}</strong></td>
+                      <td>{c.facultyName}</td>
+                    </tr>
+                  ))}
+                  {courseLegend.length === 0 && (
+                    <tr>
+                      <td colSpan="5" style={{ textAlign: "center", color: "#64748b" }}>
+                        No sessions scheduled yet. Click "Generate Timetable" to populate schedule.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ marginTop: "12px", fontSize: "0.82rem", color: "#475569" }}>
+              <strong>Class Coordinator:</strong> Ms. Rutuja R. Dakare (Contact: 9156418849)
+            </div>
+          </div>
+
+          <div className="college-signatures">
+            <div className="sig-box"><div className="sig-line">HoD</div></div>
+            <div className="sig-box"><div className="sig-line">Dean</div></div>
+            <div className="sig-box"><div className="sig-line">Dean, Academics</div></div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 3: FACULTY-WISE TIMETABLE */}
+      {viewFilter === "FACULTY" && (
+        <div className="college-container">
+          <div className="college-header">
+            <h2>Individual Faculty Teaching Schedule</h2>
+            <h3>
+              {faculty.find((f) => f.code === selectedFaculty)?.name || selectedFaculty} (Code: {selectedFaculty})
+            </h3>
+            <div className="academic-year-tag">Department of {department} | Academic Year 2026 - 2027</div>
+          </div>
+
+          <div className="college-table-wrapper">
+            <table className="college-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "90px" }}>Day</th>
+                  {orderedSlots.map((slot, idx) => (
+                    <th key={idx} style={{ minWidth: slot.type === "TEACHING" ? "110px" : "36px" }}>
+                      {slot.period}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {activeDays.map((day) => (
+                  <tr key={day}>
+                    <td className="cell-day">{day}</td>
+                    {orderedSlots.map((slot, sIdx) => {
+                      if (slot.type !== "TEACHING") {
+                        return <td key={sIdx} className="break-col">{slot.type === "LUNCH" ? "LUNCH" : "BREAK"}</td>;
+                      }
+
+                      const facSessions = timetable.filter(
+                        (t) => t.day === day && t.period === slot.period && t.faculty_code === selectedFaculty
+                      );
+
+                      if (facSessions.length === 0) {
+                        return <td key={sIdx} style={{ color: "#cbd5e1" }}>-</td>;
+                      }
+
+                      const s = facSessions[0];
+                      return (
+                        <td key={sIdx}>
+                          <div className="cell-lecture">
+                            <div className="course-code">{s.subject}</div>
+                            <div className="fac-code">{s.section} {s.batch ? `(${s.batch})` : ""}</div>
+                            <div className="room-tag">📍 {s.room}</div>
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 4: ROOM / LAB OCCUPANCY TIMETABLE */}
+      {viewFilter === "ROOM" && (
+        <div className="college-container">
+          <div className="college-header">
+            <h2>Resource Occupancy Matrix: {selectedRoom}</h2>
+            <h3>
+              {rooms.find((r) => r.name === selectedRoom)?.type || "Classroom"} - Capacity:{" "}
+              {rooms.find((r) => r.name === selectedRoom)?.capacity || 75} seats
+            </h3>
+            <div className="academic-year-tag">Department of {department} | Academic Year 2026 - 2027</div>
+          </div>
+
+          <div className="college-table-wrapper">
+            <table className="college-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "90px" }}>Day</th>
+                  {orderedSlots.map((slot, idx) => (
+                    <th key={idx} style={{ minWidth: slot.type === "TEACHING" ? "110px" : "36px" }}>
+                      {slot.period}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {activeDays.map((day) => (
+                  <tr key={day}>
+                    <td className="cell-day">{day}</td>
+                    {orderedSlots.map((slot, sIdx) => {
+                      if (slot.type !== "TEACHING") {
+                        return <td key={sIdx} className="break-col">{slot.type === "LUNCH" ? "LUNCH" : "BREAK"}</td>;
+                      }
+
+                      const roomSessions = timetable.filter(
+                        (t) => t.day === day && t.period === slot.period && t.room === selectedRoom
+                      );
+
+                      if (roomSessions.length === 0) {
+                        return <td key={sIdx} style={{ color: "#10b981", fontWeight: "600" }}>✓ Free</td>;
+                      }
+
+                      const s = roomSessions[0];
+                      return (
+                        <td key={sIdx} style={{ background: "#fee2e2" }}>
+                          <div className="cell-lecture">
+                            <div className="course-code">{s.subject}</div>
+                            <div className="fac-code">{s.section} {s.batch ? `(${s.batch})` : ""}</div>
+                            <div className="room-tag">👨‍🏫 {s.faculty_code}</div>
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1916,10 +2305,32 @@ function ReportsView({ department }) {
 }
 
 // =============================================================
-// 11. TIME SLOTS & SETTINGS VIEW (Requirement 21)
+// 11. TIME SLOTS & SETTINGS VIEW (Requirement 21 - Configurable Break/Class Times)
 // =============================================================
 function SettingsView({ notify }) {
   const [slots, setSlots] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // Customization Form State
+  const [startTime, setStartTime] = useState("09:00");
+  const [periodDuration, setPeriodDuration] = useState(60);
+  const [morningPeriods, setMorningPeriods] = useState(2);
+  const [shortBreak1Duration, setShortBreak1Duration] = useState(10);
+  const [preLunchPeriods, setPreLunchPeriods] = useState(2);
+  const [lunchDuration, setLunchDuration] = useState(40);
+  const [afternoonPeriods, setAfternoonPeriods] = useState(2);
+  const [shortBreak2Duration, setShortBreak2Duration] = useState(10);
+  const [finalPeriods, setFinalPeriods] = useState(1);
+  const [workingDays, setWorkingDays] = useState([
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ]);
+
+  const ALL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
   useEffect(() => {
     load();
@@ -1928,48 +2339,491 @@ function SettingsView({ notify }) {
   const load = async () => {
     const data = await api.fetchTimeSlots();
     setSlots(data || []);
+    const cfg = await api.fetchTimeSettings();
+    if (cfg && cfg.start_time) {
+      setStartTime(cfg.start_time || "09:00");
+      setPeriodDuration(cfg.period_duration || 60);
+      setMorningPeriods(cfg.morning_periods || 2);
+      setShortBreak1Duration(cfg.short_break_1_duration || 10);
+      setPreLunchPeriods(cfg.pre_lunch_periods || 2);
+      setLunchDuration(cfg.lunch_duration || 40);
+      setAfternoonPeriods(cfg.afternoon_periods || 2);
+      setShortBreak2Duration(cfg.short_break_2_duration || 10);
+      setFinalPeriods(cfg.final_periods || 1);
+      if (cfg.working_days && cfg.working_days.length > 0) {
+        setWorkingDays(cfg.working_days);
+      }
+    }
+  };
+
+  const toMinutes = (timeStr) => {
+    const [h, m] = timeStr.split(":").map(Number);
+    return h * 60 + m;
+  };
+
+  const toTimeString = (mins) => {
+    const h = Math.floor(mins / 60) % 24;
+    const m = mins % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  };
+
+  const handleGenerateSlots = () => {
+    let currentMins = toMinutes(startTime);
+    let order = 1;
+    const newSlots = [];
+
+    // Helper to add slot
+    const addSlot = (duration, type, isMorning) => {
+      const startStr = toTimeString(currentMins);
+      currentMins += Number(duration);
+      const endStr = toTimeString(currentMins);
+      newSlots.push({
+        order_index: order++,
+        period: `${startStr}-${endStr}`,
+        start_time: startStr,
+        end_time: endStr,
+        type: type,
+        is_morning: isMorning,
+      });
+    };
+
+    // 1. Morning Periods
+    for (let i = 0; i < Number(morningPeriods); i++) {
+      addSlot(periodDuration, "TEACHING", true);
+    }
+
+    // 2. Short Break 1
+    if (Number(shortBreak1Duration) > 0) {
+      addSlot(shortBreak1Duration, "SHORT_BREAK", true);
+    }
+
+    // 3. Pre-Lunch Periods
+    for (let i = 0; i < Number(preLunchPeriods); i++) {
+      addSlot(periodDuration, "TEACHING", true);
+    }
+
+    // 4. Lunch Break
+    if (Number(lunchDuration) > 0) {
+      addSlot(lunchDuration, "LUNCH", false);
+    }
+
+    // 5. Afternoon Periods
+    for (let i = 0; i < Number(afternoonPeriods); i++) {
+      addSlot(periodDuration, "TEACHING", false);
+    }
+
+    // 6. Short Break 2
+    if (Number(shortBreak2Duration) > 0) {
+      addSlot(shortBreak2Duration, "SHORT_BREAK", false);
+    }
+
+    // 7. Final Periods
+    for (let i = 0; i < Number(finalPeriods); i++) {
+      addSlot(periodDuration, "TEACHING", false);
+    }
+
+    setSlots(newSlots);
+    notify(`Generated ${newSlots.length} schedule periods with configured break & lecture times!`);
+  };
+
+  const handleLoadDYPatilPreset = () => {
+    setStartTime("09:00");
+    setPeriodDuration(60);
+    setMorningPeriods(2);
+    setShortBreak1Duration(10);
+    setPreLunchPeriods(2);
+    setLunchDuration(40);
+    setAfternoonPeriods(2);
+    setShortBreak2Duration(10);
+    setFinalPeriods(1);
+    setWorkingDays(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]);
+
+    // Directly build the matching array
+    const dypSlots = [
+      { order_index: 1, period: "09:00-10:00", start_time: "09:00", end_time: "10:00", type: "TEACHING", is_morning: true },
+      { order_index: 2, period: "10:00-11:00", start_time: "10:00", end_time: "11:00", type: "TEACHING", is_morning: true },
+      { order_index: 3, period: "11:00-11:10", start_time: "11:00", end_time: "11:10", type: "SHORT_BREAK", is_morning: true },
+      { order_index: 4, period: "11:10-12:10", start_time: "11:10", end_time: "12:10", type: "TEACHING", is_morning: true },
+      { order_index: 5, period: "12:10-01:10", start_time: "12:10", end_time: "13:10", type: "TEACHING", is_morning: true },
+      { order_index: 6, period: "01:10-01:50", start_time: "13:10", end_time: "13:50", type: "LUNCH", is_morning: false },
+      { order_index: 7, period: "01:50-02:50", start_time: "13:50", end_time: "14:50", type: "TEACHING", is_morning: false },
+      { order_index: 8, period: "02:50-03:50", start_time: "14:50", end_time: "15:50", type: "TEACHING", is_morning: false },
+      { order_index: 9, period: "03:50-04:00", start_time: "15:50", end_time: "16:00", type: "SHORT_BREAK", is_morning: false },
+      { order_index: 10, period: "04:00-05:00", start_time: "16:00", end_time: "17:00", type: "TEACHING", is_morning: false },
+    ];
+    setSlots(dypSlots);
+    notify("Loaded standard 6-Day college bell schedule!");
+  };
+
+  const handleLoadStandard5DayPreset = () => {
+    setStartTime("09:00");
+    setPeriodDuration(60);
+    setMorningPeriods(2);
+    setShortBreak1Duration(15);
+    setPreLunchPeriods(1);
+    setLunchDuration(45);
+    setAfternoonPeriods(2);
+    setShortBreak2Duration(15);
+    setFinalPeriods(1);
+    setWorkingDays(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]);
+
+    const stdSlots = [
+      { order_index: 1, period: "09:00-10:00", start_time: "09:00", end_time: "10:00", type: "TEACHING", is_morning: true },
+      { order_index: 2, period: "10:00-11:00", start_time: "10:00", end_time: "11:00", type: "TEACHING", is_morning: true },
+      { order_index: 3, period: "11:00-11:15", start_time: "11:00", end_time: "11:15", type: "SHORT_BREAK", is_morning: true },
+      { order_index: 4, period: "11:15-12:15", start_time: "11:15", end_time: "12:15", type: "TEACHING", is_morning: true },
+      { order_index: 5, period: "12:15-13:00", start_time: "12:15", end_time: "13:00", type: "LUNCH", is_morning: false },
+      { order_index: 6, period: "13:00-14:00", start_time: "13:00", end_time: "14:00", type: "TEACHING", is_morning: false },
+      { order_index: 7, period: "14:00-15:00", start_time: "14:00", end_time: "15:00", type: "TEACHING", is_morning: false },
+      { order_index: 8, period: "15:00-15:15", start_time: "15:00", end_time: "15:15", type: "SHORT_BREAK", is_morning: false },
+      { order_index: 9, period: "15:15-16:15", start_time: "15:15", end_time: "16:15", type: "TEACHING", is_morning: false },
+    ];
+    setSlots(stdSlots);
+    notify("Loaded standard 5-Day engineering schedule!");
+  };
+
+  const handleUpdateSlotField = (idx, field, value) => {
+    const updated = [...slots];
+    updated[idx][field] = value;
+    if (field === "start_time" || field === "end_time") {
+      updated[idx].period = `${updated[idx].start_time}-${updated[idx].end_time}`;
+    }
+    setSlots(updated);
+  };
+
+  const handleDeleteSlot = (idx) => {
+    const updated = slots.filter((_, i) => i !== idx);
+    updated.forEach((s, i) => (s.order_index = i + 1));
+    setSlots(updated);
+  };
+
+  const handleAddCustomSlot = () => {
+    const lastSlot = slots[slots.length - 1];
+    const startStr = lastSlot ? lastSlot.end_time : "17:00";
+    const endMins = toMinutes(startStr) + 60;
+    const endStr = toTimeString(endMins);
+    const newSlot = {
+      order_index: slots.length + 1,
+      period: `${startStr}-${endStr}`,
+      start_time: startStr,
+      end_time: endStr,
+      type: "TEACHING",
+      is_morning: false,
+    };
+    setSlots([...slots, newSlot]);
+  };
+
+  const toggleDay = (day) => {
+    if (workingDays.includes(day)) {
+      if (workingDays.length <= 1) {
+        notify("At least 1 working day is required", "error");
+        return;
+      }
+      setWorkingDays(workingDays.filter((d) => d !== day));
+    } else {
+      setWorkingDays([...workingDays, day]);
+    }
+  };
+
+  const handleSaveAll = async () => {
+    setLoading(true);
+    try {
+      const cfgPayload = {
+        start_time: startTime,
+        period_duration: Number(periodDuration),
+        morning_periods: Number(morningPeriods),
+        short_break_1_duration: Number(shortBreak1Duration),
+        pre_lunch_periods: Number(preLunchPeriods),
+        lunch_duration: Number(lunchDuration),
+        afternoon_periods: Number(afternoonPeriods),
+        short_break_2_duration: Number(shortBreak2Duration),
+        final_periods: Number(finalPeriods),
+        working_days: workingDays,
+      };
+
+      await api.saveTimeSettings(cfgPayload);
+      await api.saveTimeSlots(slots);
+      notify("Academic time schedule, break durations, and working days saved successfully!");
+    } catch {
+      notify("Failed to save schedule settings", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="card">
-      <h3>⚙️ Academic Periods, Break & Lunch Handling</h3>
-      <p style={{ color: "#64748b", margin: "6px 0 20px" }}>
-        The scheduler structurally excludes SHORT_BREAK and LUNCH periods, ensuring classes cannot be assigned during non-teaching intervals.
-      </p>
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+        <div>
+          <h3>⚙️ Academic Periods, Break & Lecture Time Customizer</h3>
+          <p style={{ color: "#64748b", marginTop: "4px" }}>
+            Configure college start time, class durations, short breaks, lunch duration, and active working days.
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <button className="btn btn-secondary" onClick={handleLoadDYPatilPreset}>
+            🏫 Load College Reference Preset (Mon-Sat)
+          </button>
+          <button className="btn btn-secondary" onClick={handleLoadStandard5DayPreset}>
+            ⚡ Load Standard 5-Day Preset (Mon-Fri)
+          </button>
+          <button className="btn" onClick={handleSaveAll} disabled={loading}>
+            💾 Save & Apply Schedule
+          </button>
+        </div>
+      </div>
 
-      <div className="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Order</th>
-              <th>Period Label</th>
-              <th>Start - End</th>
-              <th>Period Type</th>
-              <th>Scheduler Permission</th>
-            </tr>
-          </thead>
-          <tbody>
-            {slots.map((s, idx) => (
-              <tr key={idx}>
-                <td>{s.order_index || idx + 1}</td>
-                <td><strong>{s.period}</strong></td>
-                <td>{s.start_time} - {s.end_time}</td>
-                <td>
-                  <span className={`status-badge ${s.type === "TEACHING" ? "status-available" : "status-reserved"}`}>
-                    {s.type}
-                  </span>
-                </td>
-                <td>
-                  {s.type === "TEACHING" ? (
-                    <span style={{ color: "#16a34a", fontWeight: "600" }}>✓ Eligible for CSP Scheduling</span>
-                  ) : (
-                    <span style={{ color: "#dc2626", fontWeight: "600" }}>🚫 Structurally Blocked (Break/Lunch)</span>
-                  )}
-                </td>
+      {/* Bell Schedule Interactive Configurator Form */}
+      <div className="card" style={{ marginBottom: "20px" }}>
+        <h4 style={{ marginBottom: "14px", color: "#1e40af" }}>
+          ⏱️ Auto-Generate Time Slots from Bell Schedule Parameters
+        </h4>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "16px" }}>
+          <div>
+            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "600", marginBottom: "4px" }}>
+              Day Start Time:
+            </label>
+            <input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "600", marginBottom: "4px" }}>
+              Class Duration (mins):
+            </label>
+            <input
+              type="number"
+              min="30"
+              max="90"
+              value={periodDuration}
+              onChange={(e) => setPeriodDuration(e.target.value)}
+              style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "600", marginBottom: "4px" }}>
+              Morning Lectures:
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="4"
+              value={morningPeriods}
+              onChange={(e) => setMorningPeriods(e.target.value)}
+              style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "600", marginBottom: "4px" }}>
+              1st Short Break (mins):
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="30"
+              value={shortBreak1Duration}
+              onChange={(e) => setShortBreak1Duration(e.target.value)}
+              style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "600", marginBottom: "4px" }}>
+              Pre-Lunch Lectures:
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="4"
+              value={preLunchPeriods}
+              onChange={(e) => setPreLunchPeriods(e.target.value)}
+              style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "600", marginBottom: "4px" }}>
+              Lunch Break (mins):
+            </label>
+            <input
+              type="number"
+              min="20"
+              max="75"
+              value={lunchDuration}
+              onChange={(e) => setLunchDuration(e.target.value)}
+              style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "600", marginBottom: "4px" }}>
+              Afternoon Lectures:
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="4"
+              value={afternoonPeriods}
+              onChange={(e) => setAfternoonPeriods(e.target.value)}
+              style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "600", marginBottom: "4px" }}>
+              2nd Short Break (mins):
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="30"
+              value={shortBreak2Duration}
+              onChange={(e) => setShortBreak2Duration(e.target.value)}
+              style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+            />
+          </div>
+        </div>
+
+        {/* Working Days Selector */}
+        <div style={{ marginBottom: "16px", padding: "12px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+          <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "700", marginBottom: "8px" }}>
+            📅 Active Working Days (Included in Timetable Generation):
+          </label>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            {ALL_DAYS.map((day) => {
+              const active = workingDays.includes(day);
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => toggleDay(day)}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: "20px",
+                    border: active ? "1px solid #2563eb" : "1px solid #cbd5e1",
+                    background: active ? "#eff6ff" : "#fff",
+                    color: active ? "#1e40af" : "#64748b",
+                    fontWeight: active ? "700" : "500",
+                    cursor: "pointer",
+                    fontSize: "0.85rem",
+                  }}
+                >
+                  {active ? "✓ " : ""}{day}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <button className="btn" onClick={handleGenerateSlots}>
+          ⚡ Compute & Generate Time Slots Sequence
+        </button>
+      </div>
+
+      {/* Editable Table of Defined Periods */}
+      <div className="card">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+          <h4>Active Periods List ({slots.length} Defined Periods)</h4>
+          <button className="btn btn-secondary" onClick={handleAddCustomSlot} style={{ fontSize: "0.85rem" }}>
+            + Add Custom Period (Zero Hour / Remedial)
+          </button>
+        </div>
+
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th style={{ width: "60px" }}>#</th>
+                <th>Period Label</th>
+                <th>Start Time</th>
+                <th>End Time</th>
+                <th>Period Type</th>
+                <th>Session</th>
+                <th>Scheduler Action</th>
+                <th style={{ width: "80px" }}>Remove</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {slots.map((s, idx) => (
+                <tr key={idx}>
+                  <td><strong>{s.order_index || idx + 1}</strong></td>
+                  <td>
+                    <input
+                      type="text"
+                      value={s.period}
+                      onChange={(e) => handleUpdateSlotField(idx, "period", e.target.value)}
+                      style={{ padding: "4px 8px", borderRadius: "4px", border: "1px solid #cbd5e1", fontWeight: "600", width: "130px" }}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="time"
+                      value={s.start_time}
+                      onChange={(e) => handleUpdateSlotField(idx, "start_time", e.target.value)}
+                      style={{ padding: "4px 6px", borderRadius: "4px", border: "1px solid #cbd5e1" }}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="time"
+                      value={s.end_time}
+                      onChange={(e) => handleUpdateSlotField(idx, "end_time", e.target.value)}
+                      style={{ padding: "4px 6px", borderRadius: "4px", border: "1px solid #cbd5e1" }}
+                    />
+                  </td>
+                  <td>
+                    <select
+                      value={s.type}
+                      onChange={(e) => handleUpdateSlotField(idx, "type", e.target.value)}
+                      style={{ padding: "4px 8px", borderRadius: "4px", border: "1px solid #cbd5e1", fontWeight: "600" }}
+                    >
+                      <option value="TEACHING">TEACHING (Classes Scheduled)</option>
+                      <option value="SHORT_BREAK">SHORT_BREAK (Recess)</option>
+                      <option value="LUNCH">LUNCH (Mid-day Meal)</option>
+                    </select>
+                  </td>
+                  <td>
+                    <select
+                      value={s.is_morning ? "morning" : "afternoon"}
+                      onChange={(e) => handleUpdateSlotField(idx, "is_morning", e.target.value === "morning")}
+                      style={{ padding: "4px 6px", borderRadius: "4px", border: "1px solid #cbd5e1" }}
+                    >
+                      <option value="morning">Morning</option>
+                      <option value="afternoon">Afternoon</option>
+                    </select>
+                  </td>
+                  <td>
+                    {s.type === "TEACHING" ? (
+                      <span style={{ color: "#16a34a", fontWeight: "700", fontSize: "0.85rem" }}>
+                        ✓ CSP Schedulable
+                      </span>
+                    ) : (
+                      <span style={{ color: "#b45309", fontWeight: "700", fontSize: "0.85rem" }}>
+                        🔒 Blocked Break ({s.type === "LUNCH" ? "Lunch" : "Recess"})
+                      </span>
+                    )}
+                  </td>
+                  <td>
+                    <button
+                      className="btn btn-danger"
+                      onClick={() => handleDeleteSlot(idx)}
+                      style={{ padding: "2px 8px", fontSize: "0.75rem" }}
+                    >
+                      ✕
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

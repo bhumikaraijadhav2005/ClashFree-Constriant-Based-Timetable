@@ -69,8 +69,28 @@ def test_clashfree_pipeline():
         assert r["room"] not in reserved_names, f"Error: Reserved room {r['room']} was assigned in timetable!"
     print("[OK] Verified: 0 reserved rooms assigned by timetable generator.")
 
-    # 4. Test Slot-Wise Occupancy Matrix
-    print("\n[Test 4] Testing Slot-Wise Occupancy Matrix...")
+    print("\n[Test 4] Verifying No Back-to-Back Same Classes & Day Spreading...")
+    div_a_rows = [r for r in rows if r["section"] == "Division A"]
+    print(f"\n--- Division A Weekly Timetable ({len(div_a_rows)} sessions) ---")
+    current_day = None
+    for r in div_a_rows:
+        if r["day"] != current_day:
+            current_day = r["day"]
+            print(f"\n  {current_day.upper()}:")
+        batch_str = f"[{r['batch']}]" if r.get("batch") else ""
+        print(f"    {r['period']:12} | {r['subject']:8} {batch_str:6} | {r['room']:7} | {r['faculty_code']}")
+
+    # Verification: No back-to-back same subject on same day
+    for d in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]:
+        day_sessions = [r for r in div_a_rows if r["day"] == d and not r.get("is_lab")]
+        subjects_on_day = [r["subject"] for r in day_sessions]
+        # Assert no duplicate lectures on same day when subject <= 5 lectures/week
+        assert len(subjects_on_day) == len(set(subjects_on_day)), f"Duplicate theory subject on {d}: {subjects_on_day}"
+    print("[OK] Verified: 0 duplicate theory subjects on the same day for Division A!")
+    print("[OK] Verified: 0 back-to-back same classes!")
+
+    # 5. Test Slot-Wise Occupancy Matrix
+    print("\n[Test 5] Testing Slot-Wise Occupancy Matrix...")
     sample_slot = rows[0]
     day = sample_slot["day"]
     period = sample_slot["period"]

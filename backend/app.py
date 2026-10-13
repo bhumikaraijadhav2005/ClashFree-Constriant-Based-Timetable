@@ -277,6 +277,15 @@ def manage_time_slots():
         return jsonify({"success": True})
 
 
+@app.route("/api/time-settings", methods=["GET", "POST"])
+def manage_time_settings():
+    if request.method == "GET":
+        return jsonify(db.get_time_settings())
+    elif request.method == "POST":
+        res = db.save_time_settings(request.json or {})
+        return jsonify({"success": True, "settings": res})
+
+
 # ---------------------------------------------------------------------------
 # 10. SLOT-WISE RESOURCE OCCUPANCY MODULE (HOD REQUIREMENT)
 # ---------------------------------------------------------------------------
@@ -493,6 +502,8 @@ def run_scheduler():
         time_slots = db.get_time_slots()
         resource_cfg = db.get_resource_config(dept)
         sharing_reqs = db.get_resource_sharing_requests()
+        time_settings = db.get_time_settings()
+        days = payload.get("days") or time_settings.get("working_days", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"])
 
         success, message, timetable_rows, conflicts, meta = scheduler.generate_timetable(
             faculty_list=faculty,
@@ -503,7 +514,8 @@ def run_scheduler():
             time_slots=time_slots,
             resource_config=resource_cfg,
             department=dept,
-            approved_sharing=sharing_reqs
+            approved_sharing=sharing_reqs,
+            days=days
         )
 
         if success:

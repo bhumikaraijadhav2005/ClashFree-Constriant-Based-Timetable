@@ -362,6 +362,202 @@ tr:hover td {
   border-color: var(--primary);
 }
 
+/* --- College Reference Timetable Styles (D.Y. Patil Format) --- */
+.college-container {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.college-header {
+  text-align: center;
+  border-bottom: 2px solid #1e293b;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
+
+.college-header h2 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.college-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #334155;
+  margin: 4px 0 0;
+}
+
+.college-header .academic-year-tag {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e40af;
+  margin-top: 4px;
+}
+
+.college-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px 16px;
+  font-size: 0.82rem;
+  background: #f8fafc;
+  padding: 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  margin-bottom: 14px;
+}
+
+.college-table-wrapper {
+  overflow-x: auto;
+  border: 2px solid #334155;
+}
+
+.college-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+.college-table th, .college-table td {
+  border: 1px solid #475569;
+  padding: 6px 4px;
+  vertical-align: middle;
+}
+
+.college-table th {
+  background: #f1f5f9;
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 0.78rem;
+  padding: 8px 4px;
+}
+
+.college-table .th-period-time {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: #475569;
+  display: block;
+}
+
+.college-table .break-col {
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: 700;
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  padding: 8px 2px;
+  white-space: nowrap;
+}
+
+.college-table .cell-day {
+  background: #f8fafc;
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: #1e293b;
+}
+
+.college-table .cell-class {
+  background: #f8fafc;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #3b82f6;
+}
+
+.cell-lecture {
+  padding: 6px 2px;
+  background: #f8fafc;
+}
+
+.cell-lecture .course-code {
+  font-weight: 800;
+  color: #0f172a;
+  font-size: 0.85rem;
+}
+
+.cell-lecture .fac-code {
+  font-weight: 700;
+  color: #1e40af;
+  font-size: 0.78rem;
+}
+
+.cell-lecture .room-tag {
+  color: #64748b;
+  font-size: 0.72rem;
+}
+
+.cell-lab-container {
+  display: flex;
+  height: 100%;
+  min-height: 58px;
+}
+
+.cell-lab-batch {
+  flex: 1;
+  padding: 2px;
+  border-right: 1px dashed #cbd5e1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.cell-lab-batch:last-child {
+  border-right: none;
+}
+
+.cell-lab-batch .batch-tag {
+  font-weight: 800;
+  font-size: 0.72rem;
+  color: #7c3aed;
+}
+
+.cell-lab-batch .course-tag {
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: #0f172a;
+}
+
+.cell-lab-batch .fac-tag {
+  font-size: 0.72rem;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.cell-lab-batch .room-tag {
+  font-size: 0.68rem;
+  color: #64748b;
+}
+
+.college-signatures {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 36px;
+  padding-top: 16px;
+  border-top: 1px dashed #cbd5e1;
+  text-align: center;
+}
+
+.college-signatures .sig-box {
+  width: 180px;
+}
+
+.college-signatures .sig-line {
+  border-top: 1px solid #334155;
+  margin-top: 40px;
+  padding-top: 4px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
 @media print {
   body {
     background: #fff;
@@ -378,13 +574,16 @@ tr:hover td {
     max-width: 100% !important;
     padding: 0 !important;
   }
-  .timetable-grid {
-    grid-template-columns: 100px repeat(5, 1fr) !important;
-    gap: 2px !important;
+  .college-container {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
   }
-  .grid-cell {
+  .college-table {
+    font-size: 0.7rem !important;
+  }
+  .college-table th, .college-table td {
     border: 1px solid #000 !important;
-    min-height: 60px !important;
-    font-size: 0.75rem !important;
+    padding: 3px 2px !important;
   }
 }

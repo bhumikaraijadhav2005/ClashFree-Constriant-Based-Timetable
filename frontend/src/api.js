@@ -257,6 +257,20 @@ export async function saveTimeSlots(slots) {
   return res.json();
 }
 
+export async function fetchTimeSettings() {
+  const res = await fetch(`${API_BASE}/time-settings`);
+  return res.json();
+}
+
+export async function saveTimeSettings(settings) {
+  const res = await fetch(`${API_BASE}/time-settings`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(settings),
+  });
+  return res.json();
+}
+
 // -------------------------------------------------------------
 // EXCEL IMPORT & EXPORT
 // -------------------------------------------------------------
