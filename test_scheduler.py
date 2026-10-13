@@ -1,34 +1,87 @@
-import data as db
+# test_scheduler.py
+# Comprehensive automated test suite for ClashFree CSP+MRV Scheduling Engine
+
+import os
+import sys
+
+backend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "backend")
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
+import db
 import excel_reader
 import scheduler
 
-# Load data
-all_data, errors = excel_reader.read_excel("sample_data.xlsx")
-if errors:
-    print("ERRORS:", errors)
-else:
-    all_data["faculty"] = db.generate_faculty_codes(all_data["faculty"])
-    db.faculty_list  = all_data["faculty"]
-    db.room_list     = all_data["rooms"]
-    db.subject_list  = all_data["subjects"]
-    db.section_list  = all_data["sections"]
-    db.data_loaded   = True
+def test_clashfree_pipeline():
+    print("=" * 60)
+    print("Running ClashFree Automated Verification Suite...")
+    print("=" * 60)
 
-    print("Faculty codes:")
-    for f in db.faculty_list:
-        print("  " + f["name"] + " -> " + f["code"] + " | preferred: " + f["preferred_time"])
+    # 1. Test Excel Reader & Faculty Code Engine
+    print("\n[Test 1] Testing Excel Reader & Faculty Short-Code Generation...")
+    data, errors, warnings, summary = excel_reader.read_excel("sample_data.xlsx")
+    assert not errors, f"Excel read failed with errors: {errors}"
+    print(f"[OK] Excel read successfully: {summary}")
 
-    print()
-    print("Running scheduler...")
-    success, msg = scheduler.generate_timetable()
-    print("Success:", success)
-    print("Message:", msg)
-    if success:
-        print("Total entries:", len(db.timetable))
-        print()
-        print("First 15 entries:")
-        for row in db.timetable[:15]:
-            t = row["is_lab"] and "LAB" or "LEC"
-            print("  " + row["day"].ljust(10) + row["period"].ljust(14) +
-                  row["section"].ljust(7) + row["subject"].ljust(10) +
-                  row["faculty_code"].ljust(6) + row["room"].ljust(10) + t)
+    print("\nFaculty Short Codes Generated:")
+    for f in data["faculty"]:
+        print(f"  {f['name']} ({f['designation']}) -> [{f['code']}] | Preference: {f['preferred_time']}")
+    assert any(f["code"] == "VHP" for f in data["faculty"]), "Expected VHP short code for Vishal H. Pundikar"
+
+    # 2. Test Resource Reservation (HOD Requirement)
+    print("\n[Test 2] Testing HOD Resource Reservation Policy...")
+    rooms = db.get_all_rooms("CSE")
+    cfg = db.get_resource_config("CSE")
+    active_rooms, reserved_rooms, _ = scheduler.filter_and_reserve_resources(rooms, "CSE", cfg)
+    print(f"Total Rooms: {len(rooms)}")
+    print(f"Active for Scheduling: {len(active_rooms)} {[r['name'] for r in active_rooms]}")
+    print(f"Reserved by HOD: {len(reserved_rooms)} {[r['name'] for r in reserved_rooms]}")
+    assert len(reserved_rooms) >= 2, f"Expected at least 2 reserved rooms (1 CR + 1 Lab), got {len(reserved_rooms)}"
+    print("[OK] HOD Resource Reservation policy verified.")
+
+    # 3. Test CSP + MRV + Backtracking Scheduler
+    print("\n[Test 3] Running CSP + MRV + Backtracking Scheduler...")
+    fac = db.get_all_faculty("CSE")
+    subs = db.get_all_subjects("CSE")
+    divs = db.get_all_divisions("CSE")
+    batches = db.get_all_batches()
+
+    success, msg, rows, conflicts, meta = scheduler.generate_timetable(
+        faculty_list=fac,
+        room_list=rooms,
+        subject_list=subs,
+        division_list=divs,
+        batch_list=batches,
+        resource_config=cfg,
+        department="CSE"
+    )
+
+    print(f"Success: {success}")
+    print(f"Message: {msg}")
+    print(f"Metadata: {meta}")
+    assert success, f"Scheduler failed: {conflicts}"
+    assert len(rows) > 0, "No timetable rows scheduled"
+    print(f"[OK] {len(rows)} sessions successfully scheduled without clashes!")
+
+    # Verify no reserved rooms used in timetable
+    reserved_names = set(meta.get("reserved_rooms", []))
+    for r in rows:
+        assert r["room"] not in reserved_names, f"Error: Reserved room {r['room']} was assigned in timetable!"
+    print("[OK] Verified: 0 reserved rooms assigned by timetable generator.")
+
+    # 4. Test Slot-Wise Occupancy Matrix
+    print("\n[Test 4] Testing Slot-Wise Occupancy Matrix...")
+    sample_slot = rows[0]
+    day = sample_slot["day"]
+    period = sample_slot["period"]
+    occupied_in_slot = [r for r in rows if r["day"] == day and r["period"] == period]
+    print(f"Slot {day} {period} has {len(occupied_in_slot)} simultaneous sessions:")
+    for s in occupied_in_slot:
+        print(f"  {s['room']} ({s['subject']}) -> Div {s['section']} {s.get('batch') or 'Whole Class'} by {s['faculty_code']}")
+
+    print("\n" + "=" * 60)
+    print("ALL CLASHFREE SYSTEM TESTS PASSED SUCCESSFULLY! [OK]")
+    print("=" * 60)
+
+if __name__ == "__main__":
+    test_clashfree_pipeline()

@@ -1,0 +1,1316 @@
+{
+  "departments": [
+    {
+      "id": 2,
+      "code": "E&TC",
+      "name": "Electronics & Telecommunication Engineering"
+    },
+    {
+      "code": "CSE",
+      "name": "Computer Science and Engineering",
+      "id": 4
+    },
+    {
+      "code": "E&TC",
+      "name": "Electronics & Telecommunication Engineering",
+      "id": 5
+    },
+    {
+      "code": "CSE",
+      "name": "Computer Science and Engineering",
+      "id": 7
+    },
+    {
+      "code": "E&TC",
+      "name": "Electronics & Telecommunication Engineering",
+      "id": 8
+    },
+    {
+      "code": "MECH",
+      "name": "Mechanical Engineering",
+      "id": 9
+    },
+    {
+      "code": "CSE",
+      "name": "Computer Science and Engineering",
+      "id": 10
+    },
+    {
+      "code": "E&TC",
+      "name": "Electronics & Telecommunication Engineering",
+      "id": 11
+    },
+    {
+      "code": "MECH",
+      "name": "Mechanical Engineering",
+      "id": 12
+    }
+  ],
+  "academic_structure": [
+    {
+      "id": 1,
+      "department_code": "CSE",
+      "degree": "B.Tech",
+      "year": "Second Year",
+      "semester": "Semester III",
+      "academic_year": "2026-2027"
+    },
+    {
+      "id": 2,
+      "department_code": "E&TC",
+      "degree": "B.Tech",
+      "year": "Second Year",
+      "semester": "Semester III",
+      "academic_year": "2026-2027"
+    }
+  ],
+  "divisions": [
+    {
+      "name": "Division A",
+      "strength": 75,
+      "department_code": "CSE",
+      "year": "Second Year",
+      "semester": "Semester III",
+      "id": 1
+    },
+    {
+      "name": "Division B",
+      "strength": 72,
+      "department_code": "CSE",
+      "year": "Second Year",
+      "semester": "Semester III",
+      "id": 2
+    },
+    {
+      "name": "Div E1",
+      "strength": 65,
+      "department_code": "E&TC",
+      "year": "Second Year",
+      "semester": "Semester III",
+      "id": 3
+    }
+  ],
+  "batches": [
+    {
+      "division_name": "Division A",
+      "name": "A1",
+      "strength": 38,
+      "id": 1
+    },
+    {
+      "division_name": "Division A",
+      "name": "A2",
+      "strength": 37,
+      "id": 2
+    },
+    {
+      "division_name": "Division B",
+      "name": "B1",
+      "strength": 36,
+      "id": 3
+    },
+    {
+      "division_name": "Division B",
+      "name": "B2",
+      "strength": 36,
+      "id": 4
+    },
+    {
+      "division_name": "Div E1",
+      "name": "E1-1",
+      "strength": 33,
+      "id": 5
+    },
+    {
+      "division_name": "Div E1",
+      "name": "E1-2",
+      "strength": 32,
+      "id": 6
+    }
+  ],
+  "sections": [
+    {
+      "name": "Division A",
+      "strength": 75,
+      "department": "CSE"
+    },
+    {
+      "name": "Division B",
+      "strength": 72,
+      "department": "CSE"
+    },
+    {
+      "name": "Div E1",
+      "strength": 65,
+      "department": "E&TC"
+    }
+  ],
+  "rooms": [
+    {
+      "name": "CR-01",
+      "type": "Classroom",
+      "capacity": 80,
+      "department": "CSE",
+      "lab_type": "",
+      "num_pcs": 0,
+      "equipment": "Projector",
+      "is_reserved": false,
+      "reservation_reason": ""
+    },
+    {
+      "name": "CR-02",
+      "type": "Classroom",
+      "capacity": 80,
+      "department": "CSE",
+      "lab_type": "",
+      "num_pcs": 0,
+      "equipment": "Projector",
+      "is_reserved": false,
+      "reservation_reason": ""
+    },
+    {
+      "name": "CR-03",
+      "type": "Classroom",
+      "capacity": 80,
+      "department": "CSE",
+      "lab_type": "",
+      "num_pcs": 0,
+      "equipment": "Projector",
+      "is_reserved": false,
+      "reservation_reason": ""
+    },
+    {
+      "name": "CR-04",
+      "type": "Classroom",
+      "capacity": 80,
+      "department": "CSE",
+      "lab_type": "",
+      "num_pcs": 0,
+      "equipment": "Projector",
+      "is_reserved": false,
+      "reservation_reason": ""
+    },
+    {
+      "name": "CR-05",
+      "type": "Classroom",
+      "capacity": 80,
+      "department": "CSE",
+      "lab_type": "",
+      "num_pcs": 0,
+      "equipment": "Projector",
+      "is_reserved": true,
+      "reservation_reason": "HOD Seminar & Electives Reserve"
+    },
+    {
+      "name": "CR-11",
+      "type": "Classroom",
+      "capacity": 75,
+      "department": "E&TC",
+      "lab_type": "",
+      "num_pcs": 0,
+      "equipment": "Projector",
+      "is_reserved": false,
+      "reservation_reason": ""
+    },
+    {
+      "name": "LAB-01",
+      "type": "Lab",
+      "capacity": 45,
+      "department": "CSE",
+      "lab_type": "Computer Lab",
+      "num_pcs": 45,
+      "equipment": "45 PCs, Gigabit LAN",
+      "is_reserved": false,
+      "reservation_reason": ""
+    },
+    {
+      "name": "LAB-02",
+      "type": "Lab",
+      "capacity": 45,
+      "department": "CSE",
+      "lab_type": "Computer Lab",
+      "num_pcs": 45,
+      "equipment": "45 PCs, Gigabit LAN",
+      "is_reserved": false,
+      "reservation_reason": ""
+    },
+    {
+      "name": "LAB-03",
+      "type": "Lab",
+      "capacity": 45,
+      "department": "CSE",
+      "lab_type": "Computer Lab",
+      "num_pcs": 45,
+      "equipment": "45 PCs, Gigabit LAN",
+      "is_reserved": false,
+      "reservation_reason": ""
+    },
+    {
+      "name": "LAB-04",
+      "type": "Lab",
+      "capacity": 45,
+      "department": "CSE",
+      "lab_type": "Computer Lab",
+      "num_pcs": 45,
+      "equipment": "45 PCs, Gigabit LAN",
+      "is_reserved": true,
+      "reservation_reason": "Reserved Lab"
+    },
+    {
+      "name": "LAB-05",
+      "type": "Lab",
+      "capacity": 40,
+      "department": "E&TC",
+      "lab_type": "Electronics Lab",
+      "num_pcs": 25,
+      "equipment": "25 PCs, Gigabit LAN",
+      "is_reserved": false,
+      "reservation_reason": ""
+    }
+  ],
+  "resource_config": [
+    {
+      "id": 1,
+      "department": "CSE",
+      "reserved_classrooms_count": 1,
+      "reserved_labs_count": 1,
+      "student_pc_ratio": "1:1"
+    },
+    {
+      "id": 2,
+      "department": "E&TC",
+      "reserved_classrooms_count": 1,
+      "reserved_labs_count": 0,
+      "student_pc_ratio": "1:1"
+    },
+    {
+      "department": "MECH",
+      "reserved_classrooms_count": 1,
+      "reserved_labs_count": 1,
+      "student_pc_ratio": "1:1"
+    }
+  ],
+  "faculty": [
+    {
+      "name": "Mr. Vishal H. Pundikar",
+      "subjects": [
+        "DSA",
+        "DS Lab"
+      ],
+      "available_from": "09:00",
+      "available_to": "17:00",
+      "preferred_time": "Morning",
+      "max_load": 18,
+      "designation": "Assistant Professor",
+      "department": "CSE",
+      "code": "VHP"
+    },
+    {
+      "name": "Dr. Vikas L. Bhise",
+      "subjects": [
+        "DS Lab",
+        "DBMS"
+      ],
+      "available_from": "09:00",
+      "available_to": "17:00",
+      "preferred_time": "Morning",
+      "max_load": 18,
+      "designation": "Associate Professor",
+      "department": "CSE",
+      "code": "VLB"
+    },
+    {
+      "name": "Dr. Amit R. Sharma",
+      "subjects": [
+        "TOC",
+        "Maths"
+      ],
+      "available_from": "09:00",
+      "available_to": "13:00",
+      "preferred_time": "Morning",
+      "max_load": 12,
+      "designation": "Professor & HOD",
+      "department": "CSE",
+      "code": "ARS"
+    },
+    {
+      "name": "Mrs. Sneha P. Desai",
+      "subjects": [
+        "OS",
+        "CN"
+      ],
+      "available_from": "11:00",
+      "available_to": "17:00",
+      "preferred_time": "Afternoon",
+      "max_load": 18,
+      "designation": "Assistant Professor",
+      "department": "CSE",
+      "code": "SPD"
+    },
+    {
+      "name": "Mr. Rahul K. Mehta",
+      "subjects": [
+        "OS",
+        "TOC"
+      ],
+      "available_from": "09:00",
+      "available_to": "17:00",
+      "preferred_time": "Any",
+      "max_load": 18,
+      "designation": "Assistant Professor",
+      "department": "CSE",
+      "code": "RKM"
+    },
+    {
+      "name": "Ms. Priya S. Joshi",
+      "subjects": [
+        "DBMS",
+        "Maths"
+      ],
+      "available_from": "09:00",
+      "available_to": "15:00",
+      "preferred_time": "Morning",
+      "max_load": 16,
+      "designation": "Assistant Professor",
+      "department": "CSE",
+      "code": "PSJ"
+    },
+    {
+      "name": "Mr. Kunal Patil",
+      "subjects": [
+        "DSA",
+        "CN"
+      ],
+      "available_from": "09:00",
+      "available_to": "17:00",
+      "preferred_time": "Morning",
+      "max_load": 18,
+      "designation": "Assistant Professor",
+      "department": "CSE",
+      "code": "KP1"
+    },
+    {
+      "name": "Mr. Kiran Patil",
+      "subjects": [
+        "DBMS",
+        "OS"
+      ],
+      "available_from": "09:00",
+      "available_to": "17:00",
+      "preferred_time": "Any",
+      "max_load": 18,
+      "designation": "Assistant Professor",
+      "department": "CSE",
+      "code": "KP2"
+    }
+  ],
+  "subjects": [
+    {
+      "name": "DSA",
+      "code": "CS-DSA",
+      "department": "CSE",
+      "lectures_per_week": 4,
+      "labs_per_week": 0,
+      "requires_lab": false,
+      "lab_type": "",
+      "student_pc_ratio": 1.0
+    },
+    {
+      "name": "DS Lab",
+      "code": "CS-DS L",
+      "department": "CSE",
+      "lectures_per_week": 0,
+      "labs_per_week": 2,
+      "requires_lab": true,
+      "lab_type": "Computer Lab",
+      "student_pc_ratio": 1.0
+    },
+    {
+      "name": "DBMS",
+      "code": "CS-DBMS",
+      "department": "CSE",
+      "lectures_per_week": 3,
+      "labs_per_week": 0,
+      "requires_lab": false,
+      "lab_type": "",
+      "student_pc_ratio": 1.0
+    },
+    {
+      "name": "OS",
+      "code": "CS-OS",
+      "department": "CSE",
+      "lectures_per_week": 3,
+      "labs_per_week": 0,
+      "requires_lab": false,
+      "lab_type": "",
+      "student_pc_ratio": 1.0
+    },
+    {
+      "name": "CN",
+      "code": "CS-CN",
+      "department": "CSE",
+      "lectures_per_week": 3,
+      "labs_per_week": 0,
+      "requires_lab": false,
+      "lab_type": "",
+      "student_pc_ratio": 1.0
+    },
+    {
+      "name": "Maths",
+      "code": "CS-MATH",
+      "department": "CSE",
+      "lectures_per_week": 3,
+      "labs_per_week": 0,
+      "requires_lab": false,
+      "lab_type": "",
+      "student_pc_ratio": 1.0
+    },
+    {
+      "name": "TOC",
+      "code": "CS-TOC",
+      "department": "CSE",
+      "lectures_per_week": 3,
+      "labs_per_week": 0,
+      "requires_lab": false,
+      "lab_type": "",
+      "student_pc_ratio": 1.0
+    }
+  ],
+  "time_slots": [
+    {
+      "period": "09:00-10:00",
+      "type": "TEACHING",
+      "is_morning": true,
+      "start_time": "09:00",
+      "end_time": "10:00",
+      "order_index": 1
+    },
+    {
+      "period": "10:00-11:00",
+      "type": "TEACHING",
+      "is_morning": true,
+      "start_time": "10:00",
+      "end_time": "11:00",
+      "order_index": 2
+    },
+    {
+      "period": "11:00-11:15",
+      "type": "SHORT_BREAK",
+      "is_morning": true,
+      "start_time": "11:00",
+      "end_time": "11:15",
+      "order_index": 3
+    },
+    {
+      "period": "11:15-12:15",
+      "type": "TEACHING",
+      "is_morning": true,
+      "start_time": "11:15",
+      "end_time": "12:15",
+      "order_index": 4
+    },
+    {
+      "period": "12:15-13:00",
+      "type": "LUNCH",
+      "is_morning": false,
+      "start_time": "12:15",
+      "end_time": "13:00",
+      "order_index": 5
+    },
+    {
+      "period": "13:00-14:00",
+      "type": "TEACHING",
+      "is_morning": false,
+      "start_time": "13:00",
+      "end_time": "14:00",
+      "order_index": 6
+    },
+    {
+      "period": "14:00-15:00",
+      "type": "TEACHING",
+      "is_morning": false,
+      "start_time": "14:00",
+      "end_time": "15:00",
+      "order_index": 7
+    },
+    {
+      "period": "15:00-15:15",
+      "type": "SHORT_BREAK",
+      "is_morning": false,
+      "start_time": "15:00",
+      "end_time": "15:15",
+      "order_index": 8
+    },
+    {
+      "period": "15:15-16:15",
+      "type": "TEACHING",
+      "is_morning": false,
+      "start_time": "15:15",
+      "end_time": "16:15",
+      "order_index": 9
+    }
+  ],
+  "timetable_versions": [
+    {
+      "id": 1,
+      "version_number": 1,
+      "name": "Version 1 (Initial)",
+      "academic_year": "2026-2027",
+      "semester": "Semester III",
+      "department": "CSE",
+      "description": "Baseline generated schedule",
+      "is_active": false,
+      "created_by": "HOD CSE"
+    },
+    {
+      "id": 2,
+      "version_number": 2,
+      "name": "Test Version 1",
+      "academic_year": "2026-2027",
+      "semester": "Semester III",
+      "department": "CSE",
+      "description": "Generated with 2 reserved rooms and 30 sessions",
+      "is_active": false,
+      "created_by": "HOD"
+    },
+    {
+      "id": 3,
+      "version_number": 3,
+      "name": "Version 3",
+      "academic_year": "2026-2027",
+      "semester": "Semester III",
+      "department": "CSE",
+      "description": "Generated with 2 reserved rooms and 46 sessions",
+      "is_active": false,
+      "created_by": "HOD"
+    },
+    {
+      "id": 4,
+      "version_number": 4,
+      "name": "Version 4",
+      "academic_year": "2026-2027",
+      "semester": "Semester III",
+      "department": "CSE",
+      "description": "Generated with 2 reserved rooms and 46 sessions",
+      "is_active": false,
+      "created_by": "HOD"
+    },
+    {
+      "id": 5,
+      "version_number": 5,
+      "name": "Version 5",
+      "academic_year": "2026-2027",
+      "semester": "Semester III",
+      "department": "CSE",
+      "description": "Generated with 2 reserved rooms and 46 sessions",
+      "is_active": true,
+      "created_by": "HOD"
+    }
+  ],
+  "timetable": [
+    {
+      "day": "Monday",
+      "day_order": 0,
+      "period": "09:00-10:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": null,
+      "subject": "Maths",
+      "faculty_code": "ARS",
+      "faculty_name": "Dr. Amit R. Sharma",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Monday",
+      "day_order": 0,
+      "period": "09:00-10:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": null,
+      "subject": "Maths",
+      "faculty_code": "PSJ",
+      "faculty_name": "Ms. Priya S. Joshi",
+      "room": "CR-02",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Monday",
+      "day_order": 0,
+      "period": "10:00-11:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": null,
+      "subject": "Maths",
+      "faculty_code": "ARS",
+      "faculty_name": "Dr. Amit R. Sharma",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Monday",
+      "day_order": 0,
+      "period": "10:00-11:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": null,
+      "subject": "Maths",
+      "faculty_code": "PSJ",
+      "faculty_name": "Ms. Priya S. Joshi",
+      "room": "CR-02",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Monday",
+      "day_order": 0,
+      "period": "11:15-12:15",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": null,
+      "subject": "Maths",
+      "faculty_code": "ARS",
+      "faculty_name": "Dr. Amit R. Sharma",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Monday",
+      "day_order": 0,
+      "period": "11:15-12:15",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": null,
+      "subject": "Maths",
+      "faculty_code": "PSJ",
+      "faculty_name": "Ms. Priya S. Joshi",
+      "room": "CR-02",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Monday",
+      "day_order": 0,
+      "period": "13:00-14:00",
+      "is_morning": false,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": null,
+      "subject": "CN",
+      "faculty_code": "SPD",
+      "faculty_name": "Mrs. Sneha P. Desai",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Monday",
+      "day_order": 0,
+      "period": "13:00-14:00",
+      "is_morning": false,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": null,
+      "subject": "DBMS",
+      "faculty_code": "KP2",
+      "faculty_name": "Mr. Kiran Patil",
+      "room": "CR-02",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Monday",
+      "day_order": 0,
+      "period": "14:00-15:00",
+      "is_morning": false,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": null,
+      "subject": "CN",
+      "faculty_code": "SPD",
+      "faculty_name": "Mrs. Sneha P. Desai",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Monday",
+      "day_order": 0,
+      "period": "15:15-16:15",
+      "is_morning": false,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": null,
+      "subject": "CN",
+      "faculty_code": "SPD",
+      "faculty_name": "Mrs. Sneha P. Desai",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Tuesday",
+      "day_order": 1,
+      "period": "09:00-10:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": null,
+      "subject": "TOC",
+      "faculty_code": "ARS",
+      "faculty_name": "Dr. Amit R. Sharma",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Tuesday",
+      "day_order": 1,
+      "period": "09:00-10:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": "B1",
+      "subject": "DS Lab",
+      "faculty_code": "VHP",
+      "faculty_name": "Mr. Vishal H. Pundikar",
+      "room": "LAB-02",
+      "is_lab": true,
+      "version_id": 5
+    },
+    {
+      "day": "Tuesday",
+      "day_order": 1,
+      "period": "09:00-10:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": "B2",
+      "subject": "DS Lab",
+      "faculty_code": "VLB",
+      "faculty_name": "Dr. Vikas L. Bhise",
+      "room": "LAB-01",
+      "is_lab": true,
+      "version_id": 5
+    },
+    {
+      "day": "Tuesday",
+      "day_order": 1,
+      "period": "10:00-11:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": null,
+      "subject": "TOC",
+      "faculty_code": "ARS",
+      "faculty_name": "Dr. Amit R. Sharma",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Tuesday",
+      "day_order": 1,
+      "period": "10:00-11:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": "B1",
+      "subject": "DS Lab",
+      "faculty_code": "VHP",
+      "faculty_name": "Mr. Vishal H. Pundikar",
+      "room": "LAB-02",
+      "is_lab": true,
+      "version_id": 5
+    },
+    {
+      "day": "Tuesday",
+      "day_order": 1,
+      "period": "10:00-11:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": "B2",
+      "subject": "DS Lab",
+      "faculty_code": "VLB",
+      "faculty_name": "Dr. Vikas L. Bhise",
+      "room": "LAB-01",
+      "is_lab": true,
+      "version_id": 5
+    },
+    {
+      "day": "Tuesday",
+      "day_order": 1,
+      "period": "11:15-12:15",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": null,
+      "subject": "TOC",
+      "faculty_code": "ARS",
+      "faculty_name": "Dr. Amit R. Sharma",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Tuesday",
+      "day_order": 1,
+      "period": "11:15-12:15",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": null,
+      "subject": "CN",
+      "faculty_code": "KP1",
+      "faculty_name": "Mr. Kunal Patil",
+      "room": "CR-02",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Tuesday",
+      "day_order": 1,
+      "period": "13:00-14:00",
+      "is_morning": false,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": null,
+      "subject": "CN",
+      "faculty_code": "SPD",
+      "faculty_name": "Mrs. Sneha P. Desai",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Tuesday",
+      "day_order": 1,
+      "period": "14:00-15:00",
+      "is_morning": false,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": null,
+      "subject": "CN",
+      "faculty_code": "SPD",
+      "faculty_name": "Mrs. Sneha P. Desai",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Tuesday",
+      "day_order": 1,
+      "period": "15:15-16:15",
+      "is_morning": false,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": null,
+      "subject": "OS",
+      "faculty_code": "SPD",
+      "faculty_name": "Mrs. Sneha P. Desai",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Wednesday",
+      "day_order": 2,
+      "period": "09:00-10:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": "A1",
+      "subject": "DS Lab",
+      "faculty_code": "VHP",
+      "faculty_name": "Mr. Vishal H. Pundikar",
+      "room": "LAB-02",
+      "is_lab": true,
+      "version_id": 5
+    },
+    {
+      "day": "Wednesday",
+      "day_order": 2,
+      "period": "09:00-10:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": "A2",
+      "subject": "DS Lab",
+      "faculty_code": "VLB",
+      "faculty_name": "Dr. Vikas L. Bhise",
+      "room": "LAB-01",
+      "is_lab": true,
+      "version_id": 5
+    },
+    {
+      "day": "Wednesday",
+      "day_order": 2,
+      "period": "09:00-10:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": null,
+      "subject": "TOC",
+      "faculty_code": "ARS",
+      "faculty_name": "Dr. Amit R. Sharma",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Wednesday",
+      "day_order": 2,
+      "period": "10:00-11:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": "A1",
+      "subject": "DS Lab",
+      "faculty_code": "VHP",
+      "faculty_name": "Mr. Vishal H. Pundikar",
+      "room": "LAB-02",
+      "is_lab": true,
+      "version_id": 5
+    },
+    {
+      "day": "Wednesday",
+      "day_order": 2,
+      "period": "10:00-11:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": "A2",
+      "subject": "DS Lab",
+      "faculty_code": "VLB",
+      "faculty_name": "Dr. Vikas L. Bhise",
+      "room": "LAB-01",
+      "is_lab": true,
+      "version_id": 5
+    },
+    {
+      "day": "Wednesday",
+      "day_order": 2,
+      "period": "10:00-11:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": null,
+      "subject": "TOC",
+      "faculty_code": "ARS",
+      "faculty_name": "Dr. Amit R. Sharma",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Wednesday",
+      "day_order": 2,
+      "period": "11:15-12:15",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": null,
+      "subject": "DSA",
+      "faculty_code": "KP1",
+      "faculty_name": "Mr. Kunal Patil",
+      "room": "CR-02",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Wednesday",
+      "day_order": 2,
+      "period": "11:15-12:15",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": null,
+      "subject": "TOC",
+      "faculty_code": "ARS",
+      "faculty_name": "Dr. Amit R. Sharma",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Wednesday",
+      "day_order": 2,
+      "period": "13:00-14:00",
+      "is_morning": false,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": null,
+      "subject": "OS",
+      "faculty_code": "SPD",
+      "faculty_name": "Mrs. Sneha P. Desai",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Wednesday",
+      "day_order": 2,
+      "period": "14:00-15:00",
+      "is_morning": false,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": null,
+      "subject": "OS",
+      "faculty_code": "SPD",
+      "faculty_name": "Mrs. Sneha P. Desai",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Wednesday",
+      "day_order": 2,
+      "period": "15:15-16:15",
+      "is_morning": false,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": null,
+      "subject": "OS",
+      "faculty_code": "SPD",
+      "faculty_name": "Mrs. Sneha P. Desai",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Thursday",
+      "day_order": 3,
+      "period": "09:00-10:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": null,
+      "subject": "DSA",
+      "faculty_code": "VHP",
+      "faculty_name": "Mr. Vishal H. Pundikar",
+      "room": "CR-02",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Thursday",
+      "day_order": 3,
+      "period": "09:00-10:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": null,
+      "subject": "DSA",
+      "faculty_code": "KP1",
+      "faculty_name": "Mr. Kunal Patil",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Thursday",
+      "day_order": 3,
+      "period": "10:00-11:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": null,
+      "subject": "DSA",
+      "faculty_code": "VHP",
+      "faculty_name": "Mr. Vishal H. Pundikar",
+      "room": "CR-02",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Thursday",
+      "day_order": 3,
+      "period": "10:00-11:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": null,
+      "subject": "DSA",
+      "faculty_code": "KP1",
+      "faculty_name": "Mr. Kunal Patil",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Thursday",
+      "day_order": 3,
+      "period": "11:15-12:15",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": null,
+      "subject": "DSA",
+      "faculty_code": "VHP",
+      "faculty_name": "Mr. Vishal H. Pundikar",
+      "room": "CR-02",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Thursday",
+      "day_order": 3,
+      "period": "11:15-12:15",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": null,
+      "subject": "DSA",
+      "faculty_code": "KP1",
+      "faculty_name": "Mr. Kunal Patil",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Thursday",
+      "day_order": 3,
+      "period": "13:00-14:00",
+      "is_morning": false,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": null,
+      "subject": "OS",
+      "faculty_code": "SPD",
+      "faculty_name": "Mrs. Sneha P. Desai",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Thursday",
+      "day_order": 3,
+      "period": "14:00-15:00",
+      "is_morning": false,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": null,
+      "subject": "OS",
+      "faculty_code": "SPD",
+      "faculty_name": "Mrs. Sneha P. Desai",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Friday",
+      "day_order": 4,
+      "period": "09:00-10:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": null,
+      "subject": "DBMS",
+      "faculty_code": "VLB",
+      "faculty_name": "Dr. Vikas L. Bhise",
+      "room": "CR-02",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Friday",
+      "day_order": 4,
+      "period": "09:00-10:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": null,
+      "subject": "DSA",
+      "faculty_code": "KP1",
+      "faculty_name": "Mr. Kunal Patil",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Friday",
+      "day_order": 4,
+      "period": "10:00-11:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": null,
+      "subject": "DBMS",
+      "faculty_code": "PSJ",
+      "faculty_name": "Ms. Priya S. Joshi",
+      "room": "CR-02",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Friday",
+      "day_order": 4,
+      "period": "10:00-11:00",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": null,
+      "subject": "DBMS",
+      "faculty_code": "VLB",
+      "faculty_name": "Dr. Vikas L. Bhise",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Friday",
+      "day_order": 4,
+      "period": "11:15-12:15",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division A",
+      "batch": null,
+      "subject": "DBMS",
+      "faculty_code": "PSJ",
+      "faculty_name": "Ms. Priya S. Joshi",
+      "room": "CR-02",
+      "is_lab": false,
+      "version_id": 5
+    },
+    {
+      "day": "Friday",
+      "day_order": 4,
+      "period": "11:15-12:15",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "Division B",
+      "batch": null,
+      "subject": "DBMS",
+      "faculty_code": "VLB",
+      "faculty_name": "Dr. Vikas L. Bhise",
+      "room": "CR-01",
+      "is_lab": false,
+      "version_id": 5
+    }
+  ],
+  "resource_sharing_requests": [
+    {
+      "id": 1,
+      "resource_name": "CR-03",
+      "day": "Monday",
+      "period": "14:00-15:00",
+      "owner_department": "CSE",
+      "requesting_department": "E&TC",
+      "reason": "Guest lecture on Embedded Systems",
+      "status": "APPROVED",
+      "requested_by": "E&TC Coordinator",
+      "reviewed_by": "HOD CSE"
+    }
+  ]
+}
