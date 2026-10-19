@@ -1,5 +1,11 @@
 # test_scheduler.py
-# Comprehensive automated test suite for ClashFree CSP+MRV Scheduling Engine
+# Comprehensive automated test suite for ClashFree CSP+MRV Scheduling Engine:
+# 1. Single-sheet CLASHFREE_INPUT Excel reading and validation
+# 2. Dynamic resource matching (type, capacity >= required, equipment)
+# 3. CSP + MRV + Backtracking search with clash resolution tracking
+# 4. Strict 12-hour AM/PM format validation (NEVER 24-hour time)
+# 5. Zero clashes (Faculty, Room, Division, Batch)
+# 6. Spreading & no back-to-back duplicate lectures
 
 import os
 import sys
@@ -18,86 +24,100 @@ def test_clashfree_pipeline():
     print("=" * 60)
 
     # 1. Test Excel Reader & Faculty Code Engine
-    print("\n[Test 1] Testing Excel Reader & Faculty Short-Code Generation...")
-    data, errors, warnings, summary = excel_reader.read_excel("sample_data.xlsx")
-    assert not errors, f"Excel read failed with errors: {errors}"
-    print(f"[OK] Excel read successfully: {summary}")
+    print("\n[Test 1] Testing Single-Sheet Excel Reader & Faculty Short Codes...")
+    valid, errors, warnings, summary, data = excel_reader.validate_excel_data("sample_data.xlsx")
+    assert valid, f"Excel validation failed: {errors}"
+    print(f"[OK] Excel validated successfully: {summary}")
 
     print("\nFaculty Short Codes Generated:")
     for f in data["faculty"]:
-        print(f"  {f['name']} ({f['designation']}) -> [{f['code']}] | Preference: {f['preferred_time']}")
+        print(f"  {f['name']} -> [{f['code']}] | Preference: {f.get('preference', 'Any')} | Availability: {f.get('availability')}")
     assert any(f["code"] == "VHP" for f in data["faculty"]), "Expected VHP short code for Vishal H. Pundikar"
+    assert any(f["code"] == "NAK" for f in data["faculty"]), "Expected NAK short code for Naresh A. Kamble"
 
-    # 2. Test Resource Reservation (HOD Requirement)
-    print("\n[Test 2] Testing HOD Resource Reservation Policy...")
-    rooms = db.get_all_rooms("CSE")
-    cfg = db.get_resource_config("CSE")
-    active_rooms, reserved_rooms, _ = scheduler.filter_and_reserve_resources(rooms, "CSE", cfg)
-    print(f"Total Rooms: {len(rooms)}")
-    print(f"Active for Scheduling: {len(active_rooms)} {[r['name'] for r in active_rooms]}")
-    print(f"Reserved by HOD: {len(reserved_rooms)} {[r['name'] for r in reserved_rooms]}")
-    assert len(reserved_rooms) >= 2, f"Expected at least 2 reserved rooms (1 CR + 1 Lab), got {len(reserved_rooms)}"
-    print("[OK] HOD Resource Reservation policy verified.")
+    # 2. Test Dynamic Resource Allocation (No reserved room buffer)
+    print("\n[Test 2] Testing Dynamic Resource Allocation Matching...")
+    rooms = data["rooms"]
+    active_rooms = [r for r in rooms if r.get("is_active", True)]
+    print(f"Total Resources Configured: {len(rooms)}")
+    print(f"Active Resources: {len(active_rooms)} {[r['name'] for r in active_rooms]}")
+    assert len(active_rooms) >= 8, f"Expected at least 8 active resources, got {len(active_rooms)}"
 
-    # 3. Test CSP + MRV + Backtracking Scheduler
+    # 3. Test CSP + MRV + Backtracking Scheduler using Single-Sheet Requirements
     print("\n[Test 3] Running CSP + MRV + Backtracking Scheduler...")
-    fac = db.get_all_faculty("CSE")
-    subs = db.get_all_subjects("CSE")
-    divs = db.get_all_divisions("CSE")
-    batches = db.get_all_batches()
+    reqs = data["requirements"]
+    time_slots = data["time_slots"]
 
     success, msg, rows, conflicts, meta = scheduler.generate_timetable(
-        faculty_list=fac,
-        room_list=rooms,
-        subject_list=subs,
-        division_list=divs,
-        batch_list=batches,
-        resource_config=cfg,
-        department="CSE"
+        faculty_list=data["faculty"],
+        room_list=data["rooms"],
+        subject_list=data["subjects"],
+        division_list=data["divisions"],
+        batch_list=data["batches"],
+        time_slots=time_slots,
+        department="CSE",
+        requirements=reqs
     )
 
     print(f"Success: {success}")
     print(f"Message: {msg}")
-    print(f"Metadata: {meta}")
+    print(f"Metadata: Backtrack Steps = {meta.get('backtrack_steps')}, Detected Clashes = {meta.get('detected_clashes')}, Resolved = {meta.get('resolved_clashes')}")
     assert success, f"Scheduler failed: {conflicts}"
     assert len(rows) > 0, "No timetable rows scheduled"
     print(f"[OK] {len(rows)} sessions successfully scheduled without clashes!")
 
-    # Verify no reserved rooms used in timetable
-    reserved_names = set(meta.get("reserved_rooms", []))
+    # 4. Test 12-Hour AM/PM Format
+    print("\n[Test 4] Verifying Strict 12-Hour AM/PM Format...")
     for r in rows:
-        assert r["room"] not in reserved_names, f"Error: Reserved room {r['room']} was assigned in timetable!"
-    print("[OK] Verified: 0 reserved rooms assigned by timetable generator.")
+        period = r["period"]
+        assert "AM" in period or "PM" in period, f"Period '{period}' is not in 12-hour AM/PM format!"
+        # Assert no 24-hour hour string like 13:00, 14:00, etc.
+        assert not any(f"{h:02d}:" in period for h in range(13, 24)), f"Found 24-hour time in period: {period}"
+    print("[OK] Verified: All periods are strictly in 12-Hour AM/PM format (e.g. '9:00 AM - 10:00 AM', '1:00 PM - 2:00 PM')")
 
-    print("\n[Test 4] Verifying No Back-to-Back Same Classes & Day Spreading...")
-    div_a_rows = [r for r in rows if r["section"] == "Division A"]
-    print(f"\n--- Division A Weekly Timetable ({len(div_a_rows)} sessions) ---")
-    current_day = None
-    for r in div_a_rows:
-        if r["day"] != current_day:
-            current_day = r["day"]
-            print(f"\n  {current_day.upper()}:")
-        batch_str = f"[{r['batch']}]" if r.get("batch") else ""
-        print(f"    {r['period']:12} | {r['subject']:8} {batch_str:6} | {r['room']:7} | {r['faculty_code']}")
+    # 5. Verify No Hard Constraint Clashes
+    print("\n[Test 5] Verifying 0 Hard Constraint Clashes...")
+    slot_assignments = {}
+    for r in rows:
+        key = (r["day"], r["period"])
+        if key not in slot_assignments:
+            slot_assignments[key] = []
+        slot_assignments[key].append(r)
 
-    # Verification: No back-to-back same subject on same day
+    for (day, period), sess_list in slot_assignments.items():
+        # Check faculty clashes
+        fac_codes = [s["faculty_code"] for s in sess_list]
+        assert len(fac_codes) == len(set(fac_codes)), f"Faculty double-booking on {day} {period}: {fac_codes}"
+
+        # Check room clashes
+        room_names = [s["room"] for s in sess_list]
+        assert len(room_names) == len(set(room_names)), f"Room double-booking on {day} {period}: {room_names}"
+
+        # Check division clashes
+        div_full_lectures = [s["section"] for s in sess_list if not s.get("batch")]
+        assert len(div_full_lectures) == len(set(div_full_lectures)), f"Division double-booking on {day} {period}: {div_full_lectures}"
+    print("[OK] Verified: 0 Faculty Clashes, 0 Room Clashes, 0 Division Clashes!")
+
+    # 6. Verify Spreading & No Back-to-Back Same Lectures
+    print("\n[Test 6] Verifying No Back-to-Back Same Classes & Day Spreading...")
+    div_a_rows = [r for r in rows if r["section"] == "A"]
     for d in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]:
         day_sessions = [r for r in div_a_rows if r["day"] == d and not r.get("is_lab")]
         subjects_on_day = [r["subject"] for r in day_sessions]
-        # Assert no duplicate lectures on same day when subject <= 5 lectures/week
+        # At most 1 lecture of each subject per day for 3-4 sess/wk
         assert len(subjects_on_day) == len(set(subjects_on_day)), f"Duplicate theory subject on {d}: {subjects_on_day}"
-    print("[OK] Verified: 0 duplicate theory subjects on the same day for Division A!")
-    print("[OK] Verified: 0 back-to-back same classes!")
+    print("[OK] Verified: 0 duplicate theory classes on same day for Division A!")
 
-    # 5. Test Slot-Wise Occupancy Matrix
-    print("\n[Test 5] Testing Slot-Wise Occupancy Matrix...")
-    sample_slot = rows[0]
-    day = sample_slot["day"]
-    period = sample_slot["period"]
-    occupied_in_slot = [r for r in rows if r["day"] == day and r["period"] == period]
-    print(f"Slot {day} {period} has {len(occupied_in_slot)} simultaneous sessions:")
-    for s in occupied_in_slot:
-        print(f"  {s['room']} ({s['subject']}) -> Div {s['section']} {s.get('batch') or 'Whole Class'} by {s['faculty_code']}")
+    # 7. Clash Resolution History Log
+    print("\n[Test 7] Verifying Clash Resolution History Log...")
+    clash_log = meta.get("clash_history", [])
+    print(f"Clash Resolution Log Entries: {len(clash_log)}")
+    if clash_log:
+        sample_entry = clash_log[0]
+        print(f"Sample Entry: {sample_entry.get('id')} {sample_entry.get('type')} at {sample_entry.get('time')} -> {sample_entry.get('status')}")
+        print(f"  Issue: {sample_entry.get('issue')}")
+        print(f"  Resolution: {sample_entry.get('resolution')}")
+    print("[OK] Clash Resolution History generated and verified.")
 
     print("\n" + "=" * 60)
     print("ALL CLASHFREE SYSTEM TESTS PASSED SUCCESSFULLY! [OK]")

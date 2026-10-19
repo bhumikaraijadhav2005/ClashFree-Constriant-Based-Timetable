@@ -1,239 +1,255 @@
 # create_sample.py
-# Generates a comprehensive, styled sample_data.xlsx file for ClashFree.
-# Includes: README, Departments, Divisions, Batches, Faculty, Rooms, Labs, Subjects, Sections.
+# Generates the official human-friendly single-sheet Excel template:
+# Sheet: CLASHFREE_INPUT
+# Contains 3 clearly separated sections:
+# 1. Main Teaching Requirements table (18 columns)
+# 2. RESOURCE CONFIGURATION (Resource Type, Resource Name, Capacity, Equipment, Active)
+# 3. TIME CONFIGURATION (Day, Start Time, End Time, Type)
 
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 wb = openpyxl.Workbook()
+ws = wb.active
+ws.title = "CLASHFREE_INPUT"
+ws.views.sheetView[0].showGridLines = True
 
-# Styling helpers
-FONT_HEADER = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+# Styles
 FONT_TITLE = Font(name="Calibri", size=14, bold=True, color="1E3A8A")
 FONT_SUBTITLE = Font(name="Calibri", size=10, italic=True, color="475569")
-FONT_REGULAR = Font(name="Calibri", size=11, color="0F172A")
-FONT_BOLD = Font(name="Calibri", size=11, bold=True, color="0F172A")
+FONT_SEC_HEADER = Font(name="Calibri", size=12, bold=True, color="FFFFFF")
+FONT_TH = Font(name="Calibri", size=10, bold=True, color="FFFFFF")
+FONT_REGULAR = Font(name="Calibri", size=10, color="0F172A")
+FONT_BOLD = Font(name="Calibri", size=10, bold=True, color="0F172A")
 
-FILL_HEADER_BLUE = PatternFill("solid", fgColor="1D4ED8")   # Royal Blue
-FILL_HEADER_TEAL = PatternFill("solid", fgColor="0F766E")   # Teal
-FILL_HEADER_PURPLE = PatternFill("solid", fgColor="6D28D9") # Purple
-FILL_HEADER_AMBER = PatternFill("solid", fgColor="B45309")  # Amber
+FILL_NAVY = PatternFill("solid", fgColor="1E3A8A")
+FILL_TEAL = PatternFill("solid", fgColor="0F766E")
+FILL_SLATE = PatternFill("solid", fgColor="334155")
+FILL_AMBER = PatternFill("solid", fgColor="B45309")
 FILL_ZEBRA = PatternFill("solid", fgColor="F8FAFC")
+FILL_SECTION_BANNER = PatternFill("solid", fgColor="0F172A")
 
 THIN_BORDER = Border(
-    left=Side(style='thin', color='E2E8F0'),
-    right=Side(style='thin', color='E2E8F0'),
-    top=Side(style='thin', color='E2E8F0'),
-    bottom=Side(style='thin', color='E2E8F0')
+    left=Side(style='thin', color='CBD5E1'),
+    right=Side(style='thin', color='CBD5E1'),
+    top=Side(style='thin', color='CBD5E1'),
+    bottom=Side(style='thin', color='CBD5E1')
 )
 
-def apply_table_styles(ws, header_fill):
-    ws.views.sheetView[0].showGridLines = True
-    for cell in ws[1]:
-        cell.font = FONT_HEADER
-        cell.fill = header_fill
-        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        cell.border = THIN_BORDER
-    ws.row_dimensions[1].height = 28
+# ---------------------------------------------------------------------------
+# 1. TEACHING REQUIREMENTS (MAIN TABLE)
+# ---------------------------------------------------------------------------
+teaching_headers = [
+    "Year",
+    "Semester",
+    "Division",
+    "Batch",
+    "Strength",
+    "Subject Code",
+    "Subject",
+    "Type",
+    "Sessions/Week",
+    "Duration",
+    "Faculty Name",
+    "Faculty Code",
+    "Weekly Max Load",
+    "Preference",
+    "Availability",
+    "Resource Type",
+    "Capacity Required",
+    "Equipment"
+]
 
-    for row_idx, row in enumerate(ws.iter_rows(min_row=2), start=2):
-        ws.row_dimensions[row_idx].height = 20
-        is_even = (row_idx % 2 == 0)
-        for cell in row:
+teaching_data = [
+    # Division A - Theory & Labs
+    [2, 3, "A", "-", 60, "DS", "Data Structures", "Lecture", 4, "1 hr", "Vishal H. Pundikar", "VHP", 18, "Morning", "Mon-Fri 9:00 AM-4:00 PM", "Classroom", 60, "-"],
+    [2, 3, "A", "A1", 30, "DSL", "Data Structures Lab", "Lab", 2, "2 hr", "Naresh A. Kamble", "NAK", 18, "Morning", "Mon-Fri 9:00 AM-1:00 PM", "Lab", 30, "Computer"],
+    [2, 3, "A", "A2", 30, "DSL", "Data Structures Lab", "Lab", 2, "2 hr", "Naresh A. Kamble", "NAK", 18, "Morning", "Mon-Fri 9:00 AM-1:00 PM", "Lab", 30, "Computer"],
+    [2, 3, "A", "-", 60, "OOP", "Object Oriented Programming", "Lecture", 3, "1 hr", "Dr. Amit R. Sharma", "ARS", 14, "Morning", "Mon-Fri 9:00 AM-2:00 PM", "Classroom", 60, "Projector"],
+    [2, 3, "A", "A1", 30, "OOPL", "OOP Lab", "Lab", 2, "2 hr", "Priya S. Joshi", "PSJ", 16, "Afternoon", "Mon-Fri 11:00 AM-5:00 PM", "Lab", 30, "Computer"],
+    [2, 3, "A", "A2", 30, "OOPL", "OOP Lab", "Lab", 2, "2 hr", "Priya S. Joshi", "PSJ", 16, "Afternoon", "Mon-Fri 11:00 AM-5:00 PM", "Lab", 30, "Computer"],
+    [2, 3, "A", "-", 60, "DBMS", "Database Management Systems", "Lecture", 3, "1 hr", "Dr. Vikas L. Bhise", "VLB", 18, "Morning", "Mon-Fri 9:00 AM-4:00 PM", "Classroom", 60, "-"],
+    [2, 3, "A", "A1", 30, "DBMSL", "DBMS Lab", "Lab", 2, "2 hr", "Sneha P. Desai", "SPD", 18, "Afternoon", "Mon-Fri 10:00 AM-4:00 PM", "Lab", 30, "Computer"],
+    [2, 3, "A", "A2", 30, "DBMSL", "DBMS Lab", "Lab", 2, "2 hr", "Sneha P. Desai", "SPD", 18, "Afternoon", "Mon-Fri 10:00 AM-4:00 PM", "Lab", 30, "Computer"],
+    [2, 3, "A", "-", 60, "OS", "Operating Systems", "Lecture", 3, "1 hr", "Rahul K. Mehta", "RKM", 18, "Any", "Mon-Fri 9:00 AM-4:00 PM", "Classroom", 60, "-"],
+    [2, 3, "A", "-", 60, "TOC", "Theory of Computation", "Lecture", 3, "1 hr", "K. P. Kulkarni", "KPK", 18, "Morning", "Mon-Fri 9:00 AM-3:00 PM", "Classroom", 60, "-"],
+
+    # Division B - Theory & Labs
+    [2, 3, "B", "-", 60, "DS", "Data Structures", "Lecture", 4, "1 hr", "Vishal H. Pundikar", "VHP", 18, "Morning", "Mon-Fri 9:00 AM-4:00 PM", "Classroom", 60, "-"],
+    [2, 3, "B", "B1", 30, "DSL", "Data Structures Lab", "Lab", 2, "2 hr", "Naresh A. Kamble", "NAK", 18, "Morning", "Mon-Fri 9:00 AM-1:00 PM", "Lab", 30, "Computer"],
+    [2, 3, "B", "B2", 30, "DSL", "Data Structures Lab", "Lab", 2, "2 hr", "Naresh A. Kamble", "NAK", 18, "Morning", "Mon-Fri 9:00 AM-1:00 PM", "Lab", 30, "Computer"],
+    [2, 3, "B", "-", 60, "OOP", "Object Oriented Programming", "Lecture", 3, "1 hr", "Dr. Amit R. Sharma", "ARS", 14, "Morning", "Mon-Fri 9:00 AM-2:00 PM", "Classroom", 60, "Projector"],
+    [2, 3, "B", "B1", 30, "OOPL", "OOP Lab", "Lab", 2, "2 hr", "Priya S. Joshi", "PSJ", 16, "Afternoon", "Mon-Fri 11:00 AM-5:00 PM", "Lab", 30, "Computer"],
+    [2, 3, "B", "B2", 30, "OOPL", "OOP Lab", "Lab", 2, "2 hr", "Priya S. Joshi", "PSJ", 16, "Afternoon", "Mon-Fri 11:00 AM-5:00 PM", "Lab", 30, "Computer"],
+    [2, 3, "B", "-", 60, "DBMS", "Database Management Systems", "Lecture", 3, "1 hr", "Dr. Vikas L. Bhise", "VLB", 18, "Morning", "Mon-Fri 9:00 AM-4:00 PM", "Classroom", 60, "-"],
+    [2, 3, "B", "B1", 30, "DBMSL", "DBMS Lab", "Lab", 2, "2 hr", "Sneha P. Desai", "SPD", 18, "Afternoon", "Mon-Fri 10:00 AM-4:00 PM", "Lab", 30, "Computer"],
+    [2, 3, "B", "B2", 30, "DBMSL", "DBMS Lab", "Lab", 2, "2 hr", "Sneha P. Desai", "SPD", 18, "Afternoon", "Mon-Fri 10:00 AM-4:00 PM", "Lab", 30, "Computer"],
+    [2, 3, "B", "-", 60, "OS", "Operating Systems", "Lecture", 3, "1 hr", "Rahul K. Mehta", "RKM", 18, "Any", "Mon-Fri 9:00 AM-4:00 PM", "Classroom", 60, "-"],
+    [2, 3, "B", "-", 60, "TOC", "Theory of Computation", "Lecture", 3, "1 hr", "K. P. Kulkarni", "KPK", 18, "Morning", "Mon-Fri 9:00 AM-3:00 PM", "Classroom", 60, "-"]
+]
+
+# Row 1: Header
+ws.append(teaching_headers)
+ws.row_dimensions[1].height = 28
+for col_idx, cell in enumerate(ws[1], start=1):
+    cell.font = FONT_TH
+    cell.fill = FILL_NAVY
+    cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    cell.border = THIN_BORDER
+
+current_row = 2
+for r_data in teaching_data:
+    ws.append(r_data)
+    ws.row_dimensions[current_row].height = 20
+    is_even = (current_row % 2 == 0)
+    for col_idx, cell in enumerate(ws[current_row], start=1):
+        cell.font = FONT_REGULAR
+        cell.border = THIN_BORDER
+        if is_even:
+            cell.fill = FILL_ZEBRA
+        if col_idx in [1, 2, 5, 9, 13, 17]:
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+        elif col_idx in [3, 4, 6, 8, 12, 14, 16]:
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+        else:
+            cell.alignment = Alignment(horizontal="left", vertical="center")
+    current_row += 1
+
+# Blank row separator
+ws.append([])
+current_row += 1
+
+# ---------------------------------------------------------------------------
+# 2. RESOURCE CONFIGURATION
+# ---------------------------------------------------------------------------
+res_banner = ["RESOURCE CONFIGURATION", "", "", "", ""]
+ws.append(res_banner)
+ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=5)
+ws.row_dimensions[current_row].height = 26
+ws.cell(row=current_row, column=1).font = FONT_SEC_HEADER
+ws.cell(row=current_row, column=1).fill = FILL_TEAL
+ws.cell(row=current_row, column=1).alignment = Alignment(horizontal="left", vertical="center", indent=1)
+current_row += 1
+
+res_headers = ["Resource Type", "Resource Name", "Capacity", "Equipment", "Active"]
+ws.append(res_headers)
+ws.row_dimensions[current_row].height = 24
+for col_idx in range(1, 6):
+    cell = ws.cell(row=current_row, column=col_idx)
+    cell.font = FONT_TH
+    cell.fill = FILL_SLATE
+    cell.alignment = Alignment(horizontal="center", vertical="center")
+    cell.border = THIN_BORDER
+current_row += 1
+
+resources_data = [
+    ["Classroom", "CR-1", 65, "-", "Yes"],
+    ["Classroom", "CR-2", 65, "Projector", "Yes"],
+    ["Classroom", "CR-3", 70, "Projector", "Yes"],
+    ["Classroom", "CR-4", 65, "-", "Yes"],
+    ["Classroom", "CR-5", 65, "-", "Yes"],
+    ["Lab", "LAB-1", 35, "Computer", "Yes"],
+    ["Lab", "LAB-2", 35, "Computer", "Yes"],
+    ["Lab", "LAB-3", 35, "Computer", "Yes"],
+    ["Lab", "LAB-4", 35, "Computer", "Yes"]
+]
+
+for r_data in resources_data:
+    ws.append(r_data)
+    ws.row_dimensions[current_row].height = 20
+    is_even = (current_row % 2 == 0)
+    for col_idx in range(1, 6):
+        cell = ws.cell(row=current_row, column=col_idx)
+        cell.font = FONT_REGULAR
+        cell.border = THIN_BORDER
+        if is_even:
+            cell.fill = FILL_ZEBRA
+        if col_idx in [1, 2, 3, 5]:
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+        else:
+            cell.alignment = Alignment(horizontal="left", vertical="center")
+    current_row += 1
+
+# Blank row separator
+ws.append([])
+current_row += 1
+
+# ---------------------------------------------------------------------------
+# 3. TIME CONFIGURATION
+# ---------------------------------------------------------------------------
+time_banner = ["TIME CONFIGURATION", "", "", ""]
+ws.append(time_banner)
+ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=4)
+ws.row_dimensions[current_row].height = 26
+ws.cell(row=current_row, column=1).font = FONT_SEC_HEADER
+ws.cell(row=current_row, column=1).fill = FILL_AMBER
+ws.cell(row=current_row, column=1).alignment = Alignment(horizontal="left", vertical="center", indent=1)
+current_row += 1
+
+time_headers = ["Day", "Start Time", "End Time", "Type"]
+ws.append(time_headers)
+ws.row_dimensions[current_row].height = 24
+for col_idx in range(1, 5):
+    cell = ws.cell(row=current_row, column=col_idx)
+    cell.font = FONT_TH
+    cell.fill = FILL_SLATE
+    cell.alignment = Alignment(horizontal="center", vertical="center")
+    cell.border = THIN_BORDER
+current_row += 1
+
+daily_slots = [
+    ("9:00 AM", "10:00 AM", "Teaching"),
+    ("10:00 AM", "11:00 AM", "Teaching"),
+    ("11:00 AM", "11:15 AM", "Break"),
+    ("11:15 AM", "12:15 PM", "Teaching"),
+    ("12:15 PM", "1:15 PM", "Teaching"),
+    ("1:15 PM", "2:00 PM", "Lunch"),
+    ("2:00 PM", "3:00 PM", "Teaching"),
+    ("3:00 PM", "4:00 PM", "Teaching")
+]
+
+for day in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]:
+    for st, et, slot_type in daily_slots:
+        ws.append([day, st, et, slot_type])
+        ws.row_dimensions[current_row].height = 19
+        is_even = (current_row % 2 == 0)
+        for col_idx in range(1, 5):
+            cell = ws.cell(row=current_row, column=col_idx)
             cell.font = FONT_REGULAR
             cell.border = THIN_BORDER
             if is_even:
                 cell.fill = FILL_ZEBRA
-            if isinstance(cell.value, (int, float)):
-                cell.alignment = Alignment(horizontal="center", vertical="center")
-            else:
-                cell.alignment = Alignment(horizontal="left", vertical="center")
-
-    # Auto-adjust column widths
-    for col in ws.columns:
-        max_len = max(len(str(c.value or "")) for c in col)
-        col_letter = get_column_letter(col[0].column)
-        ws.column_dimensions[col_letter].width = max(max_len + 5, 14)
-
-# ---------------------------------------------------------------------------
-# SHEET 1: README (User Guide)
-# ---------------------------------------------------------------------------
-ws_readme = wb.active
-ws_readme.title = "README"
-ws_readme.views.sheetView[0].showGridLines = True
-ws_readme.column_dimensions['A'].width = 8
-ws_readme.column_dimensions['B'].width = 30
-ws_readme.column_dimensions['C'].width = 65
-
-ws_readme.append(["", "CLASHFREE TIMETABLE SYSTEM - EXCEL IMPORT GUIDE", ""])
-ws_readme['B1'].font = FONT_TITLE
-ws_readme.row_dimensions[1].height = 30
-
-ws_readme.append(["", "Mini Project | B.Tech CSE (2nd Year)", ""])
-ws_readme['B2'].font = FONT_SUBTITLE
-ws_readme.append([])
-
-readme_instructions = [
-    ("Sheet Name", "Purpose & Required Fields", "Description / Constraints"),
-    ("Departments", "Code, DepartmentName", "Lists all participating departments (e.g., CSE, E&TC, MECH)."),
-    ("Divisions", "DivisionName, Strength, Department, Year, Semester", "Configures divisions with individual student strengths (e.g. Div A = 75, Div B = 72)."),
-    ("Batches", "DivisionName, BatchName, Strength", "Defines lab batches (e.g., A1, A2). Lab sessions are scheduled at batch level."),
-    ("Faculty", "Name, Subjects, AvailableFrom, AvailableTo, PreferredTime, MaxLoad, Designation, Department", "Faculty details. System auto-generates initials (Vishal H. Pundikar -> VHP, duplicates -> KP1, KP2)."),
-    ("Rooms", "RoomName, Type, Capacity, Department, PCs, IsReserved, ReservationReason", "Classrooms inventory. Supports HOD reservation flag and capacity constraints."),
-    ("Labs", "LabName, Capacity, PCs, Department, LabType, IsReserved", "Laboratories with PC count. Enforces Student:PC ratio (default 1:1) and reservation."),
-    ("Subjects", "Subject, LecturesPerWeek, LabsPerWeek, RequiresLab, Department, LabType", "Subjects. Automatically splits theory into lecture sessions & labs into batch sessions."),
-    ("Sections", "SectionName, Strength", "Legacy support for backward compatibility.")
-]
-
-for row in readme_instructions:
-    ws_readme.append(["", row[0], row[1] if len(row) > 2 else "", row[2] if len(row) > 2 else ""])
-
-for r_idx in range(4, len(readme_instructions) + 4):
-    ws_readme.row_dimensions[r_idx].height = 22
-    for c_idx in [2, 3, 4]:
-        cell = ws_readme.cell(row=r_idx, column=c_idx)
-        cell.border = THIN_BORDER
-        if r_idx == 4:
-            cell.font = FONT_HEADER
-            cell.fill = FILL_HEADER_BLUE
             cell.alignment = Alignment(horizontal="center", vertical="center")
-        else:
-            cell.font = FONT_BOLD if c_idx == 2 else FONT_REGULAR
-            cell.alignment = Alignment(horizontal="left", vertical="center")
-            if r_idx % 2 == 0:
-                cell.fill = FILL_ZEBRA
+            if slot_type in ["Break", "Lunch"]:
+                cell.font = FONT_BOLD
+        current_row += 1
 
-# ---------------------------------------------------------------------------
-# SHEET 2: Departments
-# ---------------------------------------------------------------------------
-ws_depts = wb.create_sheet("Departments")
-ws_depts.append(["Code", "DepartmentName"])
-for row in [
-    ["CSE",  "Computer Science and Engineering"],
-    ["E&TC", "Electronics & Telecommunication Engineering"],
-    ["MECH", "Mechanical Engineering"]
-]:
-    ws_depts.append(row)
-apply_table_styles(ws_depts, FILL_HEADER_BLUE)
+# Column width auto-adjustment
+col_widths = {
+    1: 8,   # Year
+    2: 10,  # Semester
+    3: 10,  # Division
+    4: 10,  # Batch
+    5: 10,  # Strength
+    6: 14,  # Subject Code
+    7: 28,  # Subject
+    8: 12,  # Type
+    9: 14,  # Sessions/Week
+    10: 12, # Duration
+    11: 24, # Faculty Name
+    12: 14, # Faculty Code
+    13: 16, # Weekly Max Load
+    14: 14, # Preference
+    15: 26, # Availability
+    16: 16, # Resource Type
+    17: 18, # Capacity Required
+    18: 14  # Equipment
+}
 
-# ---------------------------------------------------------------------------
-# SHEET 3: Divisions
-# ---------------------------------------------------------------------------
-ws_divs = wb.create_sheet("Divisions")
-ws_divs.append(["DivisionName", "Strength", "Department", "Year", "Semester"])
-for row in [
-    ["Division A", 75, "CSE",  "Second Year", "Semester III"],
-    ["Division B", 72, "CSE",  "Second Year", "Semester III"],
-    ["Div E1",     65, "E&TC", "Second Year", "Semester III"]
-]:
-    ws_divs.append(row)
-apply_table_styles(ws_divs, FILL_HEADER_BLUE)
+for col_idx, width in col_widths.items():
+    col_letter = get_column_letter(col_idx)
+    ws.column_dimensions[col_letter].width = width
 
-# ---------------------------------------------------------------------------
-# SHEET 4: Batches
-# ---------------------------------------------------------------------------
-ws_batches = wb.create_sheet("Batches")
-ws_batches.append(["DivisionName", "BatchName", "Strength"])
-for row in [
-    ["Division A", "A1", 38],
-    ["Division A", "A2", 37],
-    ["Division B", "B1", 36],
-    ["Division B", "B2", 36],
-    ["Div E1",     "E1-1", 33],
-    ["Div E1",     "E1-2", 32]
-]:
-    ws_batches.append(row)
-apply_table_styles(ws_batches, FILL_HEADER_BLUE)
-
-# ---------------------------------------------------------------------------
-# SHEET 5: Faculty
-# ---------------------------------------------------------------------------
-ws_fac = wb.create_sheet("Faculty")
-ws_fac.append(["Name", "Subjects", "AvailableFrom", "AvailableTo", "PreferredTime", "MaxLoad", "Designation", "Department"])
-for row in [
-    ["Mr. Vishal H. Pundikar", "DSA, DS Lab",    "09:00", "17:00", "Morning",   18, "Assistant Professor", "CSE"],
-    ["Dr. Vikas L. Bhise",     "DS Lab, DBMS",   "09:00", "17:00", "Morning",   18, "Associate Professor", "CSE"],
-    ["Dr. Amit R. Sharma",     "TOC, Maths",     "09:00", "13:00", "Morning",   12, "Professor & HOD",     "CSE"],
-    ["Mrs. Sneha P. Desai",    "OS, CN",         "11:00", "17:00", "Afternoon", 18, "Assistant Professor", "CSE"],
-    ["Mr. Rahul K. Mehta",     "OS, TOC",        "09:00", "17:00", "Any",       18, "Assistant Professor", "CSE"],
-    ["Ms. Priya S. Joshi",     "DBMS, Maths",    "09:00", "15:00", "Morning",   16, "Assistant Professor", "CSE"],
-    ["Mr. Kunal Patil",        "DSA, CN",        "09:00", "17:00", "Morning",   18, "Assistant Professor", "CSE"],
-    ["Mr. Kiran Patil",        "DBMS, OS",       "09:00", "17:00", "Any",       18, "Assistant Professor", "CSE"]
-]:
-    ws_fac.append(row)
-apply_table_styles(ws_fac, FILL_HEADER_TEAL)
-
-# ---------------------------------------------------------------------------
-# SHEET 6: Rooms (Classrooms)
-# ---------------------------------------------------------------------------
-ws_rooms = wb.create_sheet("Rooms")
-ws_rooms.append(["RoomName", "Type", "Capacity", "Department", "PCs", "IsReserved", "ReservationReason"])
-for row in [
-    ["CR-01", "Classroom", 80, "CSE",  0, "No",  ""],
-    ["CR-02", "Classroom", 80, "CSE",  0, "No",  ""],
-    ["CR-03", "Classroom", 80, "CSE",  0, "No",  ""],
-    ["CR-04", "Classroom", 80, "CSE",  0, "No",  ""],
-    ["CR-05", "Classroom", 80, "CSE",  0, "Yes", "HOD Seminar & Electives Reserve"],
-    ["CR-11", "Classroom", 75, "E&TC", 0, "No",  ""]
-]:
-    ws_rooms.append(row)
-apply_table_styles(ws_rooms, FILL_HEADER_AMBER)
-
-# ---------------------------------------------------------------------------
-# SHEET 7: Labs
-# ---------------------------------------------------------------------------
-ws_labs = wb.create_sheet("Labs")
-ws_labs.append(["LabName", "Capacity", "PCs", "Department", "LabType", "IsReserved"])
-for row in [
-    ["LAB-01", 45, 45, "CSE",  "Computer Lab",    "No"],
-    ["LAB-02", 45, 45, "CSE",  "Computer Lab",    "No"],
-    ["LAB-03", 45, 45, "CSE",  "Computer Lab",    "No"],
-    ["LAB-04", 45, 45, "CSE",  "Computer Lab",    "Yes"],
-    ["LAB-05", 40, 25, "E&TC", "Electronics Lab", "No"]
-]:
-    ws_labs.append(row)
-apply_table_styles(ws_labs, FILL_HEADER_PURPLE)
-
-# ---------------------------------------------------------------------------
-# SHEET 8: Subjects
-# ---------------------------------------------------------------------------
-ws_subjects = wb.create_sheet("Subjects")
-ws_subjects.append(["Subject", "LecturesPerWeek", "LabsPerWeek", "RequiresLab", "Department", "LabType"])
-for row in [
-    ["DSA",    4, 0, "No",  "CSE", ""],
-    ["DS Lab", 0, 2, "Yes", "CSE", "Computer Lab"],
-    ["DBMS",   3, 0, "No",  "CSE", ""],
-    ["OS",     3, 0, "No",  "CSE", ""],
-    ["CN",     3, 0, "No",  "CSE", ""],
-    ["Maths",  3, 0, "No",  "CSE", ""],
-    ["TOC",    3, 0, "No",  "CSE", ""]
-]:
-    ws_subjects.append(row)
-apply_table_styles(ws_subjects, FILL_HEADER_BLUE)
-
-# ---------------------------------------------------------------------------
-# SHEET 9: Sections (Legacy Compatibility)
-# ---------------------------------------------------------------------------
-ws_sections = wb.create_sheet("Sections")
-ws_sections.append(["SectionName", "Strength"])
-for row in [
-    ["Division A", 75],
-    ["Division B", 72]
-]:
-    ws_sections.append(row)
-apply_table_styles(ws_sections, FILL_HEADER_BLUE)
-
-# Save to project folder
-output_path = "sample_data.xlsx"
-wb.save(output_path)
-print(f"Sample Excel generated successfully at: {output_path}")
-
-# Also save to parent directory if running from inside ClashFree-Constriant-Based-Timetable
-try:
-    import os
-    parent_path = os.path.join("..", "sample_data.xlsx")
-    wb.save(parent_path)
-    print(f"Also copied to parent directory: {parent_path}")
-except Exception:
-    pass
+wb.save("sample_data.xlsx")
+print("Successfully generated official CLASHFREE_INPUT single-sheet template at sample_data.xlsx")
