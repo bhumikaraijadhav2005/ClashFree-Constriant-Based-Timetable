@@ -272,8 +272,36 @@ export async function saveTimeSettings(settings) {
 }
 
 // -------------------------------------------------------------
-// EXCEL IMPORT & EXPORT
+// EXCEL IMPORT, VALIDATION & TEMPLATE
 // -------------------------------------------------------------
+export async function validateExcelFile(file) {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${API_BASE}/validate-excel`, {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return {
+        success: false,
+        valid: false,
+        errors: data.errors || [data.error || `Validation failed (${res.status})`],
+        warnings: data.warnings || [],
+        summary: data.summary || {}
+      };
+    }
+    return data;
+  } catch (err) {
+    return {
+      success: false,
+      valid: false,
+      errors: ["Could not connect to Flask Backend API (http://127.0.0.1:5000). Please ensure backend is running."]
+    };
+  }
+}
+
 export async function uploadExcelFile(file) {
   try {
     const formData = new FormData();
@@ -295,6 +323,15 @@ export async function uploadExcelFile(file) {
   }
 }
 
+export function getDownloadTemplateUrl() {
+  return `${API_BASE}/download-template`;
+}
+
+export async function fetchClashHistory() {
+  const res = await fetch(`${API_BASE}/clash-history`);
+  return res.json();
+}
+
 export function getExportTimetableUrl(department = "CSE") {
   return `${API_BASE}/export/timetable?department=${encodeURIComponent(department)}`;
 }
@@ -302,3 +339,4 @@ export function getExportTimetableUrl(department = "CSE") {
 export function getExportWorkloadUrl(department = "CSE") {
   return `${API_BASE}/export/workload?department=${encodeURIComponent(department)}`;
 }
+

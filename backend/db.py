@@ -996,3 +996,24 @@ def update_resource_sharing_request(req_id: int, status: str, reviewed_by: str =
             r["reviewed_by"] = reviewed_by
             break
     _save_local_store(_memory_store)
+
+# ---------------------------------------------------------------------------
+# CLASH RESOLUTION HISTORY & TEACHING REQUIREMENTS
+# ---------------------------------------------------------------------------
+def get_clash_history():
+    return _memory_store.get("clash_history", [])
+
+def save_clash_history(clash_list: list):
+    _memory_store["clash_history"] = list(clash_list)
+    _save_local_store(_memory_store)
+
+def get_requirements(department: str = "CSE"):
+    reqs = _memory_store.get("requirements", [])
+    if department:
+        return [r for r in reqs if r.get("department", "CSE") == department]
+    return reqs
+
+def save_requirements(req_list: list):
+    _memory_store["requirements"] = list(req_list)
+    _save_local_store(_memory_store)
+

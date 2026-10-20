@@ -64,36 +64,37 @@ def get_dashboard():
         timetable = db.get_timetable(department=dept)
         versions = db.get_timetable_versions()
 
-        active_rooms, reserved_rooms, _ = scheduler.filter_and_reserve_resources(rooms, dept, resource_cfg)
+        active_rooms = [r for r in rooms if r.get("is_active", True)]
 
-        cr_total = len([r for r in rooms if r.get("type") == "Classroom"])
-        cr_res = len([r for r in reserved_rooms if r.get("type") == "Classroom"])
-        cr_active = cr_total - cr_res
-
-        lab_total = len([r for r in rooms if r.get("type") == "Lab"])
-        lab_res = len([r for r in reserved_rooms if r.get("type") == "Lab"])
-        lab_active = lab_total - lab_res
+        cr_total = len([r for r in active_rooms if r.get("type") == "Classroom"])
+        lab_total = len([r for r in active_rooms if r.get("type") == "Lab"])
 
         # Calculate currently occupied rooms across the timetable
         cr_occupied_set = set(r["room"] for r in timetable if not r.get("is_lab"))
         lab_occupied_set = set(r["room"] for r in timetable if r.get("is_lab"))
 
         cr_occupied = len([name for name in cr_occupied_set if any(r["name"] == name and r["type"] == "Classroom" for r in active_rooms)])
-        cr_available = max(0, cr_active - cr_occupied)
+        cr_available = max(0, cr_total - cr_occupied)
 
         lab_occupied = len([name for name in lab_occupied_set if any(r["name"] == name and r["type"] == "Lab" for r in active_rooms)])
-        lab_available = max(0, lab_active - lab_occupied)
+        lab_available = max(0, lab_total - lab_occupied)
 
-        cr_occupancy_pct = round((cr_occupied / cr_active * 100), 1) if cr_active > 0 else 0
-        lab_occupancy_pct = round((lab_occupied / lab_active * 100), 1) if lab_active > 0 else 0
+        cr_occupancy_pct = round((cr_occupied / cr_total * 100), 1) if cr_total > 0 else 0
+        lab_occupancy_pct = round((lab_occupied / lab_total * 100), 1) if lab_total > 0 else 0
 
         active_version = next((v for v in versions if v.get("is_active")), versions[0] if versions else None)
+
+        clash_log = db.get_clash_history()
+        detected_clashes = len(clash_log)
+        resolved_clashes = len([c for c in clash_log if c.get("status") == "Resolved"])
+        unresolved_clashes = max(0, detected_clashes - resolved_clashes)
 
         return jsonify({
             "configured": db.is_configured(),
             "department": dept,
             "counts": {
                 "departments": len(departments),
+                "sections": len(divisions),
                 "divisions": len(divisions),
                 "batches": len(batches),
                 "faculty": len(faculty),
@@ -101,15 +102,18 @@ def get_dashboard():
                 "classrooms_total": cr_total,
                 "classrooms_occupied": cr_occupied,
                 "classrooms_available": cr_available,
-                "classrooms_reserved": cr_res,
+                "classrooms_reserved": 0,
                 "classrooms_occupancy_pct": cr_occupancy_pct,
                 "labs_total": lab_total,
                 "labs_occupied": lab_occupied,
                 "labs_available": lab_available,
-                "labs_reserved": lab_res,
+                "labs_reserved": 0,
                 "labs_occupancy_pct": lab_occupancy_pct,
                 "scheduled": len(timetable),
-                "conflicts": 0,
+                "detected_clashes": detected_clashes,
+                "resolved_clashes": resolved_clashes,
+                "unresolved_clashes": unresolved_clashes,
+                "conflicts": unresolved_clashes,
                 "active_version": active_version.get("name") if active_version else "Version 1"
             }
         })
@@ -292,35 +296,36 @@ def manage_time_settings():
 @app.route("/api/occupancy", methods=["GET"])
 def get_slot_occupancy():
     """
-    Returns slot-wise resource status: OCCUPIED, AVAILABLE, RESERVED.
+    Returns slot-wise resource status: OCCUPIED, AVAILABLE.
     Query params: day, period, department, type
+    Strict 12-Hour AM/PM representation. No artificial reserved buffers.
     """
     day = request.args.get("day", "Monday")
-    period = request.args.get("period", "09:00-10:00")
+    raw_period = request.args.get("period", "9:00 AM - 10:00 AM")
+    period = scheduler.format_time_12h(raw_period)
     dept = request.args.get("department", "CSE")
     r_type = request.args.get("type", "ALL")
 
-    all_rooms = db.get_all_rooms(dept)
-    resource_cfg = db.get_resource_config(dept)
+    all_rooms = [r for r in db.get_all_rooms(dept) if r.get("is_active", True)]
     timetable = db.get_timetable(department=dept)
     sharing_reqs = db.get_resource_sharing_requests()
 
-    active_rooms, reserved_rooms, _ = scheduler.filter_and_reserve_resources(all_rooms, dept, resource_cfg)
-    reserved_room_names = set(r["name"] for r in reserved_rooms)
-
     # Filter by slot in timetable
-    slot_sessions = [r for r in timetable if r.get("day") == day and r.get("period") == period]
+    slot_sessions = [
+        r for r in timetable
+        if r.get("day") == day and scheduler.format_time_12h(r.get("period")) == period
+    ]
     occupied_map = {r["room"]: r for r in slot_sessions}
 
     # Filter sharing requests approved for this day/period
     approved_sharing = {
         r["resource_name"]: r for r in sharing_reqs
-        if r.get("day") == day and r.get("period") == period and r.get("status") == "APPROVED"
+        if r.get("day") == day and scheduler.format_time_12h(r.get("period")) == period and r.get("status") == "APPROVED"
     }
 
     results = []
-    cr_occ, cr_free, cr_res = 0, 0, 0
-    lab_occ, lab_free, lab_res = 0, 0, 0
+    cr_occ, cr_free = 0, 0
+    lab_occ, lab_free = 0, 0
 
     for room in all_rooms:
         if r_type != "ALL" and room.get("type") != r_type:
@@ -329,21 +334,7 @@ def get_slot_occupancy():
         r_name = room.get("name")
         is_lab = (room.get("type") == "Lab")
 
-        if r_name in reserved_room_names or room.get("is_reserved"):
-            status = "RESERVED"
-            allocation = {
-                "division": "-",
-                "batch": "-",
-                "subject": "-",
-                "faculty": "-",
-                "notes": room.get("reservation_reason") or "HOD Reserved Resource (Exempt from normal scheduling)"
-            }
-            if is_lab:
-                lab_res += 1
-            else:
-                cr_res += 1
-
-        elif r_name in occupied_map:
+        if r_name in occupied_map:
             sess = occupied_map[r_name]
             status = "OCCUPIED"
             allocation = {
@@ -380,7 +371,7 @@ def get_slot_occupancy():
                 "batch": "-",
                 "subject": "-",
                 "faculty": "-",
-                "notes": "Free for Department / Available for Cross-Dept Sharing"
+                "notes": "Available for Department / Cross-Dept Sharing"
             }
             if is_lab:
                 lab_free += 1
@@ -392,28 +383,29 @@ def get_slot_occupancy():
             "type": room.get("type"),
             "department": room.get("department", "CSE"),
             "capacity": room.get("capacity"),
+            "equipment": room.get("equipment", ""),
             "num_pcs": room.get("num_pcs", 0),
             "status": status,
             "allocation": allocation
         })
 
-    cr_total = cr_occ + cr_free + cr_res
-    lab_total = lab_occ + lab_free + lab_res
+    cr_total = cr_occ + cr_free
+    lab_total = lab_occ + lab_free
 
     summary = {
         "classrooms": {
             "total": cr_total,
             "occupied": cr_occ,
             "available": cr_free,
-            "reserved": cr_res,
-            "occupancy_pct": round((cr_occ / max(1, cr_total - cr_res) * 100), 1) if (cr_total - cr_res) > 0 else 0
+            "reserved": 0,
+            "occupancy_pct": round((cr_occ / max(1, cr_total) * 100), 1) if cr_total > 0 else 0
         },
         "labs": {
             "total": lab_total,
             "occupied": lab_occ,
             "available": lab_free,
-            "reserved": lab_res,
-            "occupancy_pct": round((lab_occ / max(1, lab_total - lab_res) * 100), 1) if (lab_total - lab_res) > 0 else 0
+            "reserved": 0,
+            "occupancy_pct": round((lab_occ / max(1, lab_total) * 100), 1) if lab_total > 0 else 0
         }
     }
 
@@ -504,6 +496,7 @@ def run_scheduler():
         sharing_reqs = db.get_resource_sharing_requests()
         time_settings = db.get_time_settings()
         days = payload.get("days") or time_settings.get("working_days", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"])
+        requirements = db.get_requirements(dept)
 
         success, message, timetable_rows, conflicts, meta = scheduler.generate_timetable(
             faculty_list=faculty,
@@ -515,10 +508,14 @@ def run_scheduler():
             resource_config=resource_cfg,
             department=dept,
             approved_sharing=sharing_reqs,
-            days=days
+            days=days,
+            requirements=requirements
         )
 
         if success:
+            if meta.get("clash_history"):
+                db.save_clash_history(meta.get("clash_history"))
+
             # Create new timetable version
             new_v_id = len(db.get_timetable_versions()) + 1
             new_version = {
@@ -528,7 +525,7 @@ def run_scheduler():
                 "academic_year": "2026-2027",
                 "semester": "Semester III",
                 "department": dept,
-                "description": f"Generated with {meta.get('reserved_rooms_count')} reserved rooms and {len(timetable_rows)} sessions",
+                "description": f"Generated clash-free schedule with {len(timetable_rows)} sessions ({meta.get('detected_clashes', 0)} clashes resolved)",
                 "is_active": True,
                 "created_by": payload.get("created_by", "HOD")
             }
@@ -543,6 +540,7 @@ def run_scheduler():
                 "timetable": timetable_rows,
                 "version": new_version,
                 "metadata": meta,
+                "clash_history": meta.get("clash_history", []),
                 "conflicts": []
             })
         else:
@@ -709,42 +707,82 @@ def get_conflicts():
         divisions = db.get_all_divisions(dept)
         batches = db.get_all_batches()
         time_slots = db.get_time_slots()
-        resource_cfg = db.get_resource_config(dept)
+        requirements = db.get_requirements(dept)
 
-        success, _, _, conflicts, meta = scheduler.generate_timetable(
-            faculty, rooms, subjects, divisions, batches, time_slots, resource_cfg, dept
+        success, msg, rows, conflicts, meta = scheduler.generate_timetable(
+            faculty_list=faculty,
+            room_list=rooms,
+            subject_list=subjects,
+            division_list=divisions,
+            batch_list=batches,
+            time_slots=time_slots,
+            department=dept,
+            requirements=requirements
         )
 
-        active_rooms, reserved_rooms, _ = scheduler.filter_and_reserve_resources(rooms, dept, resource_cfg)
+        clash_history = db.get_clash_history()
+        if not clash_history and meta.get("clash_history"):
+            clash_history = meta.get("clash_history")
 
-        issues = list(conflicts)
-        # Check capacity warnings
-        for div in divisions:
-            cap_fit = [r for r in active_rooms if r.get("type") == "Classroom" and r.get("capacity", 0) >= div.get("strength", 60)]
-            if not cap_fit:
-                issues.append(f"CAPACITY ISSUE: Division '{div.get('name')}' strength ({div.get('strength')}) exceeds all available non-reserved classrooms.")
-
-        # Check PC ratio warnings
-        for b in batches:
-            pc_fit = [r for r in active_rooms if r.get("type") == "Lab" and r.get("num_pcs", 0) >= b.get("strength", 30)]
-            if not pc_fit:
-                issues.append(f"PC CAPACITY ISSUE: Lab Batch '{b.get('name')}' strength ({b.get('strength')}) exceeds PC count in available non-reserved labs.")
+        detected_count = len(clash_history)
+        resolved_count = len([c for c in clash_history if c.get("status") == "Resolved"])
+        unresolved_count = max(0, detected_count - resolved_count) + len(conflicts)
 
         return jsonify({
-            "conflicts": issues,
-            "has_conflicts": len(issues) > 0,
-            "active_rooms_count": len(active_rooms),
-            "reserved_rooms_count": len(reserved_rooms)
+            "conflicts": conflicts,
+            "has_conflicts": len(conflicts) > 0,
+            "detected_clashes": detected_count,
+            "resolved_clashes": resolved_count,
+            "unresolved_clashes": unresolved_count,
+            "clash_history": clash_history,
+            "active_rooms_count": len([r for r in rooms if r.get("is_active", True)]),
+            "total_sessions": len(rows)
         })
     except Exception as e:
         return jsonify({"conflicts": [f"Error checking conflicts: {str(e)}"], "has_conflicts": True})
 
 
+@app.route("/api/clash-history", methods=["GET"])
+def get_clash_history_api():
+    """Returns the Clash Resolution History log."""
+    history = db.get_clash_history()
+    return jsonify(history)
+
+
 # ---------------------------------------------------------------------------
-# 16. EXCEL IMPORT
+# 16. EXCEL VALIDATION & IMPORT (2-STEP WORKFLOW)
 # ---------------------------------------------------------------------------
+@app.route("/api/validate-excel", methods=["POST"])
+def validate_excel_endpoint():
+    """
+    Step 1 of Import: Validates uploaded Excel file without writing to DB.
+    Returns clear summary of found records, errors, and warnings.
+    """
+    if "file" not in request.files:
+        return jsonify({"success": False, "error": "No file uploaded"}), 400
+    file = request.files["file"]
+    if not file.filename.endswith(".xlsx"):
+        return jsonify({"success": False, "error": "Only .xlsx files are supported"}), 400
+
+    file_bytes = io.BytesIO(file.read())
+    valid, errors, warnings, summary, data_dict = excel_reader.validate_excel_data(file_bytes)
+
+    return jsonify({
+        "success": valid,
+        "valid": valid,
+        "summary": summary,
+        "errors": errors,
+        "warnings": warnings
+    })
+
+
 @app.route("/api/import-excel", methods=["POST"])
 def import_excel():
+    """
+    Step 2 of Import: Validates and saves structured data to Database.
+    Supports single-sheet CLASHFREE_INPUT with teaching requirements,
+    resource configuration, and time configuration.
+    """
     if "file" not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
     file = request.files["file"]
@@ -752,9 +790,9 @@ def import_excel():
         return jsonify({"error": "Only .xlsx files are supported"}), 400
 
     file_bytes = io.BytesIO(file.read())
-    data_dict, errors, warnings, summary = excel_reader.read_excel(file_bytes)
-    if errors:
-        return jsonify({"errors": errors, "warnings": warnings, "summary": summary}), 400
+    valid, errors, warnings, summary, data_dict = excel_reader.validate_excel_data(file_bytes)
+    if not valid:
+        return jsonify({"success": False, "errors": errors, "warnings": warnings, "summary": summary}), 400
 
     try:
         if data_dict.get("faculty"):
@@ -772,6 +810,10 @@ def import_excel():
         if data_dict.get("departments"):
             for dep in data_dict["departments"]:
                 db.upsert_department(dep)
+        if data_dict.get("requirements"):
+            db.save_requirements(data_dict["requirements"])
+        if data_dict.get("time_slots"):
+            db.save_time_slots(data_dict["time_slots"])
     except Exception as e:
         print(f"Import DB warning: {e}")
 
@@ -780,6 +822,21 @@ def import_excel():
         "summary": summary,
         "warnings": warnings
     })
+
+
+@app.route("/api/download-template", methods=["GET"])
+def download_sample_template():
+    """Downloads the official styled single-sheet CLASHFREE_INPUT template."""
+    sample_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sample_data.xlsx")
+    if not os.path.exists(sample_file):
+        import subprocess
+        subprocess.run([sys.executable, os.path.join(os.path.dirname(sample_file), "create_sample.py")])
+    return send_file(
+        sample_file,
+        as_attachment=True,
+        download_name="CLASHFREE_Input_Template.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 
 # ---------------------------------------------------------------------------

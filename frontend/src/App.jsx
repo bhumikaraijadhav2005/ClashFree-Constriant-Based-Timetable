@@ -12,19 +12,48 @@ const ROLES = [
   { id: "DEPARTMENT_COORDINATOR", label: "Dept Coordinator", class: "role-coordinator" },
 ];
 
+export function formatTime12Hour(val) {
+  if (!val) return "";
+  const s = String(val).trim();
+  if (s.includes("-") && !s.includes("AM") && !s.includes("PM")) {
+    const parts = s.split("-");
+    if (parts.length === 2) {
+      return `${formatTime12Hour(parts[0])} - ${formatTime12Hour(parts[1])}`;
+    }
+  }
+  const ampmMatch = s.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM|am|pm)$/);
+  if (ampmMatch) {
+    const h = parseInt(ampmMatch[1], 10);
+    const m = ampmMatch[2] ? ampmMatch[2] : "00";
+    const mer = ampmMatch[3].toUpperCase();
+    return `${h}:${m} ${mer}`;
+  }
+  const m24 = s.match(/^(\d{1,2}):(\d{2})/);
+  if (m24) {
+    let hour = parseInt(m24[1], 10);
+    const min = m24[2];
+    const mer = hour >= 12 ? "PM" : "AM";
+    hour = hour % 12;
+    if (hour === 0) hour = 12;
+    return `${hour}:${min} ${mer}`;
+  }
+  return s;
+}
+
 const PAGES = [
   { id: "dashboard", label: "Dashboard", icon: "📊" },
-  { id: "academic", label: "Academic Structure", icon: "🏛️" },
-  { id: "faculty", label: "Faculty & Workload", icon: "👨‍🏫" },
-  { id: "subjects", label: "Subjects & Sessions", icon: "📚" },
-  { id: "resources", label: "Resources & Occupancy", icon: "🏫" },
-  { id: "timetable", label: "Master Timetable", icon: "📅" },
-  { id: "conflicts", label: "Conflicts & Feasibility", icon: "⚠️" },
-  { id: "versions", label: "Timetable Versions", icon: "📜" },
-  { id: "import", label: "Import Excel", icon: "📥" },
-  { id: "reports", label: "Reports & Export", icon: "📄" },
-  { id: "settings", label: "Time Slots & Settings", icon: "⚙️" },
+  { id: "timetable", label: "Timetable", icon: "📅" },
+  { id: "faculty", label: "Faculty", icon: "👨‍🏫" },
+  { id: "rooms", label: "Rooms", icon: "🏫" },
+  { id: "subjects", label: "Subjects", icon: "📚" },
+  { id: "sections", label: "Sections", icon: "👥" },
+  { id: "preferences", label: "Preferences", icon: "⭐" },
+  { id: "conflicts", label: "Conflicts", icon: "⚠️" },
+  { id: "occupancy", label: "Occupancy", icon: "🏢" },
+  { id: "import", label: "Import Data", icon: "📥" },
+  { id: "generate", label: "Generate Timetable", icon: "⚡" },
 ];
+
 
 export default function App() {
   const [activePage, setActivePage] = useState("dashboard");
@@ -186,32 +215,36 @@ export default function App() {
             />
           )}
 
-          {activePage === "academic" && (
-            <AcademicStructureView department={selectedDept} notify={notify} />
+          {activePage === "timetable" && (
+            <TimetableView department={selectedDept} currentRole={currentRole} notify={notify} />
           )}
 
           {activePage === "faculty" && (
             <FacultyView department={selectedDept} notify={notify} />
           )}
 
+          {activePage === "rooms" && (
+            <RoomsView department={selectedDept} currentRole={currentRole} notify={notify} />
+          )}
+
           {activePage === "subjects" && (
             <SubjectsView department={selectedDept} notify={notify} />
           )}
 
-          {activePage === "resources" && (
-            <ResourcesView department={selectedDept} currentRole={currentRole} notify={notify} />
+          {activePage === "sections" && (
+            <AcademicStructureView department={selectedDept} notify={notify} />
           )}
 
-          {activePage === "timetable" && (
-            <TimetableView department={selectedDept} currentRole={currentRole} notify={notify} />
+          {activePage === "preferences" && (
+            <PreferencesView department={selectedDept} notify={notify} />
           )}
 
           {activePage === "conflicts" && (
             <ConflictsView department={selectedDept} />
           )}
 
-          {activePage === "versions" && (
-            <VersionsView notify={notify} />
+          {activePage === "occupancy" && (
+            <OccupancyView department={selectedDept} />
           )}
 
           {activePage === "import" && (
@@ -224,12 +257,15 @@ export default function App() {
             />
           )}
 
-          {activePage === "reports" && (
-            <ReportsView department={selectedDept} />
-          )}
-
-          {activePage === "settings" && (
-            <SettingsView notify={notify} />
+          {activePage === "generate" && (
+            <GenerateTimetableView
+              department={selectedDept}
+              notify={notify}
+              onSuccess={() => {
+                loadDashboard();
+                setActivePage("timetable");
+              }}
+            />
           )}
         </div>
       </main>
@@ -247,9 +283,9 @@ function DashboardView({ data, department, setPage, onRefresh }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
         <div>
-          <h2>Academic & Resource Executive Dashboard</h2>
+          <h2>Academic Resource Management Dashboard</h2>
           <p style={{ color: "#64748b", marginTop: "4px" }}>
-            Overview of {department} academic load, classroom/lab occupancy, and timetable status.
+            Real-time status of {department} academic sections, faculty workload, resources, and scheduling feasibility.
           </p>
         </div>
         <button className="btn btn-secondary" onClick={onRefresh}>
@@ -257,115 +293,90 @@ function DashboardView({ data, department, setPage, onRefresh }) {
         </button>
       </div>
 
-      <div className="grid-cards">
-        <div className="card">
-          <div className="card-title">Departments</div>
-          <div className="card-value">{c.departments || 0}</div>
-          <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "4px" }}>Multi-Dept ERP</div>
+      {/* 10 Required KPI Cards */}
+      <div className="grid-cards" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "16px" }}>
+        <div className="card" style={{ borderTop: "3px solid #2563eb" }}>
+          <div className="card-title">Total Sections</div>
+          <div className="card-value">{c.sections || c.divisions || 0}</div>
+          <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "4px" }}>Academic Divisions</div>
         </div>
 
-        <div className="card">
-          <div className="card-title">Divisions / Batches</div>
-          <div className="card-value">{c.divisions || 0} <span style={{ fontSize: "1rem", color: "#64748b" }}>/ {c.batches || 0}</span></div>
-          <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "4px" }}>Configurable Strengths</div>
-        </div>
-
-        <div className="card">
-          <div className="card-title">Faculty Members</div>
+        <div className="card" style={{ borderTop: "3px solid #0f766e" }}>
+          <div className="card-title">Total Faculty</div>
           <div className="card-value">{c.faculty || 0}</div>
-          <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "4px" }}>Auto Short Codes (VHP, VLB)</div>
+          <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "4px" }}>Qualified Instructors</div>
         </div>
 
-        <div className="card">
-          <div className="card-title">Subjects</div>
+        <div className="card" style={{ borderTop: "3px solid #6366f1" }}>
+          <div className="card-title">Total Subjects</div>
           <div className="card-value">{c.subjects || 0}</div>
-          <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "4px" }}>Theory & Labs</div>
+          <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "4px" }}>Theory & Lab Courses</div>
+        </div>
+
+        <div className="card" style={{ borderTop: "3px solid #0284c7" }}>
+          <div className="card-title">Total Classrooms</div>
+          <div className="card-value">{c.classrooms_total || 0}</div>
+          <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "4px" }}>Capacity Matched</div>
+        </div>
+
+        <div className="card" style={{ borderTop: "3px solid #8b5cf6" }}>
+          <div className="card-title">Total Labs</div>
+          <div className="card-value">{c.labs_total || 0}</div>
+          <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "4px" }}>Specialized Facilities</div>
+        </div>
+
+        <div className="card" style={{ borderTop: "3px solid #10b981" }}>
+          <div className="card-title">Scheduled Sessions</div>
+          <div className="card-value">{c.scheduled || 0}</div>
+          <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "4px" }}>Active Timetable Slots</div>
+        </div>
+
+        <div className="card" style={{ borderTop: "3px solid #3b82f6" }}>
+          <div className="card-title">Detected Clashes</div>
+          <div className="card-value">{c.detected_clashes || 0}</div>
+          <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "4px" }}>Identified by CSP</div>
+        </div>
+
+        <div className="card" style={{ borderTop: "3px solid #10b981" }}>
+          <div className="card-title">Resolved Clashes</div>
+          <div className="card-value" style={{ color: "#10b981" }}>{c.resolved_clashes || 0}</div>
+          <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "4px" }}>Backtracking Solutions</div>
+        </div>
+
+        <div className="card" style={{ borderTop: "3px solid #14b8a6" }}>
+          <div className="card-title">Available Classrooms</div>
+          <div className="card-value" style={{ color: "#0f766e" }}>{c.classrooms_available || 0}</div>
+          <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "4px" }}>{c.classrooms_occupied || 0} Occupied</div>
+        </div>
+
+        <div className="card" style={{ borderTop: "3px solid #a855f7" }}>
+          <div className="card-title">Available Labs</div>
+          <div className="card-value" style={{ color: "#7c3aed" }}>{c.labs_available || 0}</div>
+          <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "4px" }}>{c.labs_occupied || 0} Occupied</div>
         </div>
       </div>
 
-      {/* Classroom & Lab Resource Occupancy KPI Cards (HOD Requirement) */}
-      <h3 style={{ margin: "24px 0 12px" }}>🏫 HOD Academic Resource Allocation</h3>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "24px" }}>
-        {/* Classrooms Card */}
-        <div className="card" style={{ borderLeft: "4px solid #2563eb" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h4>Classrooms ({department})</h4>
-            <span className="badge badge-success">{c.classrooms_occupancy_pct || 0}% Occupancy</span>
-          </div>
-          <div style={{ display: "flex", gap: "20px", marginTop: "16px" }}>
-            <div>
-              <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Total</div>
-              <div style={{ fontSize: "1.5rem", fontWeight: "700" }}>{c.classrooms_total || 0}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Occupied</div>
-              <div style={{ fontSize: "1.5rem", fontWeight: "700", color: "#ef4444" }}>{c.classrooms_occupied || 0}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Available</div>
-              <div style={{ fontSize: "1.5rem", fontWeight: "700", color: "#10b981" }}>{c.classrooms_available || 0}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Reserved</div>
-              <div style={{ fontSize: "1.5rem", fontWeight: "700", color: "#f59e0b" }}>{c.classrooms_reserved || 0}</div>
-            </div>
-          </div>
-          <div style={{ fontSize: "0.8rem", color: "#64748b", marginTop: "12px" }}>
-            🔒 {c.classrooms_reserved || 0} Classroom(s) safely held by HOD policy (exempt from automated scheduling).
-          </div>
-        </div>
-
-        {/* Labs Card */}
-        <div className="card" style={{ borderLeft: "4px solid #8b5cf6" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h4>Laboratories ({department})</h4>
-            <span className="badge badge-success">{c.labs_occupancy_pct || 0}% Occupancy</span>
-          </div>
-          <div style={{ display: "flex", gap: "20px", marginTop: "16px" }}>
-            <div>
-              <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Total</div>
-              <div style={{ fontSize: "1.5rem", fontWeight: "700" }}>{c.labs_total || 0}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Occupied</div>
-              <div style={{ fontSize: "1.5rem", fontWeight: "700", color: "#ef4444" }}>{c.labs_occupied || 0}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Available</div>
-              <div style={{ fontSize: "1.5rem", fontWeight: "700", color: "#10b981" }}>{c.labs_available || 0}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Reserved</div>
-              <div style={{ fontSize: "1.5rem", fontWeight: "700", color: "#f59e0b" }}>{c.labs_reserved || 0}</div>
-            </div>
-          </div>
-          <div style={{ fontSize: "0.8rem", color: "#64748b", marginTop: "12px" }}>
-            🔒 {c.labs_reserved || 0} Lab(s) reserved for research & project work.
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="card">
+      {/* Quick Operational Actions (Section 22 requirement) */}
+      <div className="card" style={{ marginTop: "24px" }}>
         <h3 style={{ marginBottom: "16px" }}>⚡ Quick Operational Actions</h3>
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-          <button className="btn" onClick={() => setPage("timetable")}>
-            🚀 Open Master Timetable
-          </button>
-          <button className="btn btn-secondary" onClick={() => setPage("resources")}>
-            📍 View Slot-Wise Occupancy Matrix
-          </button>
-          <button className="btn btn-secondary" onClick={() => setPage("faculty")}>
-            📊 View Faculty Workload & Report
+          <button className="btn" onClick={() => setPage("import")}>
+            📥 Import Excel
           </button>
           <button className="btn btn-secondary" onClick={() => setPage("import")}>
-            📥 Import Excel Sheets
+            🔍 Validate Data
+          </button>
+          <button className="btn btn-secondary" style={{ background: "#2563eb", color: "#fff" }} onClick={() => setPage("generate")}>
+            ⚡ Generate Timetable
+          </button>
+          <button className="btn btn-secondary" onClick={() => setPage("timetable")}>
+            📅 View Timetable
           </button>
           <button className="btn btn-secondary" onClick={() => setPage("conflicts")}>
-            ⚠️ Check System Conflicts
+            ⚠️ View Conflicts
           </button>
-          <button className="btn btn-secondary" onClick={() => setPage("reports")}>
-            📄 Export Reports & PDF
+          <button className="btn btn-secondary" onClick={() => setPage("occupancy")}>
+            🏢 View Occupancy
           </button>
         </div>
       </div>
@@ -1469,11 +1480,13 @@ function TimetableView({ department, currentRole, notify }) {
   const [faculty, setFaculty] = useState([]);
   const [rooms, setRooms] = useState([]);
 
-  // View Mode: "MASTER" (All classes/years - Image 3), "DIVISION" (College layout - Image 2), "FACULTY", "ROOM"
+  // View Modes: "MASTER", "DIVISION", "FACULTY", "CLASSROOM", "LAB", "BATCH"
   const [viewFilter, setViewFilter] = useState("MASTER");
   const [selectedDivision, setSelectedDivision] = useState("");
   const [selectedFaculty, setSelectedFaculty] = useState("");
   const [selectedRoom, setSelectedRoom] = useState("");
+  const [selectedLab, setSelectedLab] = useState("");
+  const [selectedBatch, setSelectedBatch] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -1506,9 +1519,14 @@ function TimetableView({ department, currentRole, notify }) {
       if (facData && facData.length > 0) {
         setSelectedFaculty(facData[0].code);
       }
-      if (roomData && roomData.length > 0) {
-        setSelectedRoom(roomData[0].name);
-      }
+      const crs = (roomData || []).filter(r => (r.type || "").toLowerCase() !== "lab");
+      const lbs = (roomData || []).filter(r => (r.type || "").toLowerCase() === "lab");
+      if (crs.length > 0) setSelectedRoom(crs[0].name);
+      else if (roomData && roomData.length > 0) setSelectedRoom(roomData[0].name);
+      if (lbs.length > 0) setSelectedLab(lbs[0].name);
+
+      const bts = Array.from(new Set((ttData || []).map(t => t.batch).filter(Boolean))).sort();
+      if (bts.length > 0) setSelectedBatch(bts[0]);
     } catch (e) {
       console.error(e);
     }
@@ -1537,8 +1555,13 @@ function TimetableView({ department, currentRole, notify }) {
     ? timeSettings.working_days
     : ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-  // Sort slots by order_index
-  const orderedSlots = [...timeSlots].sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+  // Sort slots by order_index and format labels to 12-hour AM/PM
+  const orderedSlots = [...timeSlots]
+    .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
+    .map(s => ({
+      ...s,
+      displayPeriod: formatTime12Hour(s.period)
+    }));
 
   // Build Course Legend for the currently viewed division
   const curDivObj = divisions.find(d => d.name === selectedDivision) || divisions[0];
@@ -1563,6 +1586,10 @@ function TimetableView({ department, currentRole, notify }) {
     };
   });
 
+  const classrooms = rooms.filter(r => (r.type || "").toLowerCase() !== "lab");
+  const labs = rooms.filter(r => (r.type || "").toLowerCase() === "lab");
+  const allBatches = Array.from(new Set(timetable.map(t => t.batch).filter(Boolean))).sort();
+
   return (
     <div>
       {/* Top Filter and Action Bar */}
@@ -1572,25 +1599,37 @@ function TimetableView({ department, currentRole, notify }) {
             className={`filter-pill ${viewFilter === "MASTER" ? "active" : ""}`}
             onClick={() => setViewFilter("MASTER")}
           >
-            🏛️ Master Timetable (All Classes/Years)
+            🏛️ Master Timetable
           </button>
           <button
             className={`filter-pill ${viewFilter === "DIVISION" ? "active" : ""}`}
             onClick={() => setViewFilter("DIVISION")}
           >
-            📋 Class / Division Timetable (College Format)
+            📋 Division-wise
           </button>
           <button
             className={`filter-pill ${viewFilter === "FACULTY" ? "active" : ""}`}
             onClick={() => setViewFilter("FACULTY")}
           >
-            👨‍🏫 Faculty-wise Timetable
+            👨‍🏫 Faculty-wise
           </button>
           <button
-            className={`filter-pill ${viewFilter === "ROOM" ? "active" : ""}`}
-            onClick={() => setViewFilter("ROOM")}
+            className={`filter-pill ${viewFilter === "CLASSROOM" ? "active" : ""}`}
+            onClick={() => setViewFilter("CLASSROOM")}
           >
-            🏫 Room / Lab Occupancy
+            🏫 Classroom-wise
+          </button>
+          <button
+            className={`filter-pill ${viewFilter === "LAB" ? "active" : ""}`}
+            onClick={() => setViewFilter("LAB")}
+          >
+            🔬 Lab-wise
+          </button>
+          <button
+            className={`filter-pill ${viewFilter === "BATCH" ? "active" : ""}`}
+            onClick={() => setViewFilter("BATCH")}
+          >
+            👥 Batch-wise
           </button>
         </div>
 
@@ -1642,24 +1681,61 @@ function TimetableView({ department, currentRole, notify }) {
         </div>
       )}
 
-      {viewFilter === "ROOM" && (
+      {viewFilter === "CLASSROOM" && (
         <div style={{ background: "#fff", padding: "10px 16px", borderRadius: "8px", border: "1px solid #e2e8f0", marginBottom: "16px", display: "flex", alignItems: "center", gap: "10px" }}>
-          <label style={{ fontSize: "0.85rem", fontWeight: "700" }}>Select Classroom / Laboratory:</label>
+          <label style={{ fontSize: "0.85rem", fontWeight: "700" }}>Select Classroom:</label>
           <select
             value={selectedRoom}
             onChange={(e) => setSelectedRoom(e.target.value)}
             style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #ccc", fontWeight: "600" }}
           >
-            {rooms.map((r) => (
+            {classrooms.map((r) => (
               <option key={r.name} value={r.name}>
-                {r.name} ({r.type} - Cap: {r.capacity} {r.type === "Lab" ? `| ${r.num_pcs} PCs` : ""})
+                {r.name} (Cap: {r.capacity})
               </option>
+            ))}
+            {classrooms.length === 0 && rooms.map((r) => (
+              <option key={r.name} value={r.name}>{r.name}</option>
             ))}
           </select>
         </div>
       )}
 
-      {/* VIEW 1: MASTER TIMETABLE (All Classes & Years - Matches Image 3) */}
+      {viewFilter === "LAB" && (
+        <div style={{ background: "#fff", padding: "10px 16px", borderRadius: "8px", border: "1px solid #e2e8f0", marginBottom: "16px", display: "flex", alignItems: "center", gap: "10px" }}>
+          <label style={{ fontSize: "0.85rem", fontWeight: "700" }}>Select Laboratory:</label>
+          <select
+            value={selectedLab}
+            onChange={(e) => setSelectedLab(e.target.value)}
+            style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #ccc", fontWeight: "600" }}
+          >
+            {labs.map((r) => (
+              <option key={r.name} value={r.name}>
+                {r.name} (Cap: {r.capacity} | {r.equipment || "Equipment"})
+              </option>
+            ))}
+            {labs.length === 0 && <option value="">No Labs Configured</option>}
+          </select>
+        </div>
+      )}
+
+      {viewFilter === "BATCH" && (
+        <div style={{ background: "#fff", padding: "10px 16px", borderRadius: "8px", border: "1px solid #e2e8f0", marginBottom: "16px", display: "flex", alignItems: "center", gap: "10px" }}>
+          <label style={{ fontSize: "0.85rem", fontWeight: "700" }}>Select Practical Batch:</label>
+          <select
+            value={selectedBatch}
+            onChange={(e) => setSelectedBatch(e.target.value)}
+            style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #ccc", fontWeight: "600" }}
+          >
+            {allBatches.map((b) => (
+              <option key={b} value={b}>Batch {b}</option>
+            ))}
+            {allBatches.length === 0 && <option value="">No Batches Scheduled Yet</option>}
+          </select>
+        </div>
+      )}
+
+      {/* VIEW 1: MASTER TIMETABLE (All Classes & Years) */}
       {viewFilter === "MASTER" && (
         <div className="college-container">
           <div className="college-header">
@@ -1676,7 +1752,7 @@ function TimetableView({ department, currentRole, notify }) {
                   <th style={{ width: "110px" }}>Class / Div</th>
                   {orderedSlots.map((slot, idx) => (
                     <th key={idx} style={{ minWidth: slot.type === "TEACHING" ? "110px" : "36px" }}>
-                      {slot.period}
+                      {slot.displayPeriod}
                       <span className="th-period-time">
                         {slot.type === "LUNCH" ? "LUNCH" : slot.type === "SHORT_BREAK" ? "BREAK" : "LECTURE"}
                       </span>
@@ -1719,7 +1795,7 @@ function TimetableView({ department, currentRole, notify }) {
 
                           // Teaching slot sessions for this day, slot, and division
                           const slotSessions = timetable.filter(
-                            (t) => t.day === day && t.period === slot.period && t.section === div.name
+                            (t) => t.day === day && (t.period === slot.period || formatTime12Hour(t.period) === slot.displayPeriod) && t.section === div.name
                           );
 
                           if (!slotSessions || slotSessions.length === 0) {
@@ -1772,7 +1848,7 @@ function TimetableView({ department, currentRole, notify }) {
         </div>
       )}
 
-      {/* VIEW 2: DIVISION / CLASS TIMETABLE (Official Format with Legend - Image 2) */}
+      {/* VIEW 2: DIVISION / CLASS TIMETABLE (Official Format with Legend) */}
       {viewFilter === "DIVISION" && (
         <div className="college-container">
           <div className="college-header">
@@ -1799,7 +1875,7 @@ function TimetableView({ department, currentRole, notify }) {
                   <th style={{ width: "60px" }}>Class</th>
                   {orderedSlots.map((slot, idx) => (
                     <th key={idx} style={{ minWidth: slot.type === "TEACHING" ? "105px" : "36px" }}>
-                      {slot.period}
+                      {slot.displayPeriod}
                       <span className="th-period-time">
                         {slot.type === "LUNCH" ? "LUNCH" : slot.type === "SHORT_BREAK" ? "BREAK" : ""}
                       </span>
@@ -1825,7 +1901,7 @@ function TimetableView({ department, currentRole, notify }) {
                       }
 
                       const slotSessions = timetable.filter(
-                        (t) => t.day === day && t.period === slot.period && t.section === selectedDivision
+                        (t) => t.day === day && (t.period === slot.period || formatTime12Hour(t.period) === slot.displayPeriod) && t.section === selectedDivision
                       );
 
                       if (!slotSessions || slotSessions.length === 0) {
@@ -1866,7 +1942,7 @@ function TimetableView({ department, currentRole, notify }) {
             </table>
           </div>
 
-          {/* Course Abbreviation & Faculty Legend Table (from Image 2) */}
+          {/* Course Abbreviation & Faculty Legend Table */}
           <div style={{ marginTop: "24px" }}>
             <h4 style={{ marginBottom: "10px", fontSize: "0.9rem", color: "#1e293b" }}>
               📖 Course Abbreviations & Qualified Faculty Code Legend:
@@ -1934,7 +2010,7 @@ function TimetableView({ department, currentRole, notify }) {
                   <th style={{ width: "90px" }}>Day</th>
                   {orderedSlots.map((slot, idx) => (
                     <th key={idx} style={{ minWidth: slot.type === "TEACHING" ? "110px" : "36px" }}>
-                      {slot.period}
+                      {slot.displayPeriod}
                     </th>
                   ))}
                 </tr>
@@ -1949,7 +2025,7 @@ function TimetableView({ department, currentRole, notify }) {
                       }
 
                       const facSessions = timetable.filter(
-                        (t) => t.day === day && t.period === slot.period && t.faculty_code === selectedFaculty
+                        (t) => t.day === day && (t.period === slot.period || formatTime12Hour(t.period) === slot.displayPeriod) && t.faculty_code === selectedFaculty
                       );
 
                       if (facSessions.length === 0) {
@@ -1975,14 +2051,13 @@ function TimetableView({ department, currentRole, notify }) {
         </div>
       )}
 
-      {/* VIEW 4: ROOM / LAB OCCUPANCY TIMETABLE */}
-      {viewFilter === "ROOM" && (
+      {/* VIEW 4: CLASSROOM-WISE TIMETABLE */}
+      {viewFilter === "CLASSROOM" && (
         <div className="college-container">
           <div className="college-header">
-            <h2>Resource Occupancy Matrix: {selectedRoom}</h2>
+            <h2>Classroom Occupancy Schedule: {selectedRoom}</h2>
             <h3>
-              {rooms.find((r) => r.name === selectedRoom)?.type || "Classroom"} - Capacity:{" "}
-              {rooms.find((r) => r.name === selectedRoom)?.capacity || 75} seats
+              Classroom Capacity: {rooms.find((r) => r.name === selectedRoom)?.capacity || 60} seats
             </h3>
             <div className="academic-year-tag">Department of {department} | Academic Year 2026 - 2027</div>
           </div>
@@ -1994,7 +2069,7 @@ function TimetableView({ department, currentRole, notify }) {
                   <th style={{ width: "90px" }}>Day</th>
                   {orderedSlots.map((slot, idx) => (
                     <th key={idx} style={{ minWidth: slot.type === "TEACHING" ? "110px" : "36px" }}>
-                      {slot.period}
+                      {slot.displayPeriod}
                     </th>
                   ))}
                 </tr>
@@ -2009,7 +2084,7 @@ function TimetableView({ department, currentRole, notify }) {
                       }
 
                       const roomSessions = timetable.filter(
-                        (t) => t.day === day && t.period === slot.period && t.room === selectedRoom
+                        (t) => t.day === day && (t.period === slot.period || formatTime12Hour(t.period) === slot.displayPeriod) && t.room === selectedRoom
                       );
 
                       if (roomSessions.length === 0) {
@@ -2018,11 +2093,128 @@ function TimetableView({ department, currentRole, notify }) {
 
                       const s = roomSessions[0];
                       return (
-                        <td key={sIdx} style={{ background: "#fee2e2" }}>
+                        <td key={sIdx} style={{ background: "#eff6ff" }}>
                           <div className="cell-lecture">
                             <div className="course-code">{s.subject}</div>
-                            <div className="fac-code">{s.section} {s.batch ? `(${s.batch})` : ""}</div>
+                            <div className="fac-code">{s.section}</div>
                             <div className="room-tag">👨‍🏫 {s.faculty_code}</div>
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 5: LAB-WISE TIMETABLE */}
+      {viewFilter === "LAB" && (
+        <div className="college-container">
+          <div className="college-header">
+            <h2>Laboratory Occupancy Schedule: {selectedLab}</h2>
+            <h3>
+              Lab Capacity: {rooms.find((r) => r.name === selectedLab)?.capacity || 30} | {rooms.find((r) => r.name === selectedLab)?.equipment || "Computer Lab"}
+            </h3>
+            <div className="academic-year-tag">Department of {department} | Academic Year 2026 - 2027</div>
+          </div>
+
+          <div className="college-table-wrapper">
+            <table className="college-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "90px" }}>Day</th>
+                  {orderedSlots.map((slot, idx) => (
+                    <th key={idx} style={{ minWidth: slot.type === "TEACHING" ? "110px" : "36px" }}>
+                      {slot.displayPeriod}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {activeDays.map((day) => (
+                  <tr key={day}>
+                    <td className="cell-day">{day}</td>
+                    {orderedSlots.map((slot, sIdx) => {
+                      if (slot.type !== "TEACHING") {
+                        return <td key={sIdx} className="break-col">{slot.type === "LUNCH" ? "LUNCH" : "BREAK"}</td>;
+                      }
+
+                      const labSessions = timetable.filter(
+                        (t) => t.day === day && (t.period === slot.period || formatTime12Hour(t.period) === slot.displayPeriod) && t.room === selectedLab
+                      );
+
+                      if (labSessions.length === 0) {
+                        return <td key={sIdx} style={{ color: "#10b981", fontWeight: "600" }}>✓ Free</td>;
+                      }
+
+                      const s = labSessions[0];
+                      return (
+                        <td key={sIdx} style={{ background: "#f0fdf4" }}>
+                          <div className="cell-lecture">
+                            <div className="course-code">{s.subject}</div>
+                            <div className="fac-code">{s.section} ({s.batch || "Lab"})</div>
+                            <div className="room-tag">👨‍🏫 {s.faculty_code}</div>
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 6: BATCH-WISE TIMETABLE */}
+      {viewFilter === "BATCH" && (
+        <div className="college-container">
+          <div className="college-header">
+            <h2>Practical Batch Timetable: Batch {selectedBatch}</h2>
+            <h3>Department of {department === "CSE" ? "Computer Science and Engineering" : department}</h3>
+            <div className="academic-year-tag">Academic Year 2026 - 2027</div>
+          </div>
+
+          <div className="college-table-wrapper">
+            <table className="college-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "90px" }}>Day</th>
+                  {orderedSlots.map((slot, idx) => (
+                    <th key={idx} style={{ minWidth: slot.type === "TEACHING" ? "110px" : "36px" }}>
+                      {slot.displayPeriod}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {activeDays.map((day) => (
+                  <tr key={day}>
+                    <td className="cell-day">{day}</td>
+                    {orderedSlots.map((slot, sIdx) => {
+                      if (slot.type !== "TEACHING") {
+                        return <td key={sIdx} className="break-col">{slot.type === "LUNCH" ? "LUNCH" : "BREAK"}</td>;
+                      }
+
+                      const batchSessions = timetable.filter(
+                        (t) => t.day === day && (t.period === slot.period || formatTime12Hour(t.period) === slot.displayPeriod) &&
+                        (t.batch === selectedBatch || (!t.batch && selectedBatch && t.section === selectedDivision))
+                      );
+
+                      if (batchSessions.length === 0) {
+                        return <td key={sIdx} style={{ color: "#cbd5e1" }}>-</td>;
+                      }
+
+                      const s = batchSessions[0];
+                      return (
+                        <td key={sIdx}>
+                          <div className="cell-lecture">
+                            <div className="course-code">{s.subject}</div>
+                            <div className="fac-code">{s.faculty_code}</div>
+                            <div className="room-tag">📍 {s.room}</div>
                           </div>
                         </td>
                       );
@@ -2039,10 +2231,13 @@ function TimetableView({ department, currentRole, notify }) {
 }
 
 // =============================================================
-// 7. CONFLICTS & VALIDATION VIEW (Requirement 27 & 28)
+// 7. CONFLICTS VIEW (Conflict Detection & Clash Resolution History)
 // =============================================================
 function ConflictsView({ department }) {
   const [conflicts, setConflicts] = useState([]);
+  const [clashHistory, setClashHistory] = useState([]);
+  const [counts, setCounts] = useState({ detected: 0, resolved: 0, unresolved: 0 });
+  const [activeTab, setActiveTab] = useState("ALL");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -2053,7 +2248,14 @@ function ConflictsView({ department }) {
     setLoading(true);
     try {
       const res = await api.fetchConflicts(department);
+      const history = res.clash_history || [];
       setConflicts(res.conflicts || []);
+      setClashHistory(history);
+
+      const det = res.detected_clashes || history.length;
+      const resCount = res.resolved_clashes || history.filter((c) => c.status === "Resolved").length;
+      const unres = res.unresolved_clashes || (res.conflicts ? res.conflicts.length : 0);
+      setCounts({ detected: det, resolved: resCount, unresolved: unres });
     } catch (e) {
       console.error(e);
     } finally {
@@ -2061,206 +2263,754 @@ function ConflictsView({ department }) {
     }
   };
 
+  const filteredHistory = clashHistory.filter((c) => {
+    if (activeTab === "RESOLVED") return c.status === "Resolved";
+    if (activeTab === "DETECTED") return c.status === "Detected";
+    if (activeTab === "UNRESOLVED") return c.status === "Unresolved";
+    return true;
+  });
+
   return (
-    <div className="card">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
         <div>
-          <h3>⚠️ Constraint Satisfaction & Feasibility Diagnostics</h3>
+          <h2>Conflict Detection & Clash Resolution History</h2>
           <p style={{ color: "#64748b", marginTop: "4px" }}>
-            Real-time validation of faculty limits, capacity rules, PC constraints, and reservation boundaries.
+            Real-time audit log of scheduling clashes detected by CSP and automatically resolved during backtracking search.
           </p>
         </div>
         <button className="btn btn-secondary" onClick={loadConflicts} disabled={loading}>
-          {loading ? "Verifying..." : "🔄 Re-validate Constraints"}
+          {loading ? "Refreshing..." : "🔄 Refresh Conflicts"}
         </button>
       </div>
 
-      {conflicts.length === 0 ? (
-        <div style={{ padding: "24px", textAlign: "center", color: "#15803d", background: "#f0fdf4", borderRadius: "8px" }}>
-          <div style={{ fontSize: "1.2rem", fontWeight: "700" }}>✓ All Constraints Verified & Feasible</div>
-          <div style={{ marginTop: "6px", fontSize: "0.9rem" }}>
-            Faculty availability, classroom capacities, laboratory PCs, and reserved resource buffers are valid.
+      {/* 3 Metric Cards */}
+      <div className="grid-cards" style={{ marginBottom: "20px" }}>
+        <div className="card" style={{ borderTop: "3px solid #3b82f6" }}>
+          <div className="card-title">Detected Clashes</div>
+          <div className="card-value" style={{ color: "#2563eb" }}>{counts.detected}</div>
+          <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "4px" }}>Total Constraint Collisions Encountered</div>
+        </div>
+
+        <div className="card" style={{ borderTop: "3px solid #10b981" }}>
+          <div className="card-title">Resolved Clashes</div>
+          <div className="card-value" style={{ color: "#10b981" }}>{counts.resolved}</div>
+          <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "4px" }}>Resolved via CSP Backtracking & Alternate Slots</div>
+        </div>
+
+        <div className="card" style={{ borderTop: "3px solid #ef4444" }}>
+          <div className="card-title">Unresolved Clashes</div>
+          <div className="card-value" style={{ color: counts.unresolved > 0 ? "#ef4444" : "#10b981" }}>{counts.unresolved}</div>
+          <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "4px" }}>
+            {counts.unresolved === 0 ? "✓ Zero Clash-Free State" : "Bottlenecks Requiring Attention"}
           </div>
         </div>
-      ) : (
-        <div>
-          <div style={{ padding: "12px", background: "#fef2f2", borderLeft: "4px solid #ef4444", borderRadius: "4px", color: "#b91c1c", fontWeight: "600", marginBottom: "16px" }}>
-            Detected {conflicts.length} Constraint Conflict(s) / Infeasibility Bottleneck(s):
-          </div>
-          <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "10px" }}>
+      </div>
+
+      {/* Infeasibility Diagnostics Warning Box (if any) */}
+      {conflicts.length > 0 && (
+        <div className="card" style={{ background: "#fef2f2", border: "1px solid #fecaca", marginBottom: "20px" }}>
+          <h4 style={{ color: "#b91c1c", marginBottom: "8px" }}>⚠️ Active Constraint Diagnostics:</h4>
+          <ul style={{ paddingLeft: "20px", color: "#991b1b", fontSize: "0.9rem", display: "flex", flexDirection: "column", gap: "6px" }}>
             {conflicts.map((c, i) => (
-              <li
-                key={i}
-                style={{
-                  padding: "12px 16px",
-                  background: "#fff",
-                  border: "1px solid #fecaca",
-                  borderLeft: "4px solid #ef4444",
-                  borderRadius: "6px",
-                  color: "#991b1b",
-                  fontSize: "0.9rem"
-                }}
-              >
-                {c}
-              </li>
+              <li key={i}>{c}</li>
             ))}
           </ul>
         </div>
       )}
-    </div>
-  );
-}
 
-// =============================================================
-// 8. TIMETABLE VERSIONS VIEW (Requirement 29)
-// =============================================================
-function VersionsView({ notify }) {
-  const [versions, setVersions] = useState([]);
+      {/* Clash Resolution History Section */}
+      <div className="card">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+          <div>
+            <h3>Clash Resolution History Log</h3>
+            <p style={{ color: "#64748b", fontSize: "0.85rem", marginTop: "2px" }}>
+              Displays when a collision occurred (faculty clash, room clash, division clash) and how it was resolved.
+            </p>
+          </div>
 
-  useEffect(() => { load(); }, []);
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button className={`subtab-btn ${activeTab === "ALL" ? "active" : ""}`} onClick={() => setActiveTab("ALL")}>
+              All Clashes ({clashHistory.length})
+            </button>
+            <button className={`subtab-btn ${activeTab === "RESOLVED" ? "active" : ""}`} onClick={() => setActiveTab("RESOLVED")}>
+              Resolved ({counts.resolved})
+            </button>
+            <button className={`subtab-btn ${activeTab === "DETECTED" ? "active" : ""}`} onClick={() => setActiveTab("DETECTED")}>
+              Detected ({counts.detected - counts.resolved})
+            </button>
+            <button className={`subtab-btn ${activeTab === "UNRESOLVED" ? "active" : ""}`} onClick={() => setActiveTab("UNRESOLVED")}>
+              Unresolved ({counts.unresolved})
+            </button>
+          </div>
+        </div>
 
-  const load = async () => {
-    const data = await api.fetchTimetableVersions();
-    setVersions(data || []);
-  };
-
-  const handleActivate = async (id) => {
-    await api.activateTimetableVersion(id);
-    notify(`Activated timetable version #${id}`);
-    load();
-  };
-
-  return (
-    <div className="card">
-      <h3>📜 Timetable Version Audit History</h3>
-      <p style={{ color: "#64748b", margin: "6px 0 20px" }}>
-        Every generation run or manual modification is preserved with complete auditability.
-      </p>
-
-      <div className="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Version #</th>
-              <th>Version Name</th>
-              <th>Academic Year</th>
-              <th>Department</th>
-              <th>Description</th>
-              <th>Created By</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {versions.map((v) => (
-              <tr key={v.id || v.version_number}>
-                <td><strong>v{v.version_number}</strong></td>
-                <td><strong>{v.name}</strong></td>
-                <td>{v.academic_year || "2026-2027"}</td>
-                <td>{v.department || "CSE"}</td>
-                <td>{v.description}</td>
-                <td>{v.created_by || "HOD"}</td>
-                <td>
-                  {v.is_active ? (
-                    <span className="badge badge-success">✓ CURRENT ACTIVE</span>
-                  ) : (
-                    <span className="badge" style={{ background: "#f1f5f9" }}>Archived</span>
-                  )}
-                </td>
-                <td>
-                  {!v.is_active && (
-                    <button className="btn btn-secondary" style={{ padding: "4px 10px", fontSize: "0.8rem" }} onClick={() => handleActivate(v.id || v.version_number)}>
-                      Set Active
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {filteredHistory.length === 0 ? (
+          <div style={{ padding: "32px", textAlign: "center", color: "#166534", background: "#f0fdf4", borderRadius: "8px" }}>
+            <div style={{ fontSize: "1.1rem", fontWeight: "700" }}>✓ No Clashes in this Filter View</div>
+            <div style={{ fontSize: "0.85rem", color: "#15803d", marginTop: "4px" }}>
+              The scheduler found optimal clash-free assignments for all session requirements.
+            </div>
+          </div>
+        ) : (
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: "70px" }}>Log ID</th>
+                  <th>Clash Type</th>
+                  <th>Time Slot</th>
+                  <th>Affected Faculty</th>
+                  <th>Division / Resource</th>
+                  <th>Issue Details</th>
+                  <th>Status</th>
+                  <th>Resolution Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredHistory.slice(0, 100).map((item, idx) => (
+                  <tr key={idx}>
+                    <td><strong>{item.id || `#${101 + idx}`}</strong></td>
+                    <td>
+                      <span className="badge" style={{
+                        background: item.type?.includes("Faculty") ? "#dbeafe" : item.type?.includes("Room") ? "#fef3c7" : "#e0e7ff",
+                        color: item.type?.includes("Faculty") ? "#1e40af" : item.type?.includes("Room") ? "#92400e" : "#3730a3"
+                      }}>
+                        {item.type}
+                      </span>
+                    </td>
+                    <td><strong>{formatTime12Hour(item.time)}</strong></td>
+                    <td>{item.faculty || item.entity || "-"}</td>
+                    <td>{item.division ? `Div ${item.division}` : ""} {item.resource ? `(${item.resource})` : ""}</td>
+                    <td style={{ fontSize: "0.85rem", color: "#475569" }}>{item.issue}</td>
+                    <td>
+                      {item.status === "Resolved" ? (
+                        <span className="badge badge-success">✓ Resolved</span>
+                      ) : item.status === "Detected" ? (
+                        <span className="badge" style={{ background: "#dbeafe", color: "#1e40af" }}>🔍 Detected</span>
+                      ) : (
+                        <span className="badge badge-danger">❌ Unresolved</span>
+                      )}
+                    </td>
+                    <td style={{ fontSize: "0.85rem", fontWeight: "600", color: item.status === "Resolved" ? "#15803d" : "#b91c1c" }}>
+                      {item.resolution}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 // =============================================================
-// 9. IMPORT EXCEL VIEW (Multi-Sheet Parser & Diagnostics)
+// 8. IMPORT DATA VIEW (2-Step Validation & Single-Sheet Template)
 // =============================================================
 function ImportView({ notify, onSuccess }) {
   const [file, setFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [summary, setSummary] = useState(null);
-  const [errors, setErrors] = useState([]);
+  const [validating, setValidating] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [validationResult, setValidationResult] = useState(null);
 
-  const handleUpload = async (e) => {
-    e.preventDefault();
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0] || null);
+    setValidationResult(null);
+  };
+
+  const handleValidate = async () => {
     if (!file) {
-      notify("Please select an .xlsx file first", "error");
+      notify("Please select an Excel (.xlsx) file first", "error");
       return;
     }
-    setUploading(true);
-    setErrors([]);
+    setValidating(true);
     try {
-      const res = await api.uploadExcelFile(file);
-      if (res.success) {
-        notify("Excel imported and synchronized successfully!", "success");
-        setSummary(res.summary);
-        onSuccess();
+      const res = await api.validateExcelFile(file);
+      setValidationResult(res);
+      if (res.valid) {
+        notify("File validated successfully! Review summary below.", "success");
       } else {
-        const errorList = res.errors || (res.error ? [res.error] : ["Excel validation failed"]);
-        setErrors(errorList);
-        notify(errorList[0] || "Excel validation failed", "error");
+        notify("Validation errors found. Please review the report.", "error");
       }
     } catch (err) {
-      const msg = err.message && err.message.includes("Failed to fetch")
-        ? "Backend server is offline! Please start backend via 'python backend/app.py' or 'run.bat'."
-        : ("Upload failed: " + (err.message || "Could not connect to server"));
-      setErrors([msg]);
-      notify(msg, "error");
+      notify("Validation request failed: " + err.message, "error");
     } finally {
-      setUploading(false);
+      setValidating(false);
     }
   };
 
+  const handleImport = async () => {
+    if (!file) {
+      notify("Please select an Excel (.xlsx) file first", "error");
+      return;
+    }
+    setImporting(true);
+    try {
+      const res = await api.uploadExcelFile(file);
+      if (res.success) {
+        notify("Excel data successfully imported and synced with database!", "success");
+        onSuccess();
+      } else {
+        const errorList = res.errors || (res.error ? [res.error] : ["Import failed"]);
+        notify(errorList[0] || "Import failed", "error");
+      }
+    } catch (err) {
+      notify("Import error: " + err.message, "error");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const s = validationResult?.summary || {};
+
   return (
-    <div className="card" style={{ maxWidth: "700px", margin: "0 auto", textAlign: "center", padding: "36px" }}>
-      <h2>📥 Import Academic Data from Excel</h2>
-      <p style={{ color: "#64748b", margin: "12px 0 24px" }}>
-        Upload a multi-sheet <code>.xlsx</code> workbook containing Departments, Divisions, Batches, Faculty, Rooms, Labs, and Subjects.
-      </p>
+    <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+      {/* Top Header Card with Download Sample Button */}
+      <div className="card" style={{ marginBottom: "20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "14px" }}>
+          <div>
+            <h2>📥 Import Academic Data (Single-Sheet Template)</h2>
+            <p style={{ color: "#64748b", marginTop: "4px", fontSize: "0.9rem" }}>
+              Upload the human-friendly <code>CLASHFREE_INPUT</code> Excel template containing Teaching Requirements, Resource Configuration, and Time Configuration.
+            </p>
+          </div>
+          <a
+            href={api.getDownloadTemplateUrl()}
+            download="CLASHFREE_Input_Template.xlsx"
+            className="btn btn-secondary"
+            style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "8px", fontWeight: "600" }}
+          >
+            📥 Download Sample Excel Template
+          </a>
+        </div>
+      </div>
 
-      <form onSubmit={handleUpload}>
-        <input
-          type="file"
-          accept=".xlsx"
-          onChange={(e) => setFile(e.target.files[0])}
-          style={{ marginBottom: "20px" }}
-        />
-        <br />
-        <button type="submit" className="btn" disabled={uploading}>
-          {uploading ? "Parsing & Validating..." : "📤 Upload & Sync to Supabase"}
-        </button>
-      </form>
+      {/* 2-Step Import Workflow Card */}
+      <div className="card" style={{ marginBottom: "20px", padding: "28px" }}>
+        <h3 style={{ marginBottom: "16px" }}>Select Excel File</h3>
 
-      {errors.length > 0 && (
-        <div style={{ marginTop: "24px", textAlign: "left", background: "#fef2f2", padding: "16px", borderRadius: "8px", border: "1px solid #fecaca" }}>
-          <h4 style={{ color: "#b91c1c" }}>Validation Errors ({errors.length}):</h4>
-          <ul style={{ color: "#991b1b", fontSize: "0.85rem", marginTop: "8px", paddingLeft: "20px" }}>
-            {errors.map((err, i) => <li key={i}>{err}</li>)}
-          </ul>
+        <div style={{ border: "2px dashed #cbd5e1", borderRadius: "8px", padding: "24px", textAlign: "center", background: "#f8fafc" }}>
+          <input
+            type="file"
+            accept=".xlsx"
+            onChange={handleFileChange}
+            id="excel-file-input"
+            style={{ display: "none" }}
+          />
+          <label htmlFor="excel-file-input" className="btn btn-secondary" style={{ cursor: "pointer", display: "inline-block" }}>
+            📂 Choose .xlsx File
+          </label>
+          <div style={{ marginTop: "10px", fontSize: "0.9rem", color: file ? "#0f172a" : "#94a3b8", fontWeight: file ? "600" : "400" }}>
+            {file ? `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)` : "No file chosen yet"}
+          </div>
+        </div>
+
+        {/* 2 Step Buttons */}
+        <div style={{ display: "flex", gap: "12px", marginTop: "24px", justifyContent: "center" }}>
+          <button
+            type="button"
+            className="btn"
+            onClick={handleValidate}
+            disabled={!file || validating}
+            style={{ background: "#0f766e", minWidth: "160px" }}
+          >
+            {validating ? "Validating..." : "🔍 Step 1: Validate"}
+          </button>
+
+          <button
+            type="button"
+            className="btn"
+            onClick={handleImport}
+            disabled={!file || !validationResult?.valid || importing}
+            style={{
+              background: validationResult?.valid ? "#2563eb" : "#94a3b8",
+              cursor: validationResult?.valid ? "pointer" : "not-allowed",
+              minWidth: "180px"
+            }}
+          >
+            {importing ? "Importing to Database..." : "🚀 Step 2: Import to Database"}
+          </button>
+        </div>
+      </div>
+
+      {/* Validation Summary Card */}
+      {validationResult && (
+        <div className="card" style={{ borderLeft: validationResult.valid ? "4px solid #10b981" : "4px solid #ef4444" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+            <h4>
+              {validationResult.valid ? (
+                <span style={{ color: "#166534" }}>✅ File Validated Successfully</span>
+              ) : (
+                <span style={{ color: "#b91c1c" }}>❌ Validation Failed</span>
+              )}
+            </h4>
+            <span className={`badge ${validationResult.valid ? "badge-success" : "badge-danger"}`}>
+              {validationResult.valid ? "0 Errors Found" : `${validationResult.errors?.length || 0} Error(s)`}
+            </span>
+          </div>
+
+          {/* Counts Checklist */}
+          {validationResult.valid && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", margin: "16px 0", fontSize: "0.9rem", color: "#334155" }}>
+              <div>✓ <strong>{s.teaching_requirements_count || 0}</strong> teaching requirements found</div>
+              <div>✓ <strong>{s.faculty_count || 0}</strong> faculty records found</div>
+              <div>✓ <strong>{s.subjects_count || 0}</strong> subjects found</div>
+              <div>✓ <strong>{s.divisions_count || 0}</strong> divisions found</div>
+              <div>✓ <strong>{s.classrooms_count || 0}</strong> classrooms configured</div>
+              <div>✓ <strong>{s.labs_count || 0}</strong> labs configured</div>
+              <div>✓ <strong>{s.teaching_slots_count || 0}</strong> teaching slots per week</div>
+              <div>✓ <strong>{s.total_slots_count || 0}</strong> total time slots found</div>
+            </div>
+          )}
+
+          {/* Errors Box */}
+          {validationResult.errors && validationResult.errors.length > 0 && (
+            <div style={{ marginTop: "16px", background: "#fef2f2", padding: "14px", borderRadius: "6px", border: "1px solid #fecaca" }}>
+              <div style={{ color: "#991b1b", fontWeight: "700", marginBottom: "6px" }}>Errors:</div>
+              <ul style={{ paddingLeft: "20px", color: "#b91c1c", fontSize: "0.85rem", display: "flex", flexDirection: "column", gap: "4px" }}>
+                {validationResult.errors.map((err, i) => (
+                  <li key={i}>{err}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Warnings Box */}
+          {validationResult.warnings && validationResult.warnings.length > 0 && (
+            <div style={{ marginTop: "16px", background: "#fffbeb", padding: "14px", borderRadius: "6px", border: "1px solid #fde68a" }}>
+              <div style={{ color: "#92400e", fontWeight: "700", marginBottom: "6px" }}>Warnings:</div>
+              <ul style={{ paddingLeft: "20px", color: "#b45309", fontSize: "0.85rem", display: "flex", flexDirection: "column", gap: "4px" }}>
+                {validationResult.warnings.map((w, i) => (
+                  <li key={i}>{w}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
+    </div>
+  );
+}
 
-      {summary && (
-        <div style={{ marginTop: "24px", textAlign: "left", background: "#f0fdf4", padding: "16px", borderRadius: "8px" }}>
-          <h4 style={{ color: "#166534" }}>Import Summary:</h4>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginTop: "8px", fontSize: "0.875rem" }}>
-            <div>Faculty: <strong>{summary.faculty}</strong></div>
-            <div>Rooms & Labs: <strong>{summary.rooms}</strong></div>
-            <div>Subjects: <strong>{summary.subjects}</strong></div>
-            <div>Divisions: <strong>{summary.divisions}</strong></div>
-            <div>Batches: <strong>{summary.batches}</strong></div>
-            <div>Departments: <strong>{summary.departments}</strong></div>
+// =============================================================
+// 9. ROOMS VIEW (Separate Classrooms & Labs)
+// =============================================================
+function RoomsView({ department, notify }) {
+  const [rooms, setRooms] = useState([]);
+  const [tab, setTab] = useState("CLASSROOM"); // "CLASSROOM" or "LAB"
+  const [timetable, setTimetable] = useState([]);
+
+  useEffect(() => {
+    loadRooms();
+  }, [department]);
+
+  const loadRooms = async () => {
+    const [rData, tData] = await Promise.all([
+      api.fetchRooms(department),
+      api.fetchTimetable(department)
+    ]);
+    setRooms(rData || []);
+    setTimetable(tData || []);
+  };
+
+  const activeRooms = rooms.filter((r) => r.is_active !== false);
+  const displayedRooms = activeRooms.filter((r) =>
+    tab === "CLASSROOM" ? r.type === "Classroom" : r.type === "Lab"
+  );
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+        <div>
+          <h2>Academic Resources & Facilities</h2>
+          <p style={{ color: "#64748b", marginTop: "4px" }}>
+            Separate management of Classrooms and Specialized Laboratories with dynamic capacity and equipment matching.
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button className={`subtab-btn ${tab === "CLASSROOM" ? "active" : ""}`} onClick={() => setTab("CLASSROOM")}>
+            🏫 Classrooms ({activeRooms.filter((r) => r.type === "Classroom").length})
+          </button>
+          <button className={`subtab-btn ${tab === "LAB" ? "active" : ""}`} onClick={() => setTab("LAB")}>
+            🔬 Laboratories ({activeRooms.filter((r) => r.type === "Lab").length})
+          </button>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Resource Name</th>
+                <th>Type</th>
+                <th>Capacity</th>
+                <th>Equipment</th>
+                <th>Status</th>
+                <th>Scheduled Load</th>
+              </tr>
+            </thead>
+            <tbody>
+              {displayedRooms.map((r) => {
+                const roomSessions = timetable.filter((t) => t.room === r.name);
+                const isOccupied = roomSessions.length > 0;
+                return (
+                  <tr key={r.id || r.name}>
+                    <td><strong>{r.name}</strong></td>
+                    <td>{r.type}</td>
+                    <td>{r.capacity} seats</td>
+                    <td>{r.equipment || (r.type === "Lab" ? "Computer" : "-")}</td>
+                    <td>
+                      {isOccupied ? (
+                        <span className="badge" style={{ background: "#fee2e2", color: "#991b1b" }}>Occupied ({roomSessions.length} sessions/wk)</span>
+                      ) : (
+                        <span className="badge badge-success">Available</span>
+                      )}
+                    </td>
+                    <td style={{ fontSize: "0.85rem", color: "#64748b" }}>
+                      {roomSessions.length} weekly periods scheduled
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================
+// 10. PREFERENCES VIEW (Faculty Preferences & Availability)
+// =============================================================
+function PreferencesView({ department, notify }) {
+  const [faculty, setFaculty] = useState([]);
+  const [timetable, setTimetable] = useState([]);
+
+  useEffect(() => {
+    loadData();
+  }, [department]);
+
+  const loadData = async () => {
+    const [fData, tData] = await Promise.all([
+      api.fetchFaculty(department),
+      api.fetchTimetable(department)
+    ]);
+    setFaculty(fData || []);
+    setTimetable(tData || []);
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+        <div>
+          <h2>Faculty Preferences & Availability</h2>
+          <p style={{ color: "#64748b", marginTop: "4px" }}>
+            Faculty availability is a hard constraint (scheduling impossible outside window). Preference (Morning/Afternoon) is a soft constraint.
+          </p>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Faculty Full Name</th>
+                <th>Short Code</th>
+                <th>Hard Availability Window</th>
+                <th>Soft Preference</th>
+                <th>Weekly Max Load</th>
+                <th>Assigned Load</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {faculty.map((f) => {
+                const facSessions = timetable.filter((t) => t.faculty_code === f.code);
+                const assignedHours = facSessions.length;
+                const maxLoad = f.max_load || 18;
+                const isOver = assignedHours > maxLoad;
+                return (
+                  <tr key={f.id || f.code}>
+                    <td><strong>{f.name}</strong></td>
+                    <td><span className="badge" style={{ background: "#e0e7ff", color: "#3730a3" }}>{f.code}</span></td>
+                    <td>{f.availability || "Mon-Fri 9:00 AM-5:00 PM"}</td>
+                    <td>
+                      <span className="badge" style={{
+                        background: f.preferred_time === "Morning" ? "#fef3c7" : f.preferred_time === "Afternoon" ? "#ede9fe" : "#f1f5f9",
+                        color: f.preferred_time === "Morning" ? "#92400e" : f.preferred_time === "Afternoon" ? "#5b21b6" : "#475569"
+                      }}>
+                        {f.preferred_time || f.preference || "Any"}
+                      </span>
+                    </td>
+                    <td>{maxLoad} hrs/wk</td>
+                    <td><strong>{assignedHours} hrs</strong></td>
+                    <td>
+                      {isOver ? (
+                        <span className="badge badge-danger">Overloaded</span>
+                      ) : (
+                        <span className="badge badge-success">Optimal</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================
+// 11. OCCUPANCY VIEW (Slot-Wise Matrix)
+// =============================================================
+function OccupancyView({ department }) {
+  const [occDay, setOccDay] = useState("Monday");
+  const [occPeriod, setOccPeriod] = useState("9:00 AM - 10:00 AM");
+  const [occData, setOccData] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const PERIODS_12H = [
+    "9:00 AM - 10:00 AM",
+    "10:00 AM - 11:00 AM",
+    "11:15 AM - 12:15 PM",
+    "12:15 PM - 1:15 PM",
+    "2:00 PM - 3:00 PM",
+    "3:00 PM - 4:00 PM"
+  ];
+
+  const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
+  useEffect(() => {
+    loadOccupancy();
+  }, [occDay, occPeriod, department]);
+
+  const loadOccupancy = async () => {
+    setLoading(true);
+    try {
+      const data = await api.fetchOccupancy(occDay, occPeriod, department, "ALL");
+      setOccData(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sum = occData?.summary || {};
+  const cr = sum.classrooms || {};
+  const lab = sum.labs || {};
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+        <div>
+          <h2>Resource Occupancy Module</h2>
+          <p style={{ color: "#64748b", marginTop: "4px" }}>
+            Inspect physical classroom and lab utilization in any specific time slot.
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <select value={occDay} onChange={(e) => setOccDay(e.target.value)} style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }}>
+            {DAYS.map((d) => <option key={d} value={d}>{d}</option>)}
+          </select>
+          <select value={occPeriod} onChange={(e) => setOccPeriod(e.target.value)} style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }}>
+            {PERIODS_12H.map((p) => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* KPI Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
+        <div className="card" style={{ borderLeft: "4px solid #2563eb" }}>
+          <h4>Classrooms ({department}) — {occDay} {occPeriod}</h4>
+          <div style={{ display: "flex", gap: "24px", marginTop: "12px" }}>
+            <div>
+              <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Total</div>
+              <div style={{ fontSize: "1.5rem", fontWeight: "700" }}>{cr.total || 0}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Occupied</div>
+              <div style={{ fontSize: "1.5rem", fontWeight: "700", color: "#ef4444" }}>{cr.occupied || 0}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Available</div>
+              <div style={{ fontSize: "1.5rem", fontWeight: "700", color: "#10b981" }}>{cr.available || 0}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card" style={{ borderLeft: "4px solid #8b5cf6" }}>
+          <h4>Laboratories ({department}) — {occDay} {occPeriod}</h4>
+          <div style={{ display: "flex", gap: "24px", marginTop: "12px" }}>
+            <div>
+              <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Total</div>
+              <div style={{ fontSize: "1.5rem", fontWeight: "700" }}>{lab.total || 0}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Occupied</div>
+              <div style={{ fontSize: "1.5rem", fontWeight: "700", color: "#ef4444" }}>{lab.occupied || 0}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Available</div>
+              <div style={{ fontSize: "1.5rem", fontWeight: "700", color: "#10b981" }}>{lab.available || 0}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Resources Status Table */}
+      <div className="card">
+        <h3 style={{ marginBottom: "16px" }}>Resource Utilization Table ({occDay} {occPeriod})</h3>
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Resource Name</th>
+                <th>Type</th>
+                <th>Capacity</th>
+                <th>Equipment</th>
+                <th>Status</th>
+                <th>Occupying Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(occData?.resources || []).map((r, i) => (
+                <tr key={i}>
+                  <td><strong>{r.resource}</strong></td>
+                  <td>{r.type}</td>
+                  <td>{r.capacity} seats</td>
+                  <td>{r.equipment || "-"}</td>
+                  <td>
+                    {r.status === "OCCUPIED" ? (
+                      <span className="badge" style={{ background: "#fee2e2", color: "#991b1b" }}>Occupied</span>
+                    ) : (
+                      <span className="badge badge-success">Available</span>
+                    )}
+                  </td>
+                  <td style={{ fontSize: "0.85rem" }}>
+                    {r.status === "OCCUPIED" && r.allocation ? (
+                      <span>
+                        <strong>Div {r.allocation.division}</strong> {r.allocation.batch !== "-" ? `(${r.allocation.batch})` : ""} — {r.allocation.subject} [{r.allocation.faculty}]
+                      </span>
+                    ) : (
+                      <span style={{ color: "#94a3b8" }}>Free for department / cross-dept sharing</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================
+// 12. GENERATE TIMETABLE VIEW (CSP + MRV + Backtracking)
+// =============================================================
+function GenerateTimetableView({ department, notify, onSuccess }) {
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const handleGenerate = async () => {
+    setRunning(true);
+    setResult(null);
+    try {
+      const res = await api.generateTimetable({ department });
+      if (res.success) {
+        setResult(res);
+        notify(res.message, "success");
+      } else {
+        notify("Generation could not find a clash-free schedule: " + (res.message || ""), "error");
+        setResult(res);
+      }
+    } catch (err) {
+      notify("Failed to generate: " + err.message, "error");
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const meta = result?.metadata || {};
+
+  return (
+    <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+      <div className="card" style={{ marginBottom: "20px" }}>
+        <h2>⚡ Constraint Satisfaction (CSP) Timetable Engine</h2>
+        <p style={{ color: "#64748b", marginTop: "6px", fontSize: "0.95rem" }}>
+          ClashFree utilizes <strong>Constraint Satisfaction Problem (CSP)</strong> formulation, <strong>MRV (Minimum Remaining Values)</strong> variable selection heuristic, and <strong>Backtracking Search</strong> with state restoration.
+        </p>
+
+        {/* Algorithm Viva Highlights */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginTop: "16px" }}>
+          <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+            <div style={{ fontWeight: "700", color: "#1e3a8a" }}>1. CSP Variables</div>
+            <div style={{ fontSize: "0.8rem", color: "#475569", marginTop: "4px" }}>
+              Every lecture and lab session to be scheduled across the academic week.
+            </div>
+          </div>
+          <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+            <div style={{ fontWeight: "700", color: "#0f766e" }}>2. MRV Heuristic</div>
+            <div style={{ fontSize: "0.8rem", color: "#475569", marginTop: "4px" }}>
+              Picks unscheduled session with FEWEST valid remaining options to fail fast and prune search branches.
+            </div>
+          </div>
+          <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+            <div style={{ fontWeight: "700", color: "#6d28d9" }}>3. Backtracking</div>
+            <div style={{ fontSize: "0.8rem", color: "#475569", marginTop: "4px" }}>
+              Recursively attempts assignments. Undoes dead ends and automatically records clash resolutions.
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: "24px", textAlign: "center" }}>
+          <button
+            className="btn"
+            onClick={handleGenerate}
+            disabled={running}
+            style={{ padding: "12px 28px", fontSize: "1rem", fontWeight: "700", background: "#2563eb" }}
+          >
+            {running ? "🔄 Running CSP + MRV Backtracking Engine..." : "⚡ Generate Clash-Free Timetable"}
+          </button>
+        </div>
+      </div>
+
+      {result && (
+        <div className="card" style={{ borderLeft: result.success ? "4px solid #10b981" : "4px solid #ef4444" }}>
+          <h3>{result.success ? "✅ Timetable Generated Successfully!" : "❌ Generation Failed"}</h3>
+          <p style={{ marginTop: "6px", color: result.success ? "#15803d" : "#b91c1c" }}>
+            {result.message}
+          </p>
+
+          {result.success && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", margin: "16px 0" }}>
+              <div style={{ background: "#f0fdf4", padding: "12px", borderRadius: "6px" }}>
+                <div style={{ fontSize: "0.8rem", color: "#166534" }}>Sessions Scheduled</div>
+                <div style={{ fontSize: "1.4rem", fontWeight: "700", color: "#15803d" }}>{result.count || 0}</div>
+              </div>
+              <div style={{ background: "#eff6ff", padding: "12px", borderRadius: "6px" }}>
+                <div style={{ fontSize: "0.8rem", color: "#1e40af" }}>Clashes Resolved</div>
+                <div style={{ fontSize: "1.4rem", fontWeight: "700", color: "#2563eb" }}>{meta.resolved_clashes || 0}</div>
+              </div>
+              <div style={{ background: "#f5f3ff", padding: "12px", borderRadius: "6px" }}>
+                <div style={{ fontSize: "0.8rem", color: "#5b21b6" }}>Backtrack Steps</div>
+                <div style={{ fontSize: "1.4rem", fontWeight: "700", color: "#6d28d9" }}>{meta.backtrack_steps || 0}</div>
+              </div>
+            </div>
+          )}
+
+          <div style={{ marginTop: "16px" }}>
+            <button className="btn" onClick={onSuccess}>
+              📅 Open Master Timetable View
+            </button>
           </div>
         </div>
       )}

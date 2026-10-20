@@ -1,0 +1,1065 @@
+<USER_REQUEST>
+You are modifying my existing project:
+
+CLASHFREE – Constraint-Based Timetable & Lab Scheduling System
+
+IMPORTANT:
+Do NOT rebuild the project from scratch.
+Do NOT replace the existing Supabase database/schema.
+Do NOT change the overall technology stack.
+
+Current stack:
+- Frontend: React + CSS/simple components
+- Backend: Python + Flask
+- Database: Supabase PostgreSQL
+- Excel processing: openpyxl
+- Scheduler: Python CSP + MRV + Backtracking
+
+Architecture:
+React Frontend
+        ↓
+Flask Backend
+        ↓
+Supabase PostgreSQL
+        ↓
+Python Scheduler
+(CSP + MRV + Backtracking)
+        ↓
+Generated Timetable
+
+
+==================================================
+1. MAIN PURPOSE OF THIS UPDATE
+==================================================
+
+Upgrade the existing ClashFree project to match the latest HOD requirements.
+
+The system should look like a professional college timetable management system, but the code and UI must remain simple enough for a 2nd-year CSE mini project and easy to explain in viva.
+
+The project should feel around 55–60% complete from a functional perspective, while the UI should look complete and professional.
+
+Do NOT create unnecessary AI/ML functionality.
+
+The scheduling engine must remain:
+
+CSP + MRV + Backtracking.
+
+
+==================================================
+2. IMPORTANT EXISTING DATABASE RULE
+==================================================
+
+The Supabase schema already exists and has already been executed successfully.
+
+DO NOT:
+- recreate the database
+- replace the schema
+- create a second database
+- switch to SQLite
+- remove existing tables
+- reset existing data
+
+If new fields/tables are genuinely required, create only minimal migrations/additions.
+
+Use the existing Supabase PostgreSQL database.
+
+Keep database access through Flask.
+
+
+==================================================
+3. NEW EXCEL INPUT DESIGN
+==================================================
+
+This is one of the most important changes.
+
+The current Excel import design is too complicated.
+
+Replace it with a HUMAN-FRIENDLY SINGLE-SHEET EXCEL INPUT TEMPLATE.
+
+The HOD/Admin should NOT need database knowledge.
+
+The main Excel sheet should be called:
+
+CLASHFREE_INPUT
+
+Each row in the main table represents ONE teaching requirement.
+
+Use these columns:
+
+1. Year
+2. Semester
+3. Division
+4. Batch
+5. Strength
+6. Subject Code
+7. Subject
+8. Type
+9. Sessions/Week
+10. Duration
+11. Faculty Name
+12. Faculty Code
+13. Weekly Max Load
+14. Preference
+15. Availability
+16. Resource Type
+17. Capacity Required
+18. Equipment
+
+Example:
+
+Year | Semester | Division | Batch | Strength | Subject Code | Subject | Type | Sessions/Week | Duration | Faculty Name | Faculty Code | Weekly Max Load | Preference | Availability | Resource Type | Capacity Required | Equipment
+
+2 | 3 | A | - | 60 | DS | Data Structures | Lecture | 4 | 1 hr | Vishal H. Pundikar | VHP | 18 | Morning | Mon-Fri 9AM-4PM | Classroom | 60 | -
+2 | 3 | A | A1 | 30 | DSL | Data Structures Lab | Lab | 2 | 2 hr | Naresh A. Kamble | NAK | 18 | Morning | Mon-Fri 9AM-1PM | Lab | 30 | Computer
+
+
+VERY IMPORTANT:
+
+The HOD should NOT enter a specific classroom/lab in every subject row.
+
+For example:
+
+DO NOT ask them to enter:
+CR-3
+LAB-2
+
+Instead they enter:
+
+Resource Type = Classroom
+Capacity Required = 60
+
+or:
+
+Resource Type = Lab
+Capacity Required = 30
+Equipment = Computer
+
+The scheduler automatically chooses the suitable available classroom/lab.
+
+This is a core requirement.
+
+
+==================================================
+4. RESOURCE CONFIGURATION
+==================================================
+
+Keep resource configuration on the SAME Excel sheet below or beside the main input table.
+
+Do NOT create another complicated workbook structure.
+
+Create a clearly separated section:
+
+RESOURCE CONFIGURATION
+
+Columns:
+
+Resource Type | Resource Name | Capacity | Equipment | Active
+
+Example:
+
+Classroom | CR-1 | 60 | - | Yes
+Classroom | CR-2 | 60 | - | Yes
+Classroom | CR-3 | 70 | Projector | Yes
+Lab | LAB-1 | 30 | Computer | Yes
+Lab | LAB-2 | 30 | Computer | Yes
+
+The scheduler uses this section to select resources.
+
+Do NOT use the old "Reserved Classroom" concept.
+
+REMOVE/IGNORE any old reserved-resource logic.
+
+There should be no "Reserved" field in the new Excel design.
+
+
+==================================================
+5. TIME CONFIGURATION
+==================================================
+
+Keep time configuration on the SAME Excel sheet.
+
+Create a clearly separated:
+
+TIME CONFIGURATION
+
+section.
+
+Columns:
+
+Day | Start Time | End Time | Type
+
+Example:
+
+Monday | 9:00 AM | 10:00 AM | Teaching
+Monday | 10:00 AM | 11:00 AM | Teaching
+Monday | 11:00 AM | 11:15 AM | Break
+Monday | 11:15 AM | 12:15 PM | Teaching
+Monday | 12:15 PM | 1:15 PM | Lunch
+Monday | 1:15 PM | 2:15 PM | Teaching
+Monday | 2:15 PM | 3:15 PM | Teaching
+Monday | 3:15 PM | 3:30 PM | Break
+Monday | 3:30 PM | 4:30 PM | Teaching
+
+The same structure applies to other working days.
+
+IMPORTANT:
+
+The scheduler MUST NEVER schedule a class during:
+- Break
+- Lunch
+- Any non-teaching period
+
+Only rows marked:
+
+Type = Teaching
+
+can become scheduling slots.
+
+
+==================================================
+6. EXCEL VALIDATION
+==================================================
+
+Improve the Excel import system.
+
+When Admin uploads the Excel file:
+
+Step 1:
+Read workbook using openpyxl.
+
+Step 2:
+Validate required columns.
+
+Step 3:
+Validate data types.
+
+Step 4:
+Validate missing values.
+
+Step 5:
+Validate duplicate/inconsistent data.
+
+Step 6:
+Show a clear validation summary.
+
+Example:
+
+✓ 7 faculty records found
+✓ 8 subjects found
+✓ 4 divisions found
+✓ 10 resources found
+✓ 30 teaching requirements found
+
+Errors should be human-readable.
+
+Example:
+
+ERROR:
+Faculty "Vishal Pundikar" has no availability information.
+
+ERROR:
+Data Structures requires a classroom capacity of 70, but no active classroom has capacity >= 70.
+
+WARNING:
+Faculty code VHP appears more than once.
+
+Do NOT show raw Python errors to the HOD.
+
+
+==================================================
+7. FACULTY SHORT CODES
+==================================================
+
+Faculty full names must be stored in the database.
+
+The timetable should display short codes.
+
+Example:
+
+Vishal H. Pundikar → VHP
+Naresh A. Kamble → NAK
+
+If two faculty members produce the same code:
+
+KP
+KP
+
+automatically become:
+
+KP1
+KP2
+
+The full names must remain available in the Faculty page/details.
+
+Prefer automatic generation if Faculty Code is blank.
+
+If a Faculty Code is provided in Excel, validate it and use it where appropriate.
+
+The timetable should primarily display the short code.
+
+
+==================================================
+8. FACULTY PREFERENCES
+==================================================
+
+Support faculty scheduling preferences.
+
+Example:
+
+Preference:
+Morning
+
+Afternoon
+
+Any
+
+IMPORTANT:
+
+Preference is a SOFT CONSTRAINT.
+
+Example:
+
+If a faculty member prefers morning classes, the scheduler should try to place them in morning slots.
+
+But if no valid morning slot exists, the scheduler may place the class later.
+
+Do NOT treat "Morning preference" as a hard constraint.
+
+However, actual availability is a HARD CONSTRAINT.
+
+Example:
+
+Availability:
+Mon-Fri 9:00 AM–4:00 PM
+
+The scheduler cannot place the faculty outside availability.
+
+
+==================================================
+9. MULTIPLE DIVISIONS / SHARED RESOURCES
+==================================================
+
+The system must support multiple divisions.
+
+Example:
+
+CSE Year 2:
+Division A
+Division B
+Division C
+
+Shared faculty and resources must be handled globally.
+
+If Faculty X teaches Division A at:
+
+Monday 10:00 AM
+
+Faculty X cannot simultaneously teach Division B at:
+
+Monday 10:00 AM
+
+Similarly:
+
+A classroom cannot be assigned to two divisions at the same time.
+
+A lab cannot be assigned to two divisions at the same time.
+
+The section/division itself cannot have two classes at the same time.
+
+
+==================================================
+10. RESOURCE ALLOCATION
+==================================================
+
+Remove the previous incorrect "reserved classroom" approach.
+
+The scheduler should allocate resources dynamically.
+
+For each teaching session:
+
+1. Check required resource type.
+2. Check required capacity.
+3. Check equipment requirement.
+4. Check whether resource is active.
+5. Check whether resource is already occupied.
+6. Select a valid resource.
+
+Example:
+
+Requirement:
+
+Resource Type = Classroom
+Capacity Required = 60
+
+Available:
+
+CR-1 = 50
+CR-2 = 60
+CR-3 = 70
+
+Scheduler may select:
+
+CR-2 or CR-3
+
+but NOT CR-1.
+
+For labs:
+
+If:
+
+Resource Type = Lab
+Capacity Required = 30
+Equipment = Computer
+
+only suitable active computer labs with capacity >= 30 should be considered.
+
+
+==================================================
+11. CLASSROOM OCCUPANCY
+==================================================
+
+Add a Resource Occupancy section/page.
+
+Example:
+
+CSE Department
+
+Total Classrooms: 10
+Occupied: 7
+Available: 3
+
+Show actual resources:
+
+CR-1    Occupied
+CR-2    Occupied
+CR-3    Available
+CR-4    Occupied
+CR-5    Available
+...
+
+Also show:
+
+Total Labs
+Occupied Labs
+Available Labs
+
+The purpose is to help the HOD understand which resources are currently free and can potentially be shared with another department.
+
+Do NOT invent department-wide reservations.
+
+
+==================================================
+12. MASTER TIMETABLE
+==================================================
+
+The main timetable page should show a weekly master timetable.
+
+Use 12-hour AM/PM format.
+
+Example:
+
+Monday
+
+9:00 AM – 10:00 AM
+Data Structures
+VHP
+CR-2
+
+10:00 AM – 11:00 AM
+OOP
+NAK
+CR-4
+
+Do NOT display 24-hour time such as:
+
+13:00
+14:00
+
+Use:
+
+1:00 PM
+2:00 PM
+
+throughout the UI.
+
+
+==================================================
+13. TIMETABLE VIEWS
+==================================================
+
+Provide these views:
+
+1. Master Timetable
+2. Division Timetable
+3. Faculty Timetable
+4. Classroom Timetable
+5. Lab Timetable
+6. Batch Timetable
+
+Allow filters such as:
+
+Year
+Semester
+Division
+Faculty
+Room
+Lab
+
+Keep the UI simple and readable.
+
+
+==================================================
+14. SCHEDULER ENGINE
+==================================================
+
+DO NOT replace the existing scheduling approach.
+
+Use:
+
+Constraint Satisfaction Problem (CSP)
++
+MRV (Minimum Remaining Values)
++
+Backtracking
+
+Concept:
+
+Variables:
+Each required teaching session.
+
+Domain:
+Possible combinations of:
+
+(Time Slot, Resource, Faculty)
+
+Constraints determine which combinations are valid.
+
+
+==================================================
+15. HARD CONSTRAINTS
+==================================================
+
+The scheduler MUST enforce:
+
+1. Faculty cannot teach two classes at the same time.
+
+2. Classroom cannot be used by two classes at the same time.
+
+3. Lab cannot be used by two classes at the same time.
+
+4. Division cannot have two classes at the same time.
+
+5. Room capacity must be >= required capacity.
+
+6. Lab must satisfy required lab/equipment requirements.
+
+7. Faculty availability must be respected.
+
+8. Required sessions per week must be completed.
+
+9. Classes can only use TEACHING slots.
+
+10. No classes during lunch.
+
+11. No classes during short breaks.
+
+12. Duration must fit the selected teaching slots.
+
+13. Shared resources must be checked globally across all divisions.
+
+
+==================================================
+16. SOFT CONSTRAINTS
+==================================================
+
+Try to optimize:
+
+1. Faculty preferred time.
+
+2. Avoid unnecessary faculty gaps.
+
+3. Spread classes across the week.
+
+4. Avoid excessive consecutive classes.
+
+5. Avoid unnecessary concentration of difficult/long sessions.
+
+Do NOT let soft constraints make the timetable invalid.
+
+Hard constraints always have priority.
+
+
+==================================================
+17. MRV
+==================================================
+
+Implement/retain MRV.
+
+MRV means:
+
+Minimum Remaining Values.
+
+For every unscheduled session, calculate how many valid options it currently has.
+
+Choose the session with the FEWEST valid options first.
+
+Example:
+
+Session A → 12 possible choices
+Session B → 5 possible choices
+Session C → 2 possible choices
+
+MRV chooses:
+
+Session C
+
+first.
+
+Add comments in the scheduler code explaining this clearly.
+
+
+==================================================
+18. BACKTRACKING
+==================================================
+
+If the scheduler gets stuck:
+
+1. Undo the previous assignment.
+2. Try another valid option.
+3. Continue searching.
+
+Example:
+
+Session A assigned Monday 9 AM.
+
+Later Session B has no valid slot.
+
+Backtrack:
+
+Undo Session A.
+
+Try another option for Session A.
+
+Then continue.
+
+The scheduler should not simply fail immediately when one choice causes a dead end.
+
+
+==================================================
+19. CONFLICT DETECTION
+==================================================
+
+Add a Conflict/Issues page.
+
+Show:
+
+- Conflict type
+- Affected faculty
+- Affected division
+- Resource
+- Time
+- Status
+- Resolution/action
+
+Example:
+
+Faculty Conflict
+Faculty: VHP
+Time: Monday 10:00 AM
+Issue: Faculty assigned to two divisions
+Status: Resolved
+Resolution: Reassigned Division B to another valid slot
+
+Another example:
+
+Resource Conflict
+Resource: CR-2
+Time: Tuesday 11:00 AM
+Issue: Classroom already occupied
+Status: Resolved
+Resolution: Assigned CR-4
+
+
+IMPORTANT:
+
+The UI should clearly distinguish:
+
+Detected Clash
+Resolved Clash
+Unresolved Clash
+
+
+==================================================
+20. CLASH RESOLUTION HISTORY
+==================================================
+
+Add a simple history/log.
+
+The user specifically needs to see when a clash happened and how it was resolved.
+
+Example:
+
+#101
+Faculty Clash
+Monday 10:00 AM
+VHP
+Detected → Resolved
+New Slot: Monday 2:00 PM
+
+#102
+Room Clash
+Tuesday 11:00 AM
+CR-2
+Detected → Resolved
+New Room: CR-5
+
+Do not make this overly complicated.
+
+
+==================================================
+21. INFEASIBILITY REPORT
+==================================================
+
+If no valid timetable can be generated, do NOT just show:
+
+"Scheduling Failed"
+
+Instead explain why.
+
+Examples:
+
+"No suitable classroom with capacity >= 70."
+
+"Faculty VHP requires 18 sessions but has only 12 available teaching slots."
+
+"No suitable computer lab is available for this session."
+
+"Two required sessions have no common available faculty/resource slot."
+
+"Division B has insufficient teaching slots to complete all required sessions."
+
+The explanation should be human-readable.
+
+
+==================================================
+22. DASHBOARD
+==================================================
+
+Improve the dashboard.
+
+Show cards:
+
+Total Sections
+Total Faculty
+Total Subjects
+Total Classrooms
+Total Labs
+Scheduled Sessions
+Detected Clashes
+Resolved Clashes
+Available Classrooms
+Available Labs
+
+Add quick actions:
+
+Import Excel
+Validate Data
+Generate Timetable
+View Timetable
+View Conflicts
+View Occupancy
+
+
+==================================================
+23. SIDEBAR
+==================================================
+
+Use a clean persistent sidebar:
+
+Dashboard
+Timetable
+Faculty
+Rooms
+Subjects
+Sections
+Preferences
+Conflicts
+Occupancy
+Import Data
+Generate Timetable
+
+Keep the design professional but not overly fancy.
+
+This is a college mini-project, not a commercial SaaS product.
+
+
+==================================================
+24. FACULTY PAGE
+==================================================
+
+Show:
+
+Full Name
+Short Code
+Subjects
+Weekly Max Load
+Availability
+Preference
+Current Assigned Load
+
+Example:
+
+Vishal H. Pundikar
+VHP
+Data Structures, DAA
+Max Load: 18 hrs
+Preference: Morning
+Assigned: 14 hrs
+
+
+==================================================
+25. ROOMS PAGE
+==================================================
+
+Separate:
+
+Classrooms
+Labs
+
+Show:
+
+Resource Name
+Type
+Capacity
+Equipment
+Status
+Current Occupancy
+
+Example:
+
+CR-1
+Classroom
+Capacity: 60
+Available
+
+LAB-2
+Lab
+Capacity: 30
+Computer
+Occupied
+
+
+==================================================
+26. SUBJECTS PAGE
+==================================================
+
+Show:
+
+Subject Code
+Subject
+Type
+Sessions/Week
+Duration
+Required Resource
+Required Capacity
+Equipment
+
+
+==================================================
+27. SECTIONS PAGE
+==================================================
+
+Show:
+
+Year
+Semester
+Division
+Batch
+Strength
+Subjects/Sessions
+
+Support multiple divisions without requiring duplicate global faculty/resource data.
+
+
+==================================================
+28. IMPORT DATA PAGE
+==================================================
+
+Create a proper Excel import screen.
+
+Show:
+
+Upload Excel
+
+Then:
+
+File validated successfully
+
+or:
+
+Validation failed
+
+Show a summary such as:
+
+✓ 32 teaching requirements
+✓ 8 faculty
+✓ 10 classrooms
+✓ 6 labs
+✓ 30 teaching slots
+
+Warnings:
+3 warnings
+
+Errors:
+0 errors
+
+Buttons:
+
+Validate
+Import to Database
+
+Do not automatically import invalid data.
+
+
+==================================================
+29. SAMPLE EXCEL TEMPLATE
+==================================================
+
+Add a button:
+
+Download Sample Excel Template
+
+The generated template must contain:
+
+CLASHFREE_INPUT
+
+with the main columns:
+
+Year
+Semester
+Division
+Batch
+Strength
+Subject Code
+Subject
+Type
+Sessions/Week
+Duration
+Faculty Name
+Faculty Code
+Weekly Max Load
+Preference
+Availability
+Resource Type
+Capacity Required
+Equipment
+
+Then below/alongside:
+
+RESOURCE CONFIGURATION
+
+and:
+
+TIME CONFIGURATION
+
+Keep it understandable for an HOD.
+
+
+==================================================
+30. UI DESIGN
+==================================================
+
+Use:
+
+- Clean white/light interface
+- Professional college management dashboard style
+- Simple cards
+- Tables
+- Clear headings
+- Good spacing
+- Minimal icons
+- Consistent typography
+- Responsive layout
+
+Avoid:
+
+- excessive gradients
+- flashy animations
+- gaming-style UI
+- unnecessary glassmorphism
+- complicated charts
+- excessive colors
+
+The UI should look realistic for a college timetable system.
+
+
+==================================================
+31. ARCHITECTURE DIAGRAM / SYSTEM FLOW
+==================================================
+
+Update the existing conceptual architecture to:
+
+                         CLASHFREE
+                              │
+             ┌────────────────┴────────────────┐
+             │                                 │
+          INPUTS                            USERS
+             │                                 │
+   ┌─────────┼──────────┐             Admin / HOD
+   │         │          │             Coordinator
+Faculty   Academic   Resources
+           Structure
+   │         │          │
+Availability Division   Classrooms
+Preferences Batch      Labs
+Weekly Load Subjects   Capacity
+                         │
+                         ↓
+                  VALIDATION ENGINE
+                         │
+                         ↓
+              CSP + MRV + BACKTRACKING
+                         │
+                         ↓
+                  MASTER TIMETABLE
+                         │
+       ┌─────────┬───────┼────────┬──────────┐
+       ↓         ↓       ↓        ↓          ↓
+   Division   Faculty   Room     Batch      Lab
+   Timetable Timetable Timetable Timetable Timetable
+                         │
+                         ↓
+                 RESOURCE OCCUPANCY
+                         │
+                  ┌──────┴──────┐
+                  ↓             ↓
+             Classrooms        Labs
+                  │             │
+                  └──────┬──────┘
+                         ↓
+                 RESOURCE SHARING
+                         │
+                         ↓
+                 FACULTY WORKLOAD
+                         │
+                         ↓
+                 CONFLICT REPORT
+                         │
+                         ↓
+                CLASH RESOLUTION
+                    HISTORY
+                         │
+                         ↓
+                  PDF / EXCEL
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-10-20T01:11:15+05:30.
+
+The user's current state is as follows:
+Active Document: c:\Users\Lenovo\OneDrive\Desktop\ClashFree Timetable\ClashFree-Constriant-Based-Timetable\backend\app.py (LANGUAGE_UNSPECIFIED)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\Lenovo\OneDrive\Desktop\ClashFree Timetable\ClashFree-Constriant-Based-Timetable\run.bat (LANGUAGE_UNSPECIFIED)
+- c:\Users\Lenovo\OneDrive\Desktop\ClashFree Timetable\ClashFree-Constriant-Based-Timetable\create_sample.py (LANGUAGE_UNSPECIFIED)
+- c:\Users\Lenovo\OneDrive\Desktop\ClashFree Timetable\run.bat (LANGUAGE_UNSPECIFIED)
+</ADDITIONAL_METADATA>
