@@ -332,8 +332,20 @@ export async function fetchClashHistory() {
   return res.json();
 }
 
-export function getExportTimetableUrl(department = "CSE") {
-  return `${API_BASE}/export/timetable?department=${encodeURIComponent(department)}`;
+export function getExportTimetableUrl(department = "CSE", division = "") {
+  let url = `${API_BASE}/export/timetable?department=${encodeURIComponent(department)}`;
+  if (division && division.trim()) {
+    url += `&division=${encodeURIComponent(division.trim())}`;
+  }
+  return url;
+}
+
+export async function applyDYPatilPreset() {
+  const res = await fetch(`${API_BASE}/structure/apply-dypatil-preset`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" }
+  });
+  return res.json();
 }
 
 export function getExportWorkloadUrl(department = "CSE") {

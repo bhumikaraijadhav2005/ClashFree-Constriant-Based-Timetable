@@ -32,7 +32,7 @@ export function formatTime12Hour(val) {
   if (m24) {
     let hour = parseInt(m24[1], 10);
     const min = m24[2];
-    const mer = hour >= 12 ? "PM" : "AM";
+    const mer = (hour >= 12 || (hour >= 1 && hour <= 7)) ? "PM" : "AM";
     hour = hour % 12;
     if (hour === 0) hour = 12;
     return `${hour}:${min} ${mer}`;
@@ -47,6 +47,8 @@ const PAGES = [
   { id: "rooms", label: "Rooms", icon: "🏫" },
   { id: "subjects", label: "Subjects", icon: "📚" },
   { id: "sections", label: "Sections", icon: "👥" },
+  { id: "structure", label: "Structure & Bells", icon: "🏛️" },
+  { id: "reports", label: "Reports & Exports", icon: "📄" },
   { id: "preferences", label: "Preferences", icon: "⭐" },
   { id: "conflicts", label: "Conflicts", icon: "⚠️" },
   { id: "occupancy", label: "Occupancy", icon: "🏢" },
@@ -257,6 +259,14 @@ export default function App() {
             />
           )}
 
+          {activePage === "structure" && (
+            <SettingsView notify={notify} />
+          )}
+
+          {activePage === "reports" && (
+            <ReportsView department={selectedDept} />
+          )}
+
           {activePage === "generate" && (
             <GenerateTimetableView
               department={selectedDept}
@@ -278,6 +288,12 @@ export default function App() {
 // =============================================================
 function DashboardView({ data, department, setPage, onRefresh }) {
   const c = data?.counts || {};
+  const [dashDivs, setDashDivs] = useState([]);
+  const [selectedDivExport, setSelectedDivExport] = useState("ALL");
+
+  useEffect(() => {
+    api.fetchDivisions(department).then(divs => setDashDivs(divs || []));
+  }, [department]);
 
   return (
     <div>
@@ -353,6 +369,50 @@ function DashboardView({ data, department, setPage, onRefresh }) {
           <div className="card-title">Available Labs</div>
           <div className="card-value" style={{ color: "#7c3aed" }}>{c.labs_available || 0}</div>
           <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "4px" }}>{c.labs_occupied || 0} Occupied</div>
+        </div>
+      </div>
+
+      {/* Timetable & Workload Excel Exports */}
+      <div className="card" style={{ marginTop: "24px", border: "1px solid #cbd5e1", background: "#f8fafc" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+          <div>
+            <h3 style={{ margin: 0, color: "#1e3a8a" }}>📥 Timetable & Workload Excel Downloads</h3>
+            <p style={{ color: "#64748b", margin: "4px 0 0", fontSize: "0.85rem" }}>
+              Official D. Y. Patil collegiate matrix layout with courses, faculty codes, rooms, and signatures.
+            </p>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            <label style={{ fontSize: "0.85rem", fontWeight: 700 }}>Choose Division:</label>
+            <select
+              value={selectedDivExport}
+              onChange={(e) => setSelectedDivExport(e.target.value)}
+              style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #cbd5e1", fontWeight: 600 }}
+            >
+              <option value="ALL">All Divisions (Master Multi-Tab Workbook)</option>
+              {dashDivs.map((d) => (
+                <option key={d.name} value={d.name}>
+                  {d.name} ({d.year || "Second Year"})
+                </option>
+              ))}
+            </select>
+            <a
+              href={api.getExportTimetableUrl(department, selectedDivExport === "ALL" ? "" : selectedDivExport)}
+              className="btn"
+              style={{ background: "#1e40af", color: "#fff" }}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {selectedDivExport === "ALL" ? "📥 Download Master Timetable (.xlsx)" : `📥 Download ${selectedDivExport} (.xlsx)`}
+            </a>
+            <a
+              href={api.getExportWorkloadUrl(department)}
+              className="btn btn-secondary"
+              target="_blank"
+              rel="noreferrer"
+            >
+              📊 Workload Report (.xlsx)
+            </a>
+          </div>
         </div>
       </div>
 
@@ -1633,12 +1693,29 @@ function TimetableView({ department, currentRole, notify }) {
           </button>
         </div>
 
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
           <button className="btn btn-secondary" onClick={() => window.print()}>
             🖨️ Print / Save PDF
           </button>
-          <a href={api.getExportTimetableUrl(department)} className="btn btn-secondary" target="_blank" rel="noreferrer">
-            📥 Export Excel
+          {viewFilter === "DIVISION" && (
+            <a
+              href={api.getExportTimetableUrl(department, selectedDivision)}
+              className="btn btn-secondary"
+              target="_blank"
+              rel="noreferrer"
+              style={{ fontWeight: 600, background: "#1e40af", color: "#fff" }}
+            >
+              📥 Export {selectedDivision} (Excel)
+            </a>
+          )}
+          <a
+            href={api.getExportTimetableUrl(department)}
+            className="btn btn-secondary"
+            target="_blank"
+            rel="noreferrer"
+            title="Download complete multi-sheet workbook with all divisions"
+          >
+            📑 All Divisions Excel
           </a>
           <button className="btn" onClick={handleGenerate} disabled={loading}>
             {loading ? "⚙️ Running CSP + MRV..." : "🚀 Generate Timetable"}
@@ -1751,8 +1828,13 @@ function TimetableView({ department, currentRole, notify }) {
                   <th style={{ width: "65px" }}>Time / Day</th>
                   <th style={{ width: "110px" }}>Class / Div</th>
                   {orderedSlots.map((slot, idx) => (
-                    <th key={idx} style={{ minWidth: slot.type === "TEACHING" ? "110px" : "36px" }}>
-                      {slot.displayPeriod}
+                    <th key={idx} style={{ minWidth: slot.type === "TEACHING" ? "110px" : "42px" }}>
+                      <div style={{ fontWeight: 700, fontSize: "0.85rem", whiteSpace: "nowrap" }}>
+                        {slot.period}
+                      </div>
+                      <div style={{ fontSize: "0.75rem", opacity: 0.85, fontWeight: 500 }}>
+                        {slot.displayPeriod}
+                      </div>
                       <span className="th-period-time">
                         {slot.type === "LUNCH" ? "LUNCH" : slot.type === "SHORT_BREAK" ? "BREAK" : "LECTURE"}
                       </span>
@@ -1874,8 +1956,13 @@ function TimetableView({ department, currentRole, notify }) {
                   <th style={{ width: "80px" }}>Time/Day</th>
                   <th style={{ width: "60px" }}>Class</th>
                   {orderedSlots.map((slot, idx) => (
-                    <th key={idx} style={{ minWidth: slot.type === "TEACHING" ? "105px" : "36px" }}>
-                      {slot.displayPeriod}
+                    <th key={idx} style={{ minWidth: slot.type === "TEACHING" ? "105px" : "42px" }}>
+                      <div style={{ fontWeight: 700, fontSize: "0.85rem", whiteSpace: "nowrap" }}>
+                        {slot.period}
+                      </div>
+                      <div style={{ fontSize: "0.75rem", opacity: 0.85, fontWeight: 500 }}>
+                        {slot.displayPeriod}
+                      </div>
                       <span className="th-period-time">
                         {slot.type === "LUNCH" ? "LUNCH" : slot.type === "SHORT_BREAK" ? "BREAK" : ""}
                       </span>
@@ -3022,22 +3109,66 @@ function GenerateTimetableView({ department, notify, onSuccess }) {
 // 10. REPORTS & EXPORT VIEW
 // =============================================================
 function ReportsView({ department }) {
+  const [repDivs, setRepDivs] = useState([]);
+  const [repSelectedDiv, setRepSelectedDiv] = useState("ALL");
+
+  useEffect(() => {
+    api.fetchDivisions(department).then(divs => setRepDivs(divs || []));
+  }, [department]);
+
   return (
     <div className="card">
       <h3>📄 Academic Reports & Export Hub</h3>
       <p style={{ color: "#64748b", margin: "6px 0 24px" }}>
-        Generate standardized college reports for HOD review, board approvals, and accreditation documentation.
+        Generate standardized collegiate reports matching D. Y. Patil Engineering format for HOD review, board approvals, and accreditation documentation.
       </p>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
         <div style={{ background: "#f8fafc", padding: "20px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-          <h4>📅 Master Timetable Export</h4>
+          <h4>📅 Timetable Excel Export (Collegiate Grid)</h4>
           <p style={{ fontSize: "0.875rem", color: "#64748b", margin: "8px 0 16px" }}>
-            Complete slot-by-slot master timetable with division, batch, subject, faculty code, and room allocation.
+            Official collegiate matrix format with subjects, faculty codes, lab batches, course legend, and signatures.
           </p>
-          <a href={api.getExportTimetableUrl(department)} className="btn" target="_blank" rel="noreferrer">
-            📥 Download Timetable (.xlsx)
-          </a>
+
+          <div style={{ marginBottom: "16px" }}>
+            <label style={{ fontSize: "0.85rem", fontWeight: 700, display: "block", marginBottom: "6px" }}>
+              Filter by Division / Class:
+            </label>
+            <select
+              value={repSelectedDiv}
+              onChange={(e) => setRepSelectedDiv(e.target.value)}
+              style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1", fontWeight: 600 }}
+            >
+              <option value="ALL">All Divisions (Master Multi-Tab Workbook)</option>
+              {repDivs.map((d) => (
+                <option key={d.name} value={d.name}>
+                  {d.name} ({d.year || "Second Year"})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <a
+              href={api.getExportTimetableUrl(department, repSelectedDiv === "ALL" ? "" : repSelectedDiv)}
+              className="btn"
+              style={{ background: "#1e40af", color: "#fff" }}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {repSelectedDiv === "ALL" ? "📥 Download Master Workbook (.xlsx)" : `📥 Download ${repSelectedDiv} (.xlsx)`}
+            </a>
+            {repSelectedDiv !== "ALL" && (
+              <a
+                href={api.getExportTimetableUrl(department)}
+                className="btn btn-secondary"
+                target="_blank"
+                rel="noreferrer"
+              >
+                📑 Master All-Divisions
+              </a>
+            )}
+          </div>
         </div>
 
         <div style={{ background: "#f8fafc", padding: "20px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
@@ -3303,6 +3434,48 @@ function SettingsView({ notify }) {
 
   return (
     <div>
+      {/* Institutional Structure Preset Banner with Zero Input Required */}
+      <div className="card" style={{ marginBottom: "24px", border: "2px solid #2563eb", background: "linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "1.5rem" }}>🏛️</span>
+              <h3 style={{ margin: 0, color: "#1e3a8a" }}>Official D. Y. Patil Engineering Structure & Schedule</h3>
+            </div>
+            <p style={{ color: "#475569", margin: "8px 0 12px", fontSize: "0.9rem" }}>
+              Zero manual input required! One-click institutional structure configuration matching D. Y. Patil Agriculture & Technical University (CSE Dept).
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "8px", fontSize: "0.82rem", color: "#334155" }}>
+              <div>🏢 <strong>Institute:</strong> D Y Patil Agriculture & Tech Univ</div>
+              <div>👔 <strong>Dean:</strong> Dr. Yuvaraj M. Patil</div>
+              <div>👨‍💼 <strong>HoD:</strong> Mr. Naresh A. Kamble</div>
+              <div>🎓 <strong>Dean Academics:</strong> Dr. S. R. Pawale</div>
+              <div>📅 <strong>Academic Year:</strong> 2026-27 (Sem III)</div>
+              <div>⏰ <strong>Working Days:</strong> Mon - Sat (6 Days, 10 Periods)</div>
+            </div>
+          </div>
+          <button
+            className="btn"
+            style={{ background: "#1e40af", color: "#fff", padding: "12px 20px", fontSize: "0.95rem", fontWeight: 700, boxShadow: "0 4px 6px -1px rgba(30, 64, 175, 0.3)" }}
+            onClick={async () => {
+              setLoading(true);
+              try {
+                await api.applyDYPatilPreset();
+                notify("✅ Official D. Y. Patil collegiate structure & 6-day bell schedule applied successfully with zero user input!");
+                load();
+              } catch (e) {
+                notify("Failed to apply preset", "error");
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+          >
+            ⚡ Apply Official Structure Preset (Zero Input)
+          </button>
+        </div>
+      </div>
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
         <div>
           <h3>⚙️ Academic Periods, Break & Lecture Time Customizer</h3>

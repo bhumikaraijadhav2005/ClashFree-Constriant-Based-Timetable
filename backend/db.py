@@ -79,15 +79,16 @@ DEFAULT_STORE = {
         {"id": 7, "name": "TOC", "code": "CS307", "department": "CSE", "year": "Second Year", "semester": "Semester III", "lectures_per_week": 3, "labs_per_week": 0, "requires_lab": False, "lab_type": "", "student_pc_ratio": 1.0}
     ],
     "time_slots": [
-        {"period": "09:00-10:00", "type": "TEACHING", "is_morning": True, "start_time": "09:00", "end_time": "10:00", "order_index": 1},
-        {"period": "10:00-11:00", "type": "TEACHING", "is_morning": True, "start_time": "10:00", "end_time": "11:00", "order_index": 2},
-        {"period": "11:00-11:15", "type": "SHORT_BREAK", "is_morning": True, "start_time": "11:00", "end_time": "11:15", "order_index": 3},
-        {"period": "11:15-12:15", "type": "TEACHING", "is_morning": True, "start_time": "11:15", "end_time": "12:15", "order_index": 4},
-        {"period": "12:15-13:00", "type": "LUNCH", "is_morning": False, "start_time": "12:15", "end_time": "13:00", "order_index": 5},
-        {"period": "13:00-14:00", "type": "TEACHING", "is_morning": False, "start_time": "13:00", "end_time": "14:00", "order_index": 6},
-        {"period": "14:00-15:00", "type": "TEACHING", "is_morning": False, "start_time": "14:00", "end_time": "15:00", "order_index": 7},
-        {"period": "15:00-15:15", "type": "SHORT_BREAK", "is_morning": False, "start_time": "15:00", "end_time": "15:15", "order_index": 8},
-        {"period": "15:15-16:15", "type": "TEACHING", "is_morning": False, "start_time": "15:15", "end_time": "16:15", "order_index": 9}
+        {"period": "09:00-10:00", "type": "TEACHING",   "is_morning": True,  "start_time": "09:00", "end_time": "10:00", "order_index": 1},
+        {"period": "10:00-11:00", "type": "TEACHING",   "is_morning": True,  "start_time": "10:00", "end_time": "11:00", "order_index": 2},
+        {"period": "11:00-11:10", "type": "SHORT_BREAK", "is_morning": True,  "start_time": "11:00", "end_time": "11:10", "order_index": 3},
+        {"period": "11:10-12:10", "type": "TEACHING",   "is_morning": True,  "start_time": "11:10", "end_time": "12:10", "order_index": 4},
+        {"period": "12:10-01:10", "type": "TEACHING",   "is_morning": True,  "start_time": "12:10", "end_time": "13:10", "order_index": 5},
+        {"period": "01:10-01:50", "type": "LUNCH",      "is_morning": False, "start_time": "13:10", "end_time": "13:50", "order_index": 6},
+        {"period": "01:50-02:50", "type": "TEACHING",   "is_morning": False, "start_time": "13:50", "end_time": "14:50", "order_index": 7},
+        {"period": "02:50-03:50", "type": "TEACHING",   "is_morning": False, "start_time": "14:50", "end_time": "15:50", "order_index": 8},
+        {"period": "03:50-04:00", "type": "SHORT_BREAK", "is_morning": False, "start_time": "15:50", "end_time": "16:00", "order_index": 9},
+        {"period": "04:00-05:00", "type": "TEACHING",   "is_morning": False, "start_time": "16:00", "end_time": "17:00", "order_index": 10},
     ],
     "timetable_versions": [
         {"id": 1, "version_number": 1, "name": "Version 1 (Initial)", "academic_year": "2026-2027", "semester": "Semester III", "department": "CSE", "description": "Baseline generated schedule", "is_active": True, "created_by": "HOD CSE"}
@@ -799,26 +800,58 @@ def delete_subject(subject_id: int):
 # ---------------------------------------------------------------------------
 # TIME SLOTS
 # ---------------------------------------------------------------------------
+OFFICIAL_DYPATIL_SLOTS = [
+    {"period": "09:00-10:00", "type": "TEACHING",   "is_morning": True,  "start_time": "09:00", "end_time": "10:00", "order_index": 1},
+    {"period": "10:00-11:00", "type": "TEACHING",   "is_morning": True,  "start_time": "10:00", "end_time": "11:00", "order_index": 2},
+    {"period": "11:00-11:10", "type": "SHORT_BREAK", "is_morning": True,  "start_time": "11:00", "end_time": "11:10", "order_index": 3},
+    {"period": "11:10-12:10", "type": "TEACHING",   "is_morning": True,  "start_time": "11:10", "end_time": "12:10", "order_index": 4},
+    {"period": "12:10-01:10", "type": "TEACHING",   "is_morning": True,  "start_time": "12:10", "end_time": "13:10", "order_index": 5},
+    {"period": "01:10-01:50", "type": "LUNCH",      "is_morning": False, "start_time": "13:10", "end_time": "13:50", "order_index": 6},
+    {"period": "01:50-02:50", "type": "TEACHING",   "is_morning": False, "start_time": "13:50", "end_time": "14:50", "order_index": 7},
+    {"period": "02:50-03:50", "type": "TEACHING",   "is_morning": False, "start_time": "14:50", "end_time": "15:50", "order_index": 8},
+    {"period": "03:50-04:00", "type": "SHORT_BREAK", "is_morning": False, "start_time": "15:50", "end_time": "16:00", "order_index": 9},
+    {"period": "04:00-05:00", "type": "TEACHING",   "is_morning": False, "start_time": "16:00", "end_time": "17:00", "order_index": 10},
+]
+
+def _deduplicate_slots(slots_list):
+    if not slots_list:
+        return list(OFFICIAL_DYPATIL_SLOTS)
+    seen = set()
+    unique = []
+    for s in slots_list:
+        p = s.get("period") or f"{s.get('start_time')}-{s.get('end_time')}"
+        if not p or p in seen:
+            continue
+        seen.add(p)
+        unique.append(dict(s))
+    if len(unique) <= 2:
+        return list(OFFICIAL_DYPATIL_SLOTS)
+    for idx, s in enumerate(unique, start=1):
+        s["order_index"] = idx
+    return unique
+
 def get_time_slots():
     client = get_client()
     if client:
         try:
             res = client.table("time_slots").select("*").order("order_index").execute()
             if res.data:
-                return res.data
+                return _deduplicate_slots(res.data)
         except Exception:
             pass
-    return _memory_store.get("time_slots", DEFAULT_STORE["time_slots"])
+    raw = _memory_store.get("time_slots", DEFAULT_STORE.get("time_slots", OFFICIAL_DYPATIL_SLOTS))
+    return _deduplicate_slots(raw)
 
 def save_time_slots(slots_list: list):
+    cleaned = _deduplicate_slots(slots_list)
     client = get_client()
     if client:
         try:
             client.table("time_slots").delete().neq("id", 0).execute()
-            client.table("time_slots").insert(slots_list).execute()
+            client.table("time_slots").insert(cleaned).execute()
         except Exception:
             pass
-    _memory_store["time_slots"] = list(slots_list)
+    _memory_store["time_slots"] = list(cleaned)
     _save_local_store(_memory_store)
 
 DEFAULT_TIME_SETTINGS = {
@@ -831,7 +864,7 @@ DEFAULT_TIME_SETTINGS = {
     "afternoon_periods": 2,
     "short_break_2_duration": 10,
     "final_periods": 1,
-    "working_days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    "working_days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 }
 
 def get_time_settings():

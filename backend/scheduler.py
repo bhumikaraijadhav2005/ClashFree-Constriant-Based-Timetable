@@ -59,7 +59,7 @@ def format_time_12h(val) -> str:
     if m24:
         hour = int(m24.group(1))
         minute = int(m24.group(2))
-        meridiem = "PM" if hour >= 12 else "AM"
+        meridiem = "PM" if (hour >= 12 or (1 <= hour <= 7)) else "AM"
         display_hour = hour % 12
         if display_hour == 0:
             display_hour = 12
@@ -67,7 +67,7 @@ def format_time_12h(val) -> str:
 
     if s.isdigit():
         hour = int(s)
-        meridiem = "PM" if hour >= 12 else "AM"
+        meridiem = "PM" if (hour >= 12 or (1 <= hour <= 7)) else "AM"
         display_hour = hour % 12
         if display_hour == 0:
             display_hour = 12
@@ -94,7 +94,11 @@ def time_to_minutes(val) -> int:
 
     m24 = re.match(r"^(\d{1,2}):(\d{2})", s)
     if m24:
-        return int(m24.group(1)) * 60 + int(m24.group(2))
+        h = int(m24.group(1))
+        m = int(m24.group(2))
+        if 1 <= h <= 7:
+            h += 12
+        return h * 60 + m
     return 0
 
 
@@ -102,17 +106,19 @@ def time_to_minutes(val) -> int:
 # DEFAULT TIME SLOTS (12-Hour AM/PM Standard)
 # ---------------------------------------------------------------------------
 DEFAULT_SCHEDULE = [
-    {"period": "9:00 AM - 10:00 AM", "type": "TEACHING",   "is_morning": True},
-    {"period": "10:00 AM - 11:00 AM", "type": "TEACHING",  "is_morning": True},
-    {"period": "11:00 AM - 11:15 AM", "type": "SHORT_BREAK", "is_morning": True},
-    {"period": "11:15 AM - 12:15 PM", "type": "TEACHING",  "is_morning": True},
-    {"period": "12:15 PM - 1:15 PM",  "type": "TEACHING",  "is_morning": False},
-    {"period": "1:15 PM - 2:00 PM",   "type": "LUNCH",     "is_morning": False},
-    {"period": "2:00 PM - 3:00 PM",   "type": "TEACHING",  "is_morning": False},
-    {"period": "3:00 PM - 4:00 PM",   "type": "TEACHING",  "is_morning": False},
+    {"period": "09:00-10:00", "type": "TEACHING",   "is_morning": True},
+    {"period": "10:00-11:00", "type": "TEACHING",   "is_morning": True},
+    {"period": "11:00-11:10", "type": "SHORT_BREAK", "is_morning": True},
+    {"period": "11:10-12:10", "type": "TEACHING",   "is_morning": True},
+    {"period": "12:10-01:10", "type": "TEACHING",   "is_morning": True},
+    {"period": "01:10-01:50", "type": "LUNCH",      "is_morning": False},
+    {"period": "01:50-02:50", "type": "TEACHING",   "is_morning": False},
+    {"period": "02:50-03:50", "type": "TEACHING",   "is_morning": False},
+    {"period": "03:50-04:00", "type": "SHORT_BREAK", "is_morning": False},
+    {"period": "04:00-05:00", "type": "TEACHING",   "is_morning": False},
 ]
 
-DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 DAY_ORDER = {d: i for i, d in enumerate(DAYS)}
 
 _session_lookup = {}

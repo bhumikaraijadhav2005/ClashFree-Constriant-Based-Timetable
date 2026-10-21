@@ -7,6 +7,7 @@
 import os
 import sys
 import io
+import re
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from pathlib import Path
@@ -24,7 +25,7 @@ import db
 import excel_reader
 import scheduler
 import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 app = Flask(__name__)
 CORS(app)
@@ -812,8 +813,7 @@ def import_excel():
                 db.upsert_department(dep)
         if data_dict.get("requirements"):
             db.save_requirements(data_dict["requirements"])
-        if data_dict.get("time_slots"):
-            db.save_time_slots(data_dict["time_slots"])
+        # Timetable structure/bell schedule is predefined in ClashFree and is not overwritten by data file uploads.
     except Exception as e:
         print(f"Import DB warning: {e}")
 
@@ -839,50 +839,421 @@ def download_sample_template():
     )
 
 
+def _match_period_slot(session_period, slot_label):
+    if not session_period or not slot_label:
+        return False
+    if session_period.strip() == slot_label.strip():
+        return True
+    if scheduler.format_time_12h(session_period) == scheduler.format_time_12h(slot_label):
+        return True
+    p1 = session_period.split("-")[0].strip()
+    p2 = slot_label.split("-")[0].strip()
+    return scheduler.time_to_minutes(p1) == scheduler.time_to_minutes(p2)
+
+
+def _build_collegiate_matrix_sheet(ws, dept, div_name, div_sessions, subjects=None, faculty=None, year_str="Second Year"):
+    ws.views.sheetView[0].showGridLines = True
+
+    FONT_INSTITUTE = Font(name="Calibri", size=13, bold=True, color="1E3A8A")
+    FONT_DEPT = Font(name="Calibri", size=11, bold=True, color="0F172A")
+    FONT_TITLE = Font(name="Calibri", size=11, bold=True, color="1E40AF")
+    FONT_META = Font(name="Calibri", size=9.5, bold=True, color="1E293B")
+    FONT_TH = Font(name="Calibri", size=9.5, bold=True, color="FFFFFF")
+    FONT_CELL = Font(name="Calibri", size=9, bold=False, color="0F172A")
+    FONT_CELL_BOLD = Font(name="Calibri", size=9, bold=True, color="0F172A")
+    FONT_BREAK = Font(name="Calibri", size=8, bold=True, color="64748B")
+
+    FILL_HEADER = PatternFill("solid", fgColor="1E40AF")
+    FILL_SUBHEADER = PatternFill("solid", fgColor="F8FAFC")
+    FILL_BREAK = PatternFill("solid", fgColor="F1F5F9")
+    FILL_LUNCH = PatternFill("solid", fgColor="E2E8F0")
+    FILL_LAB = PatternFill("solid", fgColor="EFF6FF")
+    FILL_ZEBRA = PatternFill("solid", fgColor="F8FAFC")
+
+    THIN_BORDER = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+
+    # Row 1-3: College Header
+    ws.merge_cells("A1:L1")
+    ws["A1"] = "D. Y. Patil Agriculture and Technical University Talsande, Kolhapur"
+    ws["A1"].font = FONT_INSTITUTE
+    ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 25
+
+    ws.merge_cells("A2:L2")
+    ws["A2"] = f"Department of {dept if dept != 'CSE' else 'Computer Science and Engineering'}"
+    ws["A2"].font = FONT_DEPT
+    ws["A2"].alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[2].height = 20
+
+    ws.merge_cells("A3:L3")
+    ws["A3"] = "Time Table Academic Year 2026 - 2027"
+    ws["A3"].font = FONT_TITLE
+    ws["A3"].alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[3].height = 18
+
+    # Row 4: Metadata Line 1
+    ws.merge_cells("A4:E4")
+    ws["A4"] = "Name of the Institute: D Y Patil Agriculture & Technical University, Talsande"
+    ws.merge_cells("F4:H4")
+    ws["F4"] = "Name of the Dean: Dr. Yuvaraj M. Patil"
+    ws.merge_cells("I4:L4")
+    ws["I4"] = f"Name of the Department: {dept if dept != 'CSE' else 'Computer Science & Engineering'}"
+    ws.row_dimensions[4].height = 20
+
+    # Row 5: Metadata Line 2
+    ws.merge_cells("A5:E5")
+    ws["A5"] = "Name of the HoD: Mr. Naresh A. Kamble"
+    ws.merge_cells("F5:H5")
+    ws["F5"] = "Academic Year: 2026-27"
+    ws.merge_cells("I5:J5")
+    ws["I5"] = "Semester : III"
+    ws.merge_cells("K5:L5")
+    ws["K5"] = f"Division: {div_name}"
+    ws.row_dimensions[5].height = 20
+
+    for r in range(4, 6):
+        for c in range(1, 13):
+            cell = ws.cell(row=r, column=c)
+            cell.font = FONT_META
+            cell.fill = FILL_SUBHEADER
+            cell.border = THIN_BORDER
+            cell.alignment = Alignment(horizontal="left", vertical="center")
+
+    # Row 6: Blank spacing
+    ws.row_dimensions[6].height = 8
+
+    # Row 7: Main Table Header (From - To column headers)
+    slots = [
+        ("Time/Day", "TIME"),
+        ("Class", "CLASS"),
+        ("09:00-10:00", "TEACHING"),
+        ("10:00-11:00", "TEACHING"),
+        ("11:00 - 11:10\nSHORT BREAK", "SHORT_BREAK"),
+        ("11:10-12:10", "TEACHING"),
+        ("12:10-01:10", "TEACHING"),
+        ("01:10 - 01:50\nLUNCH BREAK", "LUNCH"),
+        ("01:50-02:50", "TEACHING"),
+        ("02:50-03:50", "TEACHING"),
+        ("03:50 - 04:00\nSHORT BREAK", "SHORT_BREAK"),
+        ("04:00-05:00", "TEACHING"),
+    ]
+
+    ws.row_dimensions[7].height = 28
+    for c_idx, (s_label, s_type) in enumerate(slots, start=1):
+        cell = ws.cell(row=7, column=c_idx, value=s_label)
+        cell.font = FONT_TH
+        cell.fill = FILL_HEADER
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = THIN_BORDER
+
+    slot_mapping = [
+        ("09:00-10:00", "TEACHING"),
+        ("10:00-11:00", "TEACHING"),
+        ("11:00-11:10", "SHORT_BREAK"),
+        ("11:10-12:10", "TEACHING"),
+        ("12:10-01:10", "TEACHING"),
+        ("01:10-01:50", "LUNCH"),
+        ("01:50-02:50", "TEACHING"),
+        ("02:50-03:50", "TEACHING"),
+        ("03:50-04:00", "SHORT_BREAK_2"),
+        ("04:00-05:00", "TEACHING"),
+    ]
+
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    day_labels = ["MON", "TUE", "WED", "THU", "FRI", "SAT"]
+
+    short_year = "SY"
+    if "first" in str(year_str).lower() or "fe" in str(year_str).lower() or "1" in str(year_str):
+        short_year = "FY"
+    elif "third" in str(year_str).lower() or "te" in str(year_str).lower() or "3" in str(year_str):
+        short_year = "TY"
+    elif "final" in str(year_str).lower() or "be" in str(year_str).lower() or "4" in str(year_str):
+        short_year = "B.Tech"
+
+    start_row = 8
+    for idx, (day_full, day_abbr) in enumerate(zip(days, day_labels)):
+        cur_row = start_row + idx
+        ws.row_dimensions[cur_row].height = 42
+
+        ws.cell(row=cur_row, column=1, value=day_abbr).font = FONT_CELL_BOLD
+        ws.cell(row=cur_row, column=1).alignment = Alignment(horizontal="center", vertical="center")
+        ws.cell(row=cur_row, column=1).border = THIN_BORDER
+
+        ws.cell(row=cur_row, column=2, value=short_year).font = FONT_CELL_BOLD
+        ws.cell(row=cur_row, column=2).alignment = Alignment(horizontal="center", vertical="center")
+        ws.cell(row=cur_row, column=2).border = THIN_BORDER
+
+        for col_idx, (sk, stype) in enumerate(slot_mapping, start=3):
+            cell = ws.cell(row=cur_row, column=col_idx)
+            cell.border = THIN_BORDER
+
+            if stype in ("SHORT_BREAK", "SHORT_BREAK_2"):
+                cell.value = "SHORT\nBREAK"
+                cell.font = FONT_BREAK
+                cell.fill = FILL_BREAK
+                cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            elif stype == "LUNCH":
+                cell.value = "LUNCH\nBREAK"
+                cell.font = FONT_BREAK
+                cell.fill = FILL_LUNCH
+                cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            else:
+                matching = [
+                    s for s in div_sessions
+                    if (s.get("day") or "").lower() == day_full.lower()
+                    and _match_period_slot(s.get("period"), sk)
+                ]
+
+                if not matching:
+                    cell.value = "-"
+                    cell.font = FONT_CELL
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
+                elif matching[0].get("is_lab"):
+                    lines = []
+                    for b_idx, ms in enumerate(matching):
+                        b_tag = ms.get("batch") or f"B{b_idx+1}"
+                        f_code = ms.get("faculty_code") or ""
+                        r_name = ms.get("room") or ""
+                        lines.append(f"{b_tag}: {ms.get('subject')} ({f_code}) {r_name}")
+                    cell.value = "\n".join(lines)
+                    cell.font = FONT_CELL
+                    cell.fill = FILL_LAB
+                    cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+                else:
+                    s = matching[0]
+                    sub = s.get("subject") or ""
+                    fac = s.get("faculty_code") or ""
+                    rm = s.get("room") or ""
+                    cell.value = f"{sub}\n{fac}\n{rm}"
+                    cell.font = FONT_CELL
+                    cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    # Course Legend
+    distinct_subs = []
+    seen = set()
+    for s in div_sessions:
+        sname = s.get("subject")
+        if sname and sname not in seen:
+            seen.add(sname)
+            distinct_subs.append(sname)
+
+    legend_start = start_row + len(days) + 2
+    ws.row_dimensions[legend_start].height = 22
+    ws.cell(row=legend_start, column=1, value="Sr. No")
+    ws.cell(row=legend_start, column=2, value="Course Abbreviation")
+    ws.merge_cells(f"C{legend_start}:D{legend_start}")
+    ws.cell(row=legend_start, column=3, value="Course Code")
+    ws.merge_cells(f"E{legend_start}:G{legend_start}")
+    ws.cell(row=legend_start, column=5, value="Course Title")
+    ws.merge_cells(f"H{legend_start}:L{legend_start}")
+    ws.cell(row=legend_start, column=8, value="Faculty Name & Code")
+
+    for col in range(1, 13):
+        c = ws.cell(row=legend_start, column=col)
+        c.font = FONT_TH
+        c.fill = FILL_HEADER
+        c.alignment = Alignment(horizontal="center", vertical="center")
+        c.border = THIN_BORDER
+
+    sub_dict = {s.get("name"): s for s in (subjects or [])}
+    fac_dict = {f.get("code"): f for f in (faculty or [])}
+
+    for idx, sname in enumerate(distinct_subs):
+        r_idx = legend_start + 1 + idx
+        ws.row_dimensions[r_idx].height = 19
+        is_even = (idx % 2 == 0)
+
+        s_obj = sub_dict.get(sname, {})
+        code = s_obj.get("code", "-")
+        title = s_obj.get("full_name") or sname
+
+        s_fac_codes = list(set([s.get("faculty_code") for s in div_sessions if s.get("subject") == sname and s.get("faculty_code")]))
+        fac_labels = []
+        for fc in s_fac_codes:
+            f_obj = fac_dict.get(fc)
+            if f_obj and f_obj.get("name"):
+                fac_labels.append(f"{f_obj.get('name')} ({fc})")
+            else:
+                fac_labels.append(fc)
+        fac_str = ", ".join(fac_labels) if fac_labels else "-"
+
+        ws.cell(row=r_idx, column=1, value=idx + 1).alignment = Alignment(horizontal="center", vertical="center")
+        ws.cell(row=r_idx, column=2, value=sname).alignment = Alignment(horizontal="center", vertical="center")
+        ws.merge_cells(f"C{r_idx}:D{r_idx}")
+        ws.cell(row=r_idx, column=3, value=code).alignment = Alignment(horizontal="center", vertical="center")
+        ws.merge_cells(f"E{r_idx}:G{r_idx}")
+        ws.cell(row=r_idx, column=5, value=title).alignment = Alignment(horizontal="left", vertical="center")
+        ws.merge_cells(f"H{r_idx}:L{r_idx}")
+        ws.cell(row=r_idx, column=8, value=fac_str).alignment = Alignment(horizontal="left", vertical="center")
+
+        for col in range(1, 13):
+            c = ws.cell(row=r_idx, column=col)
+            c.font = FONT_CELL
+            c.border = THIN_BORDER
+            if is_even:
+                c.fill = FILL_ZEBRA
+
+    legend_count = max(len(distinct_subs), 1)
+    coord_row = legend_start + legend_count + 2
+    ws.merge_cells(f"A{coord_row}:L{coord_row}")
+    ws[f"A{coord_row}"] = "Class Coordinator : Ms. Rutuja R. Dakare (Contact No. 9156418849)"
+    ws[f"A{coord_row}"].font = Font(name="Calibri", size=10, bold=True, color="1E293B")
+    ws[f"A{coord_row}"].alignment = Alignment(horizontal="left", vertical="center")
+    ws.row_dimensions[coord_row].height = 20
+
+    sig_row = coord_row + 3
+    ws.cell(row=sig_row, column=2, value="HoD").font = Font(name="Calibri", size=11, bold=True)
+    ws.cell(row=sig_row, column=2).alignment = Alignment(horizontal="center", vertical="center")
+
+    ws.cell(row=sig_row, column=6, value="Dean").font = Font(name="Calibri", size=11, bold=True)
+    ws.cell(row=sig_row, column=6).alignment = Alignment(horizontal="center", vertical="center")
+
+    ws.merge_cells(f"J{sig_row}:K{sig_row}")
+    ws.cell(row=sig_row, column=10, value="Dean, Academics").font = Font(name="Calibri", size=11, bold=True)
+    ws.cell(row=sig_row, column=10).alignment = Alignment(horizontal="center", vertical="center")
+
+    col_widths = {
+        "A": 10, "B": 8, "C": 15, "D": 15, "E": 9,
+        "F": 15, "G": 15, "H": 9, "I": 15, "J": 15, "K": 9, "L": 15
+    }
+    for col_let, width in col_widths.items():
+        ws.column_dimensions[col_let].width = width
+
+
 # ---------------------------------------------------------------------------
-# 17. EXCEL EXPORT (TIMETABLE & ACADEMIC LOAD)
+# 17. EXCEL EXPORT (OFFICIAL COLLEGIATE MATRIX & DIVISION-SPECIFIC)
 # ---------------------------------------------------------------------------
 @app.route("/api/export/timetable", methods=["GET"])
 def export_timetable_excel():
     dept = request.args.get("department", "CSE")
+    division = request.args.get("division", "").strip()
     timetable = db.get_timetable(department=dept)
+    subjects = db.get_all_subjects(dept_code=dept)
+    faculty = db.get_all_faculty(dept_code=dept)
+    divisions = db.get_all_divisions(dept_code=dept)
 
     wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = f"{dept} Master Timetable"
 
-    headers = ["Day", "Time Slot", "Department", "Division", "Batch", "Subject", "Faculty Code", "Faculty Name", "Room", "Type"]
-    ws.append(headers)
+    if division and division.upper() != "ALL" and division.lower() != "master":
+        # Single Division Official Matrix Export
+        ws = wb.active
+        ws.title = f"{division} Timetable"[:31]
+        div_sessions = [r for r in timetable if (r.get("section") or "").lower() == division.lower()]
+        div_obj = next((d for d in divisions if (d.get("name") or "").lower() == division.lower()), None)
+        year_str = div_obj.get("year", "Second Year") if div_obj else "Second Year"
+        _build_collegiate_matrix_sheet(ws, dept, division, div_sessions, subjects, faculty, year_str)
+        clean_name = re.sub(r'[^a-zA-Z0-9_-]', '_', division)
+        download_name = f"{dept}_{clean_name}_Timetable.xlsx"
+    else:
+        # Master Export: generate a collegiate matrix sheet for each division + Master flat tab
+        div_names = sorted(list(set([r.get("section") for r in timetable if r.get("section")])))
+        if not div_names:
+            div_names = [d.get("name") for d in divisions if d.get("name")]
+        if not div_names:
+            div_names = ["Division A", "Division B", "Division C"]
 
-    header_fill = PatternFill("solid", fgColor="1E40AF")
-    header_font = Font(bold=True, color="FFFFFF")
-    for cell in ws[1]:
-        cell.fill = header_fill
-        cell.font = header_font
-        cell.alignment = Alignment(horizontal="center")
+        first = True
+        for dname in div_names:
+            ws = wb.active if first else wb.create_sheet()
+            first = False
+            ws.title = f"{dname}"[:31]
+            div_sessions = [r for r in timetable if (r.get("section") or "").lower() == dname.lower()]
+            div_obj = next((d for d in divisions if (d.get("name") or "").lower() == dname.lower()), None)
+            year_str = div_obj.get("year", "Second Year") if div_obj else "Second Year"
+            _build_collegiate_matrix_sheet(ws, dept, dname, div_sessions, subjects, faculty, year_str)
 
-    for row in timetable:
-        ws.append([
-            row.get("day"),
-            row.get("period"),
-            row.get("department", dept),
-            row.get("section"),
-            row.get("batch") or "Whole Class",
-            row.get("subject"),
-            row.get("faculty_code"),
-            row.get("faculty_name"),
-            row.get("room"),
-            "LAB" if row.get("is_lab") else "LECTURE"
-        ])
+        # Add Master All-Sessions Tab
+        ws_master = wb.create_sheet(title="All Sessions Master")
+        ws_master.views.sheetView[0].showGridLines = True
+        headers = ["Day", "Time Slot", "Department", "Division", "Batch", "Subject", "Faculty Code", "Faculty Name", "Room", "Type"]
+        ws_master.append(headers)
+        header_fill = PatternFill("solid", fgColor="1E40AF")
+        header_font = Font(bold=True, color="FFFFFF")
+        for cell in ws_master[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center")
 
-    for col in ws.columns:
-        max_len = max(len(str(c.value or "")) for c in col)
-        ws.column_dimensions[col[0].column_letter].width = max(max_len + 4, 12)
+        for row in timetable:
+            ws_master.append([
+                row.get("day"),
+                row.get("period"),
+                row.get("department", dept),
+                row.get("section"),
+                row.get("batch") or "Whole Class",
+                row.get("subject"),
+                row.get("faculty_code"),
+                row.get("faculty_name"),
+                row.get("room"),
+                "LAB" if row.get("is_lab") else "LECTURE"
+            ])
+
+        for col in ws_master.columns:
+            max_len = max(len(str(c.value or "")) for c in col)
+            ws_master.column_dimensions[col[0].column_letter].width = max(max_len + 4, 12)
+
+        download_name = f"{dept}_Master_Timetable.xlsx"
 
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
-    return send_file(buf, as_attachment=True, download_name=f"{dept}_Master_Timetable.xlsx", mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    return send_file(buf, as_attachment=True, download_name=download_name, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
+# ---------------------------------------------------------------------------
+# 18. ONE-CLICK COLLEGIATE STRUCTURE PRESET (ZERO INPUT REQUIRED)
+# ---------------------------------------------------------------------------
+@app.route("/api/structure/apply-dypatil-preset", methods=["POST"])
+def apply_dypatil_structure_preset():
+    """
+    Applies the official collegiate schedule and structure preset (zero input required).
+    Sets the 10 time slots, 6-day week, bell schedule, and institutional presets.
+    """
+    dyp_slots = [
+        {"period": "09:00-10:00", "type": "TEACHING",   "is_morning": True,  "start_time": "09:00", "end_time": "10:00", "order_index": 1},
+        {"period": "10:00-11:00", "type": "TEACHING",   "is_morning": True,  "start_time": "10:00", "end_time": "11:00", "order_index": 2},
+        {"period": "11:00-11:10", "type": "SHORT_BREAK", "is_morning": True,  "start_time": "11:00", "end_time": "11:10", "order_index": 3},
+        {"period": "11:10-12:10", "type": "TEACHING",   "is_morning": True,  "start_time": "11:10", "end_time": "12:10", "order_index": 4},
+        {"period": "12:10-01:10", "type": "TEACHING",   "is_morning": True,  "start_time": "12:10", "end_time": "13:10", "order_index": 5},
+        {"period": "01:10-01:50", "type": "LUNCH",      "is_morning": False, "start_time": "13:10", "end_time": "13:50", "order_index": 6},
+        {"period": "01:50-02:50", "type": "TEACHING",   "is_morning": False, "start_time": "13:50", "end_time": "14:50", "order_index": 7},
+        {"period": "02:50-03:50", "type": "TEACHING",   "is_morning": False, "start_time": "14:50", "end_time": "15:50", "order_index": 8},
+        {"period": "03:50-04:00", "type": "SHORT_BREAK", "is_morning": False, "start_time": "15:50", "end_time": "16:00", "order_index": 9},
+        {"period": "04:00-05:00", "type": "TEACHING",   "is_morning": False, "start_time": "16:00", "end_time": "17:00", "order_index": 10},
+    ]
+
+    dyp_settings = {
+        "start_time": "09:00",
+        "period_duration": 60,
+        "morning_periods": 2,
+        "short_break_1_duration": 10,
+        "pre_lunch_periods": 2,
+        "lunch_duration": 40,
+        "afternoon_periods": 2,
+        "short_break_2_duration": 10,
+        "final_periods": 1,
+        "working_days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+        "institute_name": "D. Y. Patil Agriculture and Technical University Talsande, Kolhapur",
+        "dean_name": "Dr. Yuvaraj M. Patil",
+        "hod_name": "Mr. Naresh A. Kamble",
+        "dean_academics": "Dr. S. R. Pawale",
+        "academic_year": "2026-27",
+        "semester": "Semester III"
+    }
+
+    db.save_time_slots(dyp_slots)
+    saved_settings = db.save_time_settings(dyp_settings)
+    return jsonify({
+        "success": True,
+        "message": "Official collegiate structure & 6-day bell schedule applied successfully with zero user input required!",
+        "settings": saved_settings,
+        "slots": dyp_slots
+    })
 
 
 @app.route("/api/export/workload", methods=["GET"])

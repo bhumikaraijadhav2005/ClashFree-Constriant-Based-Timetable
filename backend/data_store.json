@@ -49,6 +49,31 @@
       "code": "CSE",
       "name": "Computer Science and Engineering",
       "id": 13
+    },
+    {
+      "code": "CSE",
+      "name": "Computer Science and Engineering",
+      "id": 14
+    },
+    {
+      "code": "CSE",
+      "name": "Computer Science and Engineering",
+      "id": 15
+    },
+    {
+      "code": "CSE",
+      "name": "Computer Science and Engineering",
+      "id": 16
+    },
+    {
+      "code": "CSE",
+      "name": "Computer Science and Engineering",
+      "id": 17
+    },
+    {
+      "code": "CSE",
+      "name": "Computer Science and Engineering",
+      "id": 18
     }
   ],
   "academic_structure": [
@@ -461,364 +486,84 @@
   ],
   "time_slots": [
     {
-      "day": "Monday",
-      "start_time": "9:00 AM",
-      "end_time": "10:00 AM",
-      "period": "9:00 AM - 10:00 AM",
+      "period": "09:00-10:00",
       "type": "TEACHING",
       "is_morning": true,
-      "is_teaching": true
+      "start_time": "09:00",
+      "end_time": "10:00",
+      "order_index": 1
     },
     {
-      "day": "Monday",
-      "start_time": "10:00 AM",
-      "end_time": "11:00 AM",
-      "period": "10:00 AM - 11:00 AM",
+      "period": "10:00-11:00",
       "type": "TEACHING",
       "is_morning": true,
-      "is_teaching": true
+      "start_time": "10:00",
+      "end_time": "11:00",
+      "order_index": 2
     },
     {
-      "day": "Monday",
-      "start_time": "11:00 AM",
-      "end_time": "11:15 AM",
-      "period": "11:00 AM - 11:15 AM",
+      "period": "11:00-11:10",
       "type": "SHORT_BREAK",
       "is_morning": true,
-      "is_teaching": false
+      "start_time": "11:00",
+      "end_time": "11:10",
+      "order_index": 3
     },
     {
-      "day": "Monday",
-      "start_time": "11:15 AM",
-      "end_time": "12:15 PM",
-      "period": "11:15 AM - 12:15 PM",
+      "period": "11:10-12:10",
       "type": "TEACHING",
       "is_morning": true,
-      "is_teaching": true
+      "start_time": "11:10",
+      "end_time": "12:10",
+      "order_index": 4
     },
     {
-      "day": "Monday",
-      "start_time": "12:15 PM",
-      "end_time": "1:15 PM",
-      "period": "12:15 PM - 1:15 PM",
+      "period": "12:10-01:10",
       "type": "TEACHING",
-      "is_morning": false,
-      "is_teaching": true
+      "is_morning": true,
+      "start_time": "12:10",
+      "end_time": "13:10",
+      "order_index": 5
     },
     {
-      "day": "Monday",
-      "start_time": "1:15 PM",
-      "end_time": "2:00 PM",
-      "period": "1:15 PM - 2:00 PM",
+      "period": "01:10-01:50",
       "type": "LUNCH",
       "is_morning": false,
-      "is_teaching": false
+      "start_time": "13:10",
+      "end_time": "13:50",
+      "order_index": 6
     },
     {
-      "day": "Monday",
-      "start_time": "2:00 PM",
-      "end_time": "3:00 PM",
-      "period": "2:00 PM - 3:00 PM",
+      "period": "01:50-02:50",
       "type": "TEACHING",
       "is_morning": false,
-      "is_teaching": true
+      "start_time": "13:50",
+      "end_time": "14:50",
+      "order_index": 7
     },
     {
-      "day": "Monday",
-      "start_time": "3:00 PM",
-      "end_time": "4:00 PM",
-      "period": "3:00 PM - 4:00 PM",
+      "period": "02:50-03:50",
       "type": "TEACHING",
       "is_morning": false,
-      "is_teaching": true
+      "start_time": "14:50",
+      "end_time": "15:50",
+      "order_index": 8
     },
     {
-      "day": "Tuesday",
-      "start_time": "9:00 AM",
-      "end_time": "10:00 AM",
-      "period": "9:00 AM - 10:00 AM",
-      "type": "TEACHING",
-      "is_morning": true,
-      "is_teaching": true
-    },
-    {
-      "day": "Tuesday",
-      "start_time": "10:00 AM",
-      "end_time": "11:00 AM",
-      "period": "10:00 AM - 11:00 AM",
-      "type": "TEACHING",
-      "is_morning": true,
-      "is_teaching": true
-    },
-    {
-      "day": "Tuesday",
-      "start_time": "11:00 AM",
-      "end_time": "11:15 AM",
-      "period": "11:00 AM - 11:15 AM",
+      "period": "03:50-04:00",
       "type": "SHORT_BREAK",
-      "is_morning": true,
-      "is_teaching": false
+      "is_morning": false,
+      "start_time": "15:50",
+      "end_time": "16:00",
+      "order_index": 9
     },
     {
-      "day": "Tuesday",
-      "start_time": "11:15 AM",
-      "end_time": "12:15 PM",
-      "period": "11:15 AM - 12:15 PM",
-      "type": "TEACHING",
-      "is_morning": true,
-      "is_teaching": true
-    },
-    {
-      "day": "Tuesday",
-      "start_time": "12:15 PM",
-      "end_time": "1:15 PM",
-      "period": "12:15 PM - 1:15 PM",
+      "period": "04:00-05:00",
       "type": "TEACHING",
       "is_morning": false,
-      "is_teaching": true
-    },
-    {
-      "day": "Tuesday",
-      "start_time": "1:15 PM",
-      "end_time": "2:00 PM",
-      "period": "1:15 PM - 2:00 PM",
-      "type": "LUNCH",
-      "is_morning": false,
-      "is_teaching": false
-    },
-    {
-      "day": "Tuesday",
-      "start_time": "2:00 PM",
-      "end_time": "3:00 PM",
-      "period": "2:00 PM - 3:00 PM",
-      "type": "TEACHING",
-      "is_morning": false,
-      "is_teaching": true
-    },
-    {
-      "day": "Tuesday",
-      "start_time": "3:00 PM",
-      "end_time": "4:00 PM",
-      "period": "3:00 PM - 4:00 PM",
-      "type": "TEACHING",
-      "is_morning": false,
-      "is_teaching": true
-    },
-    {
-      "day": "Wednesday",
-      "start_time": "9:00 AM",
-      "end_time": "10:00 AM",
-      "period": "9:00 AM - 10:00 AM",
-      "type": "TEACHING",
-      "is_morning": true,
-      "is_teaching": true
-    },
-    {
-      "day": "Wednesday",
-      "start_time": "10:00 AM",
-      "end_time": "11:00 AM",
-      "period": "10:00 AM - 11:00 AM",
-      "type": "TEACHING",
-      "is_morning": true,
-      "is_teaching": true
-    },
-    {
-      "day": "Wednesday",
-      "start_time": "11:00 AM",
-      "end_time": "11:15 AM",
-      "period": "11:00 AM - 11:15 AM",
-      "type": "SHORT_BREAK",
-      "is_morning": true,
-      "is_teaching": false
-    },
-    {
-      "day": "Wednesday",
-      "start_time": "11:15 AM",
-      "end_time": "12:15 PM",
-      "period": "11:15 AM - 12:15 PM",
-      "type": "TEACHING",
-      "is_morning": true,
-      "is_teaching": true
-    },
-    {
-      "day": "Wednesday",
-      "start_time": "12:15 PM",
-      "end_time": "1:15 PM",
-      "period": "12:15 PM - 1:15 PM",
-      "type": "TEACHING",
-      "is_morning": false,
-      "is_teaching": true
-    },
-    {
-      "day": "Wednesday",
-      "start_time": "1:15 PM",
-      "end_time": "2:00 PM",
-      "period": "1:15 PM - 2:00 PM",
-      "type": "LUNCH",
-      "is_morning": false,
-      "is_teaching": false
-    },
-    {
-      "day": "Wednesday",
-      "start_time": "2:00 PM",
-      "end_time": "3:00 PM",
-      "period": "2:00 PM - 3:00 PM",
-      "type": "TEACHING",
-      "is_morning": false,
-      "is_teaching": true
-    },
-    {
-      "day": "Wednesday",
-      "start_time": "3:00 PM",
-      "end_time": "4:00 PM",
-      "period": "3:00 PM - 4:00 PM",
-      "type": "TEACHING",
-      "is_morning": false,
-      "is_teaching": true
-    },
-    {
-      "day": "Thursday",
-      "start_time": "9:00 AM",
-      "end_time": "10:00 AM",
-      "period": "9:00 AM - 10:00 AM",
-      "type": "TEACHING",
-      "is_morning": true,
-      "is_teaching": true
-    },
-    {
-      "day": "Thursday",
-      "start_time": "10:00 AM",
-      "end_time": "11:00 AM",
-      "period": "10:00 AM - 11:00 AM",
-      "type": "TEACHING",
-      "is_morning": true,
-      "is_teaching": true
-    },
-    {
-      "day": "Thursday",
-      "start_time": "11:00 AM",
-      "end_time": "11:15 AM",
-      "period": "11:00 AM - 11:15 AM",
-      "type": "SHORT_BREAK",
-      "is_morning": true,
-      "is_teaching": false
-    },
-    {
-      "day": "Thursday",
-      "start_time": "11:15 AM",
-      "end_time": "12:15 PM",
-      "period": "11:15 AM - 12:15 PM",
-      "type": "TEACHING",
-      "is_morning": true,
-      "is_teaching": true
-    },
-    {
-      "day": "Thursday",
-      "start_time": "12:15 PM",
-      "end_time": "1:15 PM",
-      "period": "12:15 PM - 1:15 PM",
-      "type": "TEACHING",
-      "is_morning": false,
-      "is_teaching": true
-    },
-    {
-      "day": "Thursday",
-      "start_time": "1:15 PM",
-      "end_time": "2:00 PM",
-      "period": "1:15 PM - 2:00 PM",
-      "type": "LUNCH",
-      "is_morning": false,
-      "is_teaching": false
-    },
-    {
-      "day": "Thursday",
-      "start_time": "2:00 PM",
-      "end_time": "3:00 PM",
-      "period": "2:00 PM - 3:00 PM",
-      "type": "TEACHING",
-      "is_morning": false,
-      "is_teaching": true
-    },
-    {
-      "day": "Thursday",
-      "start_time": "3:00 PM",
-      "end_time": "4:00 PM",
-      "period": "3:00 PM - 4:00 PM",
-      "type": "TEACHING",
-      "is_morning": false,
-      "is_teaching": true
-    },
-    {
-      "day": "Friday",
-      "start_time": "9:00 AM",
-      "end_time": "10:00 AM",
-      "period": "9:00 AM - 10:00 AM",
-      "type": "TEACHING",
-      "is_morning": true,
-      "is_teaching": true
-    },
-    {
-      "day": "Friday",
-      "start_time": "10:00 AM",
-      "end_time": "11:00 AM",
-      "period": "10:00 AM - 11:00 AM",
-      "type": "TEACHING",
-      "is_morning": true,
-      "is_teaching": true
-    },
-    {
-      "day": "Friday",
-      "start_time": "11:00 AM",
-      "end_time": "11:15 AM",
-      "period": "11:00 AM - 11:15 AM",
-      "type": "SHORT_BREAK",
-      "is_morning": true,
-      "is_teaching": false
-    },
-    {
-      "day": "Friday",
-      "start_time": "11:15 AM",
-      "end_time": "12:15 PM",
-      "period": "11:15 AM - 12:15 PM",
-      "type": "TEACHING",
-      "is_morning": true,
-      "is_teaching": true
-    },
-    {
-      "day": "Friday",
-      "start_time": "12:15 PM",
-      "end_time": "1:15 PM",
-      "period": "12:15 PM - 1:15 PM",
-      "type": "TEACHING",
-      "is_morning": false,
-      "is_teaching": true
-    },
-    {
-      "day": "Friday",
-      "start_time": "1:15 PM",
-      "end_time": "2:00 PM",
-      "period": "1:15 PM - 2:00 PM",
-      "type": "LUNCH",
-      "is_morning": false,
-      "is_teaching": false
-    },
-    {
-      "day": "Friday",
-      "start_time": "2:00 PM",
-      "end_time": "3:00 PM",
-      "period": "2:00 PM - 3:00 PM",
-      "type": "TEACHING",
-      "is_morning": false,
-      "is_teaching": true
-    },
-    {
-      "day": "Friday",
-      "start_time": "3:00 PM",
-      "end_time": "4:00 PM",
-      "period": "3:00 PM - 4:00 PM",
-      "type": "TEACHING",
-      "is_morning": false,
-      "is_teaching": true
+      "start_time": "16:00",
+      "end_time": "17:00",
+      "order_index": 10
     }
   ],
   "timetable_versions": [
@@ -907,6 +652,127 @@
       "semester": "Semester III",
       "department": "CSE",
       "description": "Generated clash-free schedule with 56 sessions (4700 clashes resolved)",
+      "is_active": false,
+      "created_by": "HOD"
+    },
+    {
+      "id": 9,
+      "version_number": 9,
+      "name": "Version 9",
+      "academic_year": "2026-2027",
+      "semester": "Semester III",
+      "department": "CSE",
+      "description": "Generated clash-free schedule with 56 sessions (518 clashes resolved)",
+      "is_active": false,
+      "created_by": "HOD"
+    },
+    {
+      "id": 10,
+      "version_number": 10,
+      "name": "Version 10",
+      "academic_year": "2026-2027",
+      "semester": "Semester III",
+      "department": "CSE",
+      "description": "Generated clash-free schedule with 56 sessions (2247 clashes resolved)",
+      "is_active": false,
+      "created_by": "HOD"
+    },
+    {
+      "id": 11,
+      "version_number": 11,
+      "name": "Version 11",
+      "academic_year": "2026-2027",
+      "semester": "Semester III",
+      "department": "CSE",
+      "description": "Generated clash-free schedule with 56 sessions (2247 clashes resolved)",
+      "is_active": false,
+      "created_by": "HOD"
+    },
+    {
+      "id": 12,
+      "version_number": 12,
+      "name": "Version 12",
+      "academic_year": "2026-2027",
+      "semester": "Semester III",
+      "department": "CSE",
+      "description": "Generated clash-free schedule with 56 sessions (2247 clashes resolved)",
+      "is_active": false,
+      "created_by": "HOD"
+    },
+    {
+      "id": 13,
+      "version_number": 13,
+      "name": "Version 13",
+      "academic_year": "2026-2027",
+      "semester": "Semester III",
+      "department": "CSE",
+      "description": "Generated clash-free schedule with 56 sessions (518 clashes resolved)",
+      "is_active": false,
+      "created_by": "HOD"
+    },
+    {
+      "id": 14,
+      "version_number": 14,
+      "name": "Version 14",
+      "academic_year": "2026-2027",
+      "semester": "Semester III",
+      "department": "CSE",
+      "description": "Generated clash-free schedule with 56 sessions (518 clashes resolved)",
+      "is_active": false,
+      "created_by": "HOD"
+    },
+    {
+      "id": 15,
+      "version_number": 15,
+      "name": "Version 15",
+      "academic_year": "2026-2027",
+      "semester": "Semester III",
+      "department": "CSE",
+      "description": "Generated clash-free schedule with 56 sessions (518 clashes resolved)",
+      "is_active": false,
+      "created_by": "HOD"
+    },
+    {
+      "id": 16,
+      "version_number": 16,
+      "name": "Version 16",
+      "academic_year": "2026-2027",
+      "semester": "Semester III",
+      "department": "CSE",
+      "description": "Generated clash-free schedule with 56 sessions (518 clashes resolved)",
+      "is_active": false,
+      "created_by": "HOD"
+    },
+    {
+      "id": 17,
+      "version_number": 17,
+      "name": "Version 17",
+      "academic_year": "2026-2027",
+      "semester": "Semester III",
+      "department": "CSE",
+      "description": "Generated clash-free schedule with 56 sessions (518 clashes resolved)",
+      "is_active": false,
+      "created_by": "HOD"
+    },
+    {
+      "id": 18,
+      "version_number": 18,
+      "name": "Version 18",
+      "academic_year": "2026-2027",
+      "semester": "Semester III",
+      "department": "CSE",
+      "description": "Generated clash-free schedule with 56 sessions (518 clashes resolved)",
+      "is_active": false,
+      "created_by": "HOD"
+    },
+    {
+      "id": 19,
+      "version_number": 19,
+      "name": "Version 19",
+      "academic_year": "2026-2027",
+      "semester": "Semester III",
+      "department": "CSE",
+      "description": "Generated clash-free schedule with 56 sessions (518 clashes resolved)",
       "is_active": true,
       "created_by": "HOD"
     }
@@ -920,14 +786,14 @@
       "department": "CSE",
       "section": "A",
       "batch": null,
-      "subject": "DS",
-      "subject_code": "DS",
-      "faculty_code": "VHP",
-      "faculty_name": "Vishal H. Pundikar",
-      "room": "CR-1",
+      "subject": "OOP",
+      "subject_code": "OOP",
+      "faculty_code": "ARS",
+      "faculty_name": "Dr. Amit R. Sharma",
+      "room": "CR-2",
       "room_type": "Classroom",
       "is_lab": false,
-      "version_id": 8
+      "version_id": 19
     },
     {
       "day": "Monday",
@@ -936,19 +802,189 @@
       "is_morning": true,
       "department": "CSE",
       "section": "B",
-      "batch": "B1",
-      "subject": "DSL",
-      "subject_code": "DSL",
-      "faculty_code": "NAK",
-      "faculty_name": "Naresh A. Kamble",
+      "batch": null,
+      "subject": "TOC",
+      "subject_code": "TOC",
+      "faculty_code": "KPK",
+      "faculty_name": "K. P. Kulkarni",
+      "room": "CR-1",
+      "room_type": "Classroom",
+      "is_lab": false,
+      "version_id": 19
+    },
+    {
+      "day": "Monday",
+      "day_order": 0,
+      "period": "10:00 AM - 11:00 AM",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "A",
+      "batch": null,
+      "subject": "DBMS",
+      "subject_code": "DBMS",
+      "faculty_code": "VLB",
+      "faculty_name": "Dr. Vikas L. Bhise",
+      "room": "CR-1",
+      "room_type": "Classroom",
+      "is_lab": false,
+      "version_id": 19
+    },
+    {
+      "day": "Monday",
+      "day_order": 0,
+      "period": "10:00 AM - 11:00 AM",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "B",
+      "batch": null,
+      "subject": "OOP",
+      "subject_code": "OOP",
+      "faculty_code": "ARS",
+      "faculty_name": "Dr. Amit R. Sharma",
+      "room": "CR-2",
+      "room_type": "Classroom",
+      "is_lab": false,
+      "version_id": 19
+    },
+    {
+      "day": "Monday",
+      "day_order": 0,
+      "period": "11:10 AM - 12:10 PM",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "A",
+      "batch": null,
+      "subject": "OS",
+      "subject_code": "OS",
+      "faculty_code": "RKM",
+      "faculty_name": "Rahul K. Mehta",
+      "room": "CR-1",
+      "room_type": "Classroom",
+      "is_lab": false,
+      "version_id": 19
+    },
+    {
+      "day": "Monday",
+      "day_order": 0,
+      "period": "11:10 AM - 12:10 PM",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "B",
+      "batch": null,
+      "subject": "DBMS",
+      "subject_code": "DBMS",
+      "faculty_code": "VLB",
+      "faculty_name": "Dr. Vikas L. Bhise",
+      "room": "CR-2",
+      "room_type": "Classroom",
+      "is_lab": false,
+      "version_id": 19
+    },
+    {
+      "day": "Monday",
+      "day_order": 0,
+      "period": "12:10 PM - 1:10 PM",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "A",
+      "batch": null,
+      "subject": "TOC",
+      "subject_code": "TOC",
+      "faculty_code": "KPK",
+      "faculty_name": "K. P. Kulkarni",
+      "room": "CR-1",
+      "room_type": "Classroom",
+      "is_lab": false,
+      "version_id": 19
+    },
+    {
+      "day": "Monday",
+      "day_order": 0,
+      "period": "12:10 PM - 1:10 PM",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "B",
+      "batch": null,
+      "subject": "OS",
+      "subject_code": "OS",
+      "faculty_code": "RKM",
+      "faculty_name": "Rahul K. Mehta",
+      "room": "CR-2",
+      "room_type": "Classroom",
+      "is_lab": false,
+      "version_id": 19
+    },
+    {
+      "day": "Monday",
+      "day_order": 0,
+      "period": "1:50 PM - 2:50 PM",
+      "is_morning": false,
+      "department": "CSE",
+      "section": "A",
+      "batch": "A1",
+      "subject": "DBMSL",
+      "subject_code": "DBMSL",
+      "faculty_code": "SPD",
+      "faculty_name": "Sneha P. Desai",
       "room": "LAB-1",
       "room_type": "Lab",
       "is_lab": true,
-      "version_id": 8
+      "version_id": 19
     },
     {
       "day": "Monday",
       "day_order": 0,
+      "period": "2:50 PM - 3:50 PM",
+      "is_morning": false,
+      "department": "CSE",
+      "section": "A",
+      "batch": "A1",
+      "subject": "OOPL",
+      "subject_code": "OOPL",
+      "faculty_code": "PSJ",
+      "faculty_name": "Priya S. Joshi",
+      "room": "LAB-1",
+      "room_type": "Lab",
+      "is_lab": true,
+      "version_id": 19
+    },
+    {
+      "day": "Tuesday",
+      "day_order": 1,
+      "period": "9:00 AM - 10:00 AM",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "A",
+      "batch": null,
+      "subject": "DS",
+      "subject_code": "DS",
+      "faculty_code": "VHP",
+      "faculty_name": "Vishal H. Pundikar",
+      "room": "CR-1",
+      "room_type": "Classroom",
+      "is_lab": false,
+      "version_id": 19
+    },
+    {
+      "day": "Tuesday",
+      "day_order": 1,
+      "period": "9:00 AM - 10:00 AM",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "B",
+      "batch": null,
+      "subject": "DBMS",
+      "subject_code": "DBMS",
+      "faculty_code": "VLB",
+      "faculty_name": "Dr. Vikas L. Bhise",
+      "room": "CR-2",
+      "room_type": "Classroom",
+      "is_lab": false,
+      "version_id": 19
+    },
+    {
+      "day": "Tuesday",
+      "day_order": 1,
       "period": "10:00 AM - 11:00 AM",
       "is_morning": true,
       "department": "CSE",
@@ -961,63 +997,46 @@
       "room": "CR-1",
       "room_type": "Classroom",
       "is_lab": false,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Monday",
-      "day_order": 0,
+      "day": "Tuesday",
+      "day_order": 1,
       "period": "10:00 AM - 11:00 AM",
       "is_morning": true,
       "department": "CSE",
       "section": "B",
       "batch": null,
-      "subject": "OS",
-      "subject_code": "OS",
-      "faculty_code": "RKM",
-      "faculty_name": "Rahul K. Mehta",
+      "subject": "DS",
+      "subject_code": "DS",
+      "faculty_code": "VHP",
+      "faculty_name": "Vishal H. Pundikar",
       "room": "CR-2",
       "room_type": "Classroom",
       "is_lab": false,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Monday",
-      "day_order": 0,
-      "period": "11:15 AM - 12:15 PM",
+      "day": "Tuesday",
+      "day_order": 1,
+      "period": "11:10 AM - 12:10 PM",
       "is_morning": true,
       "department": "CSE",
       "section": "A",
       "batch": null,
-      "subject": "OS",
-      "subject_code": "OS",
-      "faculty_code": "RKM",
-      "faculty_name": "Rahul K. Mehta",
+      "subject": "TOC",
+      "subject_code": "TOC",
+      "faculty_code": "KPK",
+      "faculty_name": "K. P. Kulkarni",
       "room": "CR-1",
       "room_type": "Classroom",
       "is_lab": false,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Monday",
-      "day_order": 0,
-      "period": "11:15 AM - 12:15 PM",
-      "is_morning": true,
-      "department": "CSE",
-      "section": "B",
-      "batch": null,
-      "subject": "DBMS",
-      "subject_code": "DBMS",
-      "faculty_code": "VLB",
-      "faculty_name": "Dr. Vikas L. Bhise",
-      "room": "CR-2",
-      "room_type": "Classroom",
-      "is_lab": false,
-      "version_id": 8
-    },
-    {
-      "day": "Monday",
-      "day_order": 0,
-      "period": "12:15 PM - 1:15 PM",
+      "day": "Tuesday",
+      "day_order": 1,
+      "period": "1:50 PM - 2:50 PM",
       "is_morning": false,
       "department": "CSE",
       "section": "A",
@@ -1029,12 +1048,12 @@
       "room": "LAB-2",
       "room_type": "Lab",
       "is_lab": true,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Monday",
-      "day_order": 0,
-      "period": "12:15 PM - 1:15 PM",
+      "day": "Tuesday",
+      "day_order": 1,
+      "period": "1:50 PM - 2:50 PM",
       "is_morning": false,
       "department": "CSE",
       "section": "B",
@@ -1046,29 +1065,12 @@
       "room": "LAB-1",
       "room_type": "Lab",
       "is_lab": true,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Monday",
-      "day_order": 0,
-      "period": "2:00 PM - 3:00 PM",
-      "is_morning": false,
-      "department": "CSE",
-      "section": "A",
-      "batch": "A1",
-      "subject": "OOPL",
-      "subject_code": "OOPL",
-      "faculty_code": "PSJ",
-      "faculty_name": "Priya S. Joshi",
-      "room": "LAB-2",
-      "room_type": "Lab",
-      "is_lab": true,
-      "version_id": 8
-    },
-    {
-      "day": "Monday",
-      "day_order": 0,
-      "period": "2:00 PM - 3:00 PM",
+      "day": "Tuesday",
+      "day_order": 1,
+      "period": "2:50 PM - 3:50 PM",
       "is_morning": false,
       "department": "CSE",
       "section": "B",
@@ -1080,12 +1082,12 @@
       "room": "LAB-1",
       "room_type": "Lab",
       "is_lab": true,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Monday",
-      "day_order": 0,
-      "period": "3:00 PM - 4:00 PM",
+      "day": "Tuesday",
+      "day_order": 1,
+      "period": "4:00 PM - 5:00 PM",
       "is_morning": false,
       "department": "CSE",
       "section": "A",
@@ -1097,28 +1099,11 @@
       "room": "LAB-1",
       "room_type": "Lab",
       "is_lab": true,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Monday",
-      "day_order": 0,
-      "period": "3:00 PM - 4:00 PM",
-      "is_morning": false,
-      "department": "CSE",
-      "section": "B",
-      "batch": null,
-      "subject": "DS",
-      "subject_code": "DS",
-      "faculty_code": "VHP",
-      "faculty_name": "Vishal H. Pundikar",
-      "room": "CR-1",
-      "room_type": "Classroom",
-      "is_lab": false,
-      "version_id": 8
-    },
-    {
-      "day": "Tuesday",
-      "day_order": 1,
+      "day": "Wednesday",
+      "day_order": 2,
       "period": "9:00 AM - 10:00 AM",
       "is_morning": true,
       "department": "CSE",
@@ -1131,11 +1116,11 @@
       "room": "CR-2",
       "room_type": "Classroom",
       "is_lab": false,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Tuesday",
-      "day_order": 1,
+      "day": "Wednesday",
+      "day_order": 2,
       "period": "9:00 AM - 10:00 AM",
       "is_morning": true,
       "department": "CSE",
@@ -1148,28 +1133,28 @@
       "room": "LAB-1",
       "room_type": "Lab",
       "is_lab": true,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Tuesday",
-      "day_order": 1,
+      "day": "Wednesday",
+      "day_order": 2,
       "period": "10:00 AM - 11:00 AM",
       "is_morning": true,
       "department": "CSE",
       "section": "A",
-      "batch": null,
-      "subject": "DS",
-      "subject_code": "DS",
-      "faculty_code": "VHP",
-      "faculty_name": "Vishal H. Pundikar",
-      "room": "CR-1",
-      "room_type": "Classroom",
-      "is_lab": false,
-      "version_id": 8
+      "batch": "A2",
+      "subject": "DSL",
+      "subject_code": "DSL",
+      "faculty_code": "NAK",
+      "faculty_name": "Naresh A. Kamble",
+      "room": "LAB-1",
+      "room_type": "Lab",
+      "is_lab": true,
+      "version_id": 19
     },
     {
-      "day": "Tuesday",
-      "day_order": 1,
+      "day": "Wednesday",
+      "day_order": 2,
       "period": "10:00 AM - 11:00 AM",
       "is_morning": true,
       "department": "CSE",
@@ -1182,29 +1167,63 @@
       "room": "CR-2",
       "room_type": "Classroom",
       "is_lab": false,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Tuesday",
-      "day_order": 1,
-      "period": "11:15 AM - 12:15 PM",
+      "day": "Wednesday",
+      "day_order": 2,
+      "period": "11:10 AM - 12:10 PM",
       "is_morning": true,
       "department": "CSE",
       "section": "A",
       "batch": null,
-      "subject": "DBMS",
-      "subject_code": "DBMS",
-      "faculty_code": "VLB",
-      "faculty_name": "Dr. Vikas L. Bhise",
+      "subject": "DS",
+      "subject_code": "DS",
+      "faculty_code": "VHP",
+      "faculty_name": "Vishal H. Pundikar",
       "room": "CR-1",
       "room_type": "Classroom",
       "is_lab": false,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Tuesday",
-      "day_order": 1,
-      "period": "11:15 AM - 12:15 PM",
+      "day": "Wednesday",
+      "day_order": 2,
+      "period": "11:10 AM - 12:10 PM",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "B",
+      "batch": "B2",
+      "subject": "DSL",
+      "subject_code": "DSL",
+      "faculty_code": "NAK",
+      "faculty_name": "Naresh A. Kamble",
+      "room": "LAB-1",
+      "room_type": "Lab",
+      "is_lab": true,
+      "version_id": 19
+    },
+    {
+      "day": "Wednesday",
+      "day_order": 2,
+      "period": "12:10 PM - 1:10 PM",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "A",
+      "batch": "A1",
+      "subject": "DSL",
+      "subject_code": "DSL",
+      "faculty_code": "NAK",
+      "faculty_name": "Naresh A. Kamble",
+      "room": "LAB-1",
+      "room_type": "Lab",
+      "is_lab": true,
+      "version_id": 19
+    },
+    {
+      "day": "Wednesday",
+      "day_order": 2,
+      "period": "12:10 PM - 1:10 PM",
       "is_morning": true,
       "department": "CSE",
       "section": "B",
@@ -1213,219 +1232,15 @@
       "subject_code": "TOC",
       "faculty_code": "KPK",
       "faculty_name": "K. P. Kulkarni",
-      "room": "CR-2",
-      "room_type": "Classroom",
-      "is_lab": false,
-      "version_id": 8
-    },
-    {
-      "day": "Tuesday",
-      "day_order": 1,
-      "period": "12:15 PM - 1:15 PM",
-      "is_morning": false,
-      "department": "CSE",
-      "section": "A",
-      "batch": "A1",
-      "subject": "DBMSL",
-      "subject_code": "DBMSL",
-      "faculty_code": "SPD",
-      "faculty_name": "Sneha P. Desai",
-      "room": "LAB-1",
-      "room_type": "Lab",
-      "is_lab": true,
-      "version_id": 8
-    },
-    {
-      "day": "Tuesday",
-      "day_order": 1,
-      "period": "12:15 PM - 1:15 PM",
-      "is_morning": false,
-      "department": "CSE",
-      "section": "B",
-      "batch": "B2",
-      "subject": "OOPL",
-      "subject_code": "OOPL",
-      "faculty_code": "PSJ",
-      "faculty_name": "Priya S. Joshi",
-      "room": "LAB-2",
-      "room_type": "Lab",
-      "is_lab": true,
-      "version_id": 8
-    },
-    {
-      "day": "Tuesday",
-      "day_order": 1,
-      "period": "2:00 PM - 3:00 PM",
-      "is_morning": false,
-      "department": "CSE",
-      "section": "A",
-      "batch": "A1",
-      "subject": "DBMSL",
-      "subject_code": "DBMSL",
-      "faculty_code": "SPD",
-      "faculty_name": "Sneha P. Desai",
-      "room": "LAB-1",
-      "room_type": "Lab",
-      "is_lab": true,
-      "version_id": 8
-    },
-    {
-      "day": "Tuesday",
-      "day_order": 1,
-      "period": "2:00 PM - 3:00 PM",
-      "is_morning": false,
-      "department": "CSE",
-      "section": "B",
-      "batch": "B1",
-      "subject": "OOPL",
-      "subject_code": "OOPL",
-      "faculty_code": "PSJ",
-      "faculty_name": "Priya S. Joshi",
-      "room": "LAB-2",
-      "room_type": "Lab",
-      "is_lab": true,
-      "version_id": 8
-    },
-    {
-      "day": "Tuesday",
-      "day_order": 1,
-      "period": "3:00 PM - 4:00 PM",
-      "is_morning": false,
-      "department": "CSE",
-      "section": "A",
-      "batch": "A2",
-      "subject": "OOPL",
-      "subject_code": "OOPL",
-      "faculty_code": "PSJ",
-      "faculty_name": "Priya S. Joshi",
-      "room": "LAB-1",
-      "room_type": "Lab",
-      "is_lab": true,
-      "version_id": 8
-    },
-    {
-      "day": "Tuesday",
-      "day_order": 1,
-      "period": "3:00 PM - 4:00 PM",
-      "is_morning": false,
-      "department": "CSE",
-      "section": "B",
-      "batch": null,
-      "subject": "DS",
-      "subject_code": "DS",
-      "faculty_code": "VHP",
-      "faculty_name": "Vishal H. Pundikar",
       "room": "CR-1",
       "room_type": "Classroom",
       "is_lab": false,
-      "version_id": 8
+      "version_id": 19
     },
     {
       "day": "Wednesday",
       "day_order": 2,
-      "period": "9:00 AM - 10:00 AM",
-      "is_morning": true,
-      "department": "CSE",
-      "section": "A",
-      "batch": "A2",
-      "subject": "DSL",
-      "subject_code": "DSL",
-      "faculty_code": "NAK",
-      "faculty_name": "Naresh A. Kamble",
-      "room": "LAB-1",
-      "room_type": "Lab",
-      "is_lab": true,
-      "version_id": 8
-    },
-    {
-      "day": "Wednesday",
-      "day_order": 2,
-      "period": "9:00 AM - 10:00 AM",
-      "is_morning": true,
-      "department": "CSE",
-      "section": "B",
-      "batch": null,
-      "subject": "DBMS",
-      "subject_code": "DBMS",
-      "faculty_code": "VLB",
-      "faculty_name": "Dr. Vikas L. Bhise",
-      "room": "CR-1",
-      "room_type": "Classroom",
-      "is_lab": false,
-      "version_id": 8
-    },
-    {
-      "day": "Wednesday",
-      "day_order": 2,
-      "period": "10:00 AM - 11:00 AM",
-      "is_morning": true,
-      "department": "CSE",
-      "section": "A",
-      "batch": "A1",
-      "subject": "DSL",
-      "subject_code": "DSL",
-      "faculty_code": "NAK",
-      "faculty_name": "Naresh A. Kamble",
-      "room": "LAB-1",
-      "room_type": "Lab",
-      "is_lab": true,
-      "version_id": 8
-    },
-    {
-      "day": "Wednesday",
-      "day_order": 2,
-      "period": "10:00 AM - 11:00 AM",
-      "is_morning": true,
-      "department": "CSE",
-      "section": "B",
-      "batch": null,
-      "subject": "OS",
-      "subject_code": "OS",
-      "faculty_code": "RKM",
-      "faculty_name": "Rahul K. Mehta",
-      "room": "CR-1",
-      "room_type": "Classroom",
-      "is_lab": false,
-      "version_id": 8
-    },
-    {
-      "day": "Wednesday",
-      "day_order": 2,
-      "period": "11:15 AM - 12:15 PM",
-      "is_morning": true,
-      "department": "CSE",
-      "section": "A",
-      "batch": null,
-      "subject": "DS",
-      "subject_code": "DS",
-      "faculty_code": "VHP",
-      "faculty_name": "Vishal H. Pundikar",
-      "room": "CR-1",
-      "room_type": "Classroom",
-      "is_lab": false,
-      "version_id": 8
-    },
-    {
-      "day": "Wednesday",
-      "day_order": 2,
-      "period": "11:15 AM - 12:15 PM",
-      "is_morning": true,
-      "department": "CSE",
-      "section": "B",
-      "batch": "B2",
-      "subject": "DSL",
-      "subject_code": "DSL",
-      "faculty_code": "NAK",
-      "faculty_name": "Naresh A. Kamble",
-      "room": "LAB-1",
-      "room_type": "Lab",
-      "is_lab": true,
-      "version_id": 8
-    },
-    {
-      "day": "Wednesday",
-      "day_order": 2,
-      "period": "12:15 PM - 1:15 PM",
+      "period": "1:50 PM - 2:50 PM",
       "is_morning": false,
       "department": "CSE",
       "section": "A",
@@ -1437,83 +1252,83 @@
       "room": "CR-1",
       "room_type": "Classroom",
       "is_lab": false,
-      "version_id": 8
+      "version_id": 19
     },
     {
       "day": "Wednesday",
       "day_order": 2,
-      "period": "12:15 PM - 1:15 PM",
+      "period": "1:50 PM - 2:50 PM",
       "is_morning": false,
       "department": "CSE",
       "section": "B",
       "batch": "B2",
-      "subject": "DBMSL",
-      "subject_code": "DBMSL",
-      "faculty_code": "SPD",
-      "faculty_name": "Sneha P. Desai",
+      "subject": "OOPL",
+      "subject_code": "OOPL",
+      "faculty_code": "PSJ",
+      "faculty_name": "Priya S. Joshi",
       "room": "LAB-1",
       "room_type": "Lab",
       "is_lab": true,
-      "version_id": 8
+      "version_id": 19
     },
     {
       "day": "Wednesday",
       "day_order": 2,
-      "period": "2:00 PM - 3:00 PM",
-      "is_morning": false,
-      "department": "CSE",
-      "section": "A",
-      "batch": null,
-      "subject": "TOC",
-      "subject_code": "TOC",
-      "faculty_code": "KPK",
-      "faculty_name": "K. P. Kulkarni",
-      "room": "CR-1",
-      "room_type": "Classroom",
-      "is_lab": false,
-      "version_id": 8
-    },
-    {
-      "day": "Wednesday",
-      "day_order": 2,
-      "period": "2:00 PM - 3:00 PM",
+      "period": "2:50 PM - 3:50 PM",
       "is_morning": false,
       "department": "CSE",
       "section": "B",
       "batch": "B1",
-      "subject": "DBMSL",
-      "subject_code": "DBMSL",
-      "faculty_code": "SPD",
-      "faculty_name": "Sneha P. Desai",
+      "subject": "OOPL",
+      "subject_code": "OOPL",
+      "faculty_code": "PSJ",
+      "faculty_name": "Priya S. Joshi",
       "room": "LAB-1",
       "room_type": "Lab",
       "is_lab": true,
-      "version_id": 8
+      "version_id": 19
     },
     {
       "day": "Wednesday",
       "day_order": 2,
-      "period": "3:00 PM - 4:00 PM",
+      "period": "4:00 PM - 5:00 PM",
       "is_morning": false,
       "department": "CSE",
       "section": "A",
       "batch": "A2",
-      "subject": "DBMSL",
-      "subject_code": "DBMSL",
-      "faculty_code": "SPD",
-      "faculty_name": "Sneha P. Desai",
+      "subject": "OOPL",
+      "subject_code": "OOPL",
+      "faculty_code": "PSJ",
+      "faculty_name": "Priya S. Joshi",
       "room": "LAB-1",
       "room_type": "Lab",
       "is_lab": true,
-      "version_id": 8
+      "version_id": 19
     },
     {
       "day": "Wednesday",
       "day_order": 2,
-      "period": "3:00 PM - 4:00 PM",
+      "period": "4:00 PM - 5:00 PM",
       "is_morning": false,
       "department": "CSE",
       "section": "B",
+      "batch": null,
+      "subject": "OS",
+      "subject_code": "OS",
+      "faculty_code": "RKM",
+      "faculty_name": "Rahul K. Mehta",
+      "room": "CR-1",
+      "room_type": "Classroom",
+      "is_lab": false,
+      "version_id": 19
+    },
+    {
+      "day": "Thursday",
+      "day_order": 3,
+      "period": "9:00 AM - 10:00 AM",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "A",
       "batch": null,
       "subject": "TOC",
       "subject_code": "TOC",
@@ -1522,11 +1337,45 @@
       "room": "CR-1",
       "room_type": "Classroom",
       "is_lab": false,
-      "version_id": 8
+      "version_id": 19
     },
     {
       "day": "Thursday",
       "day_order": 3,
+      "period": "9:00 AM - 10:00 AM",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "B",
+      "batch": null,
+      "subject": "DS",
+      "subject_code": "DS",
+      "faculty_code": "VHP",
+      "faculty_name": "Vishal H. Pundikar",
+      "room": "CR-2",
+      "room_type": "Classroom",
+      "is_lab": false,
+      "version_id": 19
+    },
+    {
+      "day": "Thursday",
+      "day_order": 3,
+      "period": "1:50 PM - 2:50 PM",
+      "is_morning": false,
+      "department": "CSE",
+      "section": "A",
+      "batch": "A1",
+      "subject": "DBMSL",
+      "subject_code": "DBMSL",
+      "faculty_code": "SPD",
+      "faculty_name": "Sneha P. Desai",
+      "room": "LAB-1",
+      "room_type": "Lab",
+      "is_lab": true,
+      "version_id": 19
+    },
+    {
+      "day": "Friday",
+      "day_order": 4,
       "period": "9:00 AM - 10:00 AM",
       "is_morning": true,
       "department": "CSE",
@@ -1539,28 +1388,28 @@
       "room": "CR-2",
       "room_type": "Classroom",
       "is_lab": false,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Thursday",
-      "day_order": 3,
+      "day": "Friday",
+      "day_order": 4,
       "period": "9:00 AM - 10:00 AM",
       "is_morning": true,
       "department": "CSE",
       "section": "B",
       "batch": null,
-      "subject": "OS",
-      "subject_code": "OS",
-      "faculty_code": "RKM",
-      "faculty_name": "Rahul K. Mehta",
+      "subject": "TOC",
+      "subject_code": "TOC",
+      "faculty_code": "KPK",
+      "faculty_name": "K. P. Kulkarni",
       "room": "CR-1",
       "room_type": "Classroom",
       "is_lab": false,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Thursday",
-      "day_order": 3,
+      "day": "Friday",
+      "day_order": 4,
       "period": "10:00 AM - 11:00 AM",
       "is_morning": true,
       "department": "CSE",
@@ -1573,11 +1422,11 @@
       "room": "CR-1",
       "room_type": "Classroom",
       "is_lab": false,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Thursday",
-      "day_order": 3,
+      "day": "Friday",
+      "day_order": 4,
       "period": "10:00 AM - 11:00 AM",
       "is_morning": true,
       "department": "CSE",
@@ -1590,12 +1439,12 @@
       "room": "CR-2",
       "room_type": "Classroom",
       "is_lab": false,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Thursday",
-      "day_order": 3,
-      "period": "11:15 AM - 12:15 PM",
+      "day": "Friday",
+      "day_order": 4,
+      "period": "11:10 AM - 12:10 PM",
       "is_morning": true,
       "department": "CSE",
       "section": "A",
@@ -1607,47 +1456,13 @@
       "room": "CR-1",
       "room_type": "Classroom",
       "is_lab": false,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Thursday",
-      "day_order": 3,
-      "period": "11:15 AM - 12:15 PM",
+      "day": "Friday",
+      "day_order": 4,
+      "period": "11:10 AM - 12:10 PM",
       "is_morning": true,
-      "department": "CSE",
-      "section": "B",
-      "batch": null,
-      "subject": "TOC",
-      "subject_code": "TOC",
-      "faculty_code": "KPK",
-      "faculty_name": "K. P. Kulkarni",
-      "room": "CR-2",
-      "room_type": "Classroom",
-      "is_lab": false,
-      "version_id": 8
-    },
-    {
-      "day": "Thursday",
-      "day_order": 3,
-      "period": "12:15 PM - 1:15 PM",
-      "is_morning": false,
-      "department": "CSE",
-      "section": "A",
-      "batch": null,
-      "subject": "OS",
-      "subject_code": "OS",
-      "faculty_code": "RKM",
-      "faculty_name": "Rahul K. Mehta",
-      "room": "CR-1",
-      "room_type": "Classroom",
-      "is_lab": false,
-      "version_id": 8
-    },
-    {
-      "day": "Thursday",
-      "day_order": 3,
-      "period": "12:15 PM - 1:15 PM",
-      "is_morning": false,
       "department": "CSE",
       "section": "B",
       "batch": null,
@@ -1658,46 +1473,148 @@
       "room": "CR-2",
       "room_type": "Classroom",
       "is_lab": false,
-      "version_id": 8
-    },
-    {
-      "day": "Thursday",
-      "day_order": 3,
-      "period": "2:00 PM - 3:00 PM",
-      "is_morning": false,
-      "department": "CSE",
-      "section": "A",
-      "batch": null,
-      "subject": "TOC",
-      "subject_code": "TOC",
-      "faculty_code": "KPK",
-      "faculty_name": "K. P. Kulkarni",
-      "room": "CR-1",
-      "room_type": "Classroom",
-      "is_lab": false,
-      "version_id": 8
+      "version_id": 19
     },
     {
       "day": "Friday",
       "day_order": 4,
+      "period": "12:10 PM - 1:10 PM",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "A",
+      "batch": null,
+      "subject": "OS",
+      "subject_code": "OS",
+      "faculty_code": "RKM",
+      "faculty_name": "Rahul K. Mehta",
+      "room": "CR-1",
+      "room_type": "Classroom",
+      "is_lab": false,
+      "version_id": 19
+    },
+    {
+      "day": "Friday",
+      "day_order": 4,
+      "period": "12:10 PM - 1:10 PM",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "B",
+      "batch": null,
+      "subject": "DBMS",
+      "subject_code": "DBMS",
+      "faculty_code": "VLB",
+      "faculty_name": "Dr. Vikas L. Bhise",
+      "room": "CR-2",
+      "room_type": "Classroom",
+      "is_lab": false,
+      "version_id": 19
+    },
+    {
+      "day": "Friday",
+      "day_order": 4,
+      "period": "1:50 PM - 2:50 PM",
+      "is_morning": false,
+      "department": "CSE",
+      "section": "B",
+      "batch": "B2",
+      "subject": "DBMSL",
+      "subject_code": "DBMSL",
+      "faculty_code": "SPD",
+      "faculty_name": "Sneha P. Desai",
+      "room": "LAB-1",
+      "room_type": "Lab",
+      "is_lab": true,
+      "version_id": 19
+    },
+    {
+      "day": "Friday",
+      "day_order": 4,
+      "period": "2:50 PM - 3:50 PM",
+      "is_morning": false,
+      "department": "CSE",
+      "section": "B",
+      "batch": "B1",
+      "subject": "DBMSL",
+      "subject_code": "DBMSL",
+      "faculty_code": "SPD",
+      "faculty_name": "Sneha P. Desai",
+      "room": "LAB-1",
+      "room_type": "Lab",
+      "is_lab": true,
+      "version_id": 19
+    },
+    {
+      "day": "Friday",
+      "day_order": 4,
+      "period": "4:00 PM - 5:00 PM",
+      "is_morning": false,
+      "department": "CSE",
+      "section": "A",
+      "batch": "A2",
+      "subject": "DBMSL",
+      "subject_code": "DBMSL",
+      "faculty_code": "SPD",
+      "faculty_name": "Sneha P. Desai",
+      "room": "LAB-1",
+      "room_type": "Lab",
+      "is_lab": true,
+      "version_id": 19
+    },
+    {
+      "day": "Friday",
+      "day_order": 4,
+      "period": "4:00 PM - 5:00 PM",
+      "is_morning": false,
+      "department": "CSE",
+      "section": "B",
+      "batch": null,
+      "subject": "OS",
+      "subject_code": "OS",
+      "faculty_code": "RKM",
+      "faculty_name": "Rahul K. Mehta",
+      "room": "CR-1",
+      "room_type": "Classroom",
+      "is_lab": false,
+      "version_id": 19
+    },
+    {
+      "day": "Saturday",
+      "day_order": 5,
       "period": "9:00 AM - 10:00 AM",
       "is_morning": true,
       "department": "CSE",
       "section": "A",
       "batch": null,
-      "subject": "OOP",
-      "subject_code": "OOP",
-      "faculty_code": "ARS",
-      "faculty_name": "Dr. Amit R. Sharma",
-      "room": "CR-2",
+      "subject": "DS",
+      "subject_code": "DS",
+      "faculty_code": "VHP",
+      "faculty_name": "Vishal H. Pundikar",
+      "room": "CR-1",
       "room_type": "Classroom",
       "is_lab": false,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Friday",
-      "day_order": 4,
+      "day": "Saturday",
+      "day_order": 5,
       "period": "9:00 AM - 10:00 AM",
+      "is_morning": true,
+      "department": "CSE",
+      "section": "B",
+      "batch": "B1",
+      "subject": "DSL",
+      "subject_code": "DSL",
+      "faculty_code": "NAK",
+      "faculty_name": "Naresh A. Kamble",
+      "room": "LAB-1",
+      "room_type": "Lab",
+      "is_lab": true,
+      "version_id": 19
+    },
+    {
+      "day": "Saturday",
+      "day_order": 5,
+      "period": "10:00 AM - 11:00 AM",
       "is_morning": true,
       "department": "CSE",
       "section": "B",
@@ -1709,12 +1626,12 @@
       "room": "LAB-1",
       "room_type": "Lab",
       "is_lab": true,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Friday",
-      "day_order": 4,
-      "period": "10:00 AM - 11:00 AM",
+      "day": "Saturday",
+      "day_order": 5,
+      "period": "11:10 AM - 12:10 PM",
       "is_morning": true,
       "department": "CSE",
       "section": "A",
@@ -1726,29 +1643,29 @@
       "room": "LAB-1",
       "room_type": "Lab",
       "is_lab": true,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Friday",
-      "day_order": 4,
-      "period": "10:00 AM - 11:00 AM",
+      "day": "Saturday",
+      "day_order": 5,
+      "period": "11:10 AM - 12:10 PM",
       "is_morning": true,
       "department": "CSE",
       "section": "B",
       "batch": null,
-      "subject": "OOP",
-      "subject_code": "OOP",
-      "faculty_code": "ARS",
-      "faculty_name": "Dr. Amit R. Sharma",
-      "room": "CR-2",
+      "subject": "DS",
+      "subject_code": "DS",
+      "faculty_code": "VHP",
+      "faculty_name": "Vishal H. Pundikar",
+      "room": "CR-1",
       "room_type": "Classroom",
       "is_lab": false,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Friday",
-      "day_order": 4,
-      "period": "11:15 AM - 12:15 PM",
+      "day": "Saturday",
+      "day_order": 5,
+      "period": "12:10 PM - 1:10 PM",
       "is_morning": true,
       "department": "CSE",
       "section": "A",
@@ -1760,46 +1677,12 @@
       "room": "LAB-1",
       "room_type": "Lab",
       "is_lab": true,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Friday",
-      "day_order": 4,
-      "period": "11:15 AM - 12:15 PM",
-      "is_morning": true,
-      "department": "CSE",
-      "section": "B",
-      "batch": null,
-      "subject": "DBMS",
-      "subject_code": "DBMS",
-      "faculty_code": "VLB",
-      "faculty_name": "Dr. Vikas L. Bhise",
-      "room": "CR-1",
-      "room_type": "Classroom",
-      "is_lab": false,
-      "version_id": 8
-    },
-    {
-      "day": "Friday",
-      "day_order": 4,
-      "period": "12:15 PM - 1:15 PM",
-      "is_morning": false,
-      "department": "CSE",
-      "section": "A",
-      "batch": null,
-      "subject": "TOC",
-      "subject_code": "TOC",
-      "faculty_code": "KPK",
-      "faculty_name": "K. P. Kulkarni",
-      "room": "CR-1",
-      "room_type": "Classroom",
-      "is_lab": false,
-      "version_id": 8
-    },
-    {
-      "day": "Friday",
-      "day_order": 4,
-      "period": "12:15 PM - 1:15 PM",
+      "day": "Saturday",
+      "day_order": 5,
+      "period": "1:50 PM - 2:50 PM",
       "is_morning": false,
       "department": "CSE",
       "section": "B",
@@ -1811,12 +1694,12 @@
       "room": "LAB-1",
       "room_type": "Lab",
       "is_lab": true,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Friday",
-      "day_order": 4,
-      "period": "2:00 PM - 3:00 PM",
+      "day": "Saturday",
+      "day_order": 5,
+      "period": "2:50 PM - 3:50 PM",
       "is_morning": false,
       "department": "CSE",
       "section": "B",
@@ -1828,12 +1711,12 @@
       "room": "LAB-1",
       "room_type": "Lab",
       "is_lab": true,
-      "version_id": 8
+      "version_id": 19
     },
     {
-      "day": "Friday",
-      "day_order": 4,
-      "period": "3:00 PM - 4:00 PM",
+      "day": "Saturday",
+      "day_order": 5,
+      "period": "4:00 PM - 5:00 PM",
       "is_morning": false,
       "department": "CSE",
       "section": "A",
@@ -1845,24 +1728,7 @@
       "room": "LAB-1",
       "room_type": "Lab",
       "is_lab": true,
-      "version_id": 8
-    },
-    {
-      "day": "Friday",
-      "day_order": 4,
-      "period": "3:00 PM - 4:00 PM",
-      "is_morning": false,
-      "department": "CSE",
-      "section": "B",
-      "batch": null,
-      "subject": "DS",
-      "subject_code": "DS",
-      "faculty_code": "VHP",
-      "faculty_name": "Vishal H. Pundikar",
-      "room": "CR-1",
-      "room_type": "Classroom",
-      "is_lab": false,
-      "version_id": 8
+      "version_id": 19
     }
   ],
   "resource_sharing_requests": [
@@ -2329,10 +2195,10 @@
       "faculty": "Dr. Amit R. Sharma",
       "division": "B",
       "resource": "CR-2",
-      "time": "Thursday 9:00 AM - 10:00 AM",
+      "time": "Friday 9:00 AM - 10:00 AM",
       "status": "Resolved",
       "issue": "Faculty ARS (Dr. Amit R. Sharma) is already assigned to A OOP.",
-      "resolution": "Reassigned B DS to Monday 3:00 PM - 4:00 PM in CR-1"
+      "resolution": "Reassigned B OS to Friday 4:00 PM - 5:00 PM in CR-1"
     },
     {
       "id": "#102",
@@ -2341,10 +2207,10 @@
       "faculty": "Dr. Amit R. Sharma",
       "division": "B",
       "resource": "CR-3",
-      "time": "Thursday 9:00 AM - 10:00 AM",
+      "time": "Friday 9:00 AM - 10:00 AM",
       "status": "Resolved",
       "issue": "Faculty ARS (Dr. Amit R. Sharma) is already assigned to A OOP.",
-      "resolution": "Reassigned B DS to Monday 3:00 PM - 4:00 PM in CR-1"
+      "resolution": "Reassigned B OS to Friday 4:00 PM - 5:00 PM in CR-1"
     },
     {
       "id": "#103",
@@ -2353,10 +2219,10 @@
       "faculty": "Dr. Amit R. Sharma",
       "division": "B",
       "resource": "CR-2",
-      "time": "Friday 9:00 AM - 10:00 AM",
+      "time": "Monday 9:00 AM - 10:00 AM",
       "status": "Resolved",
       "issue": "Faculty ARS (Dr. Amit R. Sharma) is already assigned to A OOP.",
-      "resolution": "Reassigned B DS to Monday 3:00 PM - 4:00 PM in CR-1"
+      "resolution": "Reassigned B OS to Friday 4:00 PM - 5:00 PM in CR-1"
     },
     {
       "id": "#104",
@@ -2365,10 +2231,10 @@
       "faculty": "Dr. Amit R. Sharma",
       "division": "B",
       "resource": "CR-3",
-      "time": "Friday 9:00 AM - 10:00 AM",
+      "time": "Monday 9:00 AM - 10:00 AM",
       "status": "Resolved",
       "issue": "Faculty ARS (Dr. Amit R. Sharma) is already assigned to A OOP.",
-      "resolution": "Reassigned B DS to Monday 3:00 PM - 4:00 PM in CR-1"
+      "resolution": "Reassigned B OS to Friday 4:00 PM - 5:00 PM in CR-1"
     },
     {
       "id": "#105",
@@ -2377,10 +2243,10 @@
       "faculty": "Dr. Amit R. Sharma",
       "division": "B",
       "resource": "CR-2",
-      "time": "Tuesday 9:00 AM - 10:00 AM",
+      "time": "Wednesday 9:00 AM - 10:00 AM",
       "status": "Resolved",
       "issue": "Faculty ARS (Dr. Amit R. Sharma) is already assigned to A OOP.",
-      "resolution": "Reassigned B DS to Monday 3:00 PM - 4:00 PM in CR-1"
+      "resolution": "Reassigned B OS to Friday 4:00 PM - 5:00 PM in CR-1"
     },
     {
       "id": "#106",
@@ -2389,10 +2255,10 @@
       "faculty": "Dr. Amit R. Sharma",
       "division": "B",
       "resource": "CR-3",
-      "time": "Tuesday 9:00 AM - 10:00 AM",
+      "time": "Wednesday 9:00 AM - 10:00 AM",
       "status": "Resolved",
       "issue": "Faculty ARS (Dr. Amit R. Sharma) is already assigned to A OOP.",
-      "resolution": "Reassigned B DS to Monday 3:00 PM - 4:00 PM in CR-1"
+      "resolution": "Reassigned B OS to Friday 4:00 PM - 5:00 PM in CR-1"
     },
     {
       "id": "#107",
@@ -2401,10 +2267,10 @@
       "faculty": "Sneha P. Desai",
       "division": "B",
       "resource": "LAB-1",
-      "time": "Wednesday 12:15 PM - 1:15 PM",
+      "time": "Tuesday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned B DS to Monday 3:00 PM - 4:00 PM in CR-1"
+      "resolution": "Reassigned B OS to Friday 4:00 PM - 5:00 PM in CR-1"
     },
     {
       "id": "#108",
@@ -2413,10 +2279,10 @@
       "faculty": "Sneha P. Desai",
       "division": "B",
       "resource": "LAB-2",
-      "time": "Wednesday 12:15 PM - 1:15 PM",
+      "time": "Tuesday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned B DS to Monday 3:00 PM - 4:00 PM in CR-1"
+      "resolution": "Reassigned B OS to Friday 4:00 PM - 5:00 PM in CR-1"
     },
     {
       "id": "#109",
@@ -2425,10 +2291,10 @@
       "faculty": "Sneha P. Desai",
       "division": "B",
       "resource": "LAB-3",
-      "time": "Wednesday 12:15 PM - 1:15 PM",
+      "time": "Tuesday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned B DS to Monday 3:00 PM - 4:00 PM in CR-1"
+      "resolution": "Reassigned B OS to Friday 4:00 PM - 5:00 PM in CR-1"
     },
     {
       "id": "#110",
@@ -2437,10 +2303,10 @@
       "faculty": "Sneha P. Desai",
       "division": "B",
       "resource": "LAB-4",
-      "time": "Wednesday 12:15 PM - 1:15 PM",
+      "time": "Tuesday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned B DS to Monday 3:00 PM - 4:00 PM in CR-1"
+      "resolution": "Reassigned B OS to Friday 4:00 PM - 5:00 PM in CR-1"
     },
     {
       "id": "#111",
@@ -2449,10 +2315,10 @@
       "faculty": "Sneha P. Desai",
       "division": "B",
       "resource": "LAB-1",
-      "time": "Monday 12:15 PM - 1:15 PM",
+      "time": "Friday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned B DS to Monday 3:00 PM - 4:00 PM in CR-1"
+      "resolution": "Reassigned B OS to Friday 4:00 PM - 5:00 PM in CR-1"
     },
     {
       "id": "#112",
@@ -2461,10 +2327,10 @@
       "faculty": "Sneha P. Desai",
       "division": "B",
       "resource": "LAB-2",
-      "time": "Monday 12:15 PM - 1:15 PM",
+      "time": "Friday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned B DS to Monday 3:00 PM - 4:00 PM in CR-1"
+      "resolution": "Reassigned B OS to Friday 4:00 PM - 5:00 PM in CR-1"
     },
     {
       "id": "#113",
@@ -2473,10 +2339,10 @@
       "faculty": "Sneha P. Desai",
       "division": "B",
       "resource": "LAB-3",
-      "time": "Monday 12:15 PM - 1:15 PM",
+      "time": "Friday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned B DS to Monday 3:00 PM - 4:00 PM in CR-1"
+      "resolution": "Reassigned B OS to Friday 4:00 PM - 5:00 PM in CR-1"
     },
     {
       "id": "#114",
@@ -2485,10 +2351,10 @@
       "faculty": "Sneha P. Desai",
       "division": "B",
       "resource": "LAB-4",
-      "time": "Monday 12:15 PM - 1:15 PM",
+      "time": "Friday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned B DS to Monday 3:00 PM - 4:00 PM in CR-1"
+      "resolution": "Reassigned B OS to Friday 4:00 PM - 5:00 PM in CR-1"
     },
     {
       "id": "#115",
@@ -2497,10 +2363,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-1",
-      "time": "Wednesday 12:15 PM - 1:15 PM",
+      "time": "Tuesday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#116",
@@ -2509,10 +2375,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-2",
-      "time": "Wednesday 12:15 PM - 1:15 PM",
+      "time": "Tuesday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#117",
@@ -2521,10 +2387,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-3",
-      "time": "Wednesday 12:15 PM - 1:15 PM",
+      "time": "Tuesday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#118",
@@ -2533,10 +2399,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-4",
-      "time": "Wednesday 12:15 PM - 1:15 PM",
+      "time": "Tuesday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#119",
@@ -2545,10 +2411,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-1",
-      "time": "Wednesday 2:00 PM - 3:00 PM",
+      "time": "Tuesday 2:50 PM - 3:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#120",
@@ -2557,10 +2423,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-2",
-      "time": "Wednesday 2:00 PM - 3:00 PM",
+      "time": "Tuesday 2:50 PM - 3:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#121",
@@ -2569,10 +2435,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-3",
-      "time": "Wednesday 2:00 PM - 3:00 PM",
+      "time": "Tuesday 2:50 PM - 3:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#122",
@@ -2581,10 +2447,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-4",
-      "time": "Wednesday 2:00 PM - 3:00 PM",
+      "time": "Tuesday 2:50 PM - 3:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#123",
@@ -2593,10 +2459,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-1",
-      "time": "Monday 12:15 PM - 1:15 PM",
+      "time": "Friday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#124",
@@ -2605,10 +2471,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-2",
-      "time": "Monday 12:15 PM - 1:15 PM",
+      "time": "Friday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#125",
@@ -2617,10 +2483,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-3",
-      "time": "Monday 12:15 PM - 1:15 PM",
+      "time": "Friday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#126",
@@ -2629,10 +2495,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-4",
-      "time": "Monday 12:15 PM - 1:15 PM",
+      "time": "Friday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#127",
@@ -2641,10 +2507,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-1",
-      "time": "Monday 2:00 PM - 3:00 PM",
+      "time": "Friday 2:50 PM - 3:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#128",
@@ -2653,10 +2519,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-2",
-      "time": "Monday 2:00 PM - 3:00 PM",
+      "time": "Friday 2:50 PM - 3:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#129",
@@ -2665,10 +2531,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-3",
-      "time": "Monday 2:00 PM - 3:00 PM",
+      "time": "Friday 2:50 PM - 3:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#130",
@@ -2677,10 +2543,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-4",
-      "time": "Monday 2:00 PM - 3:00 PM",
+      "time": "Friday 2:50 PM - 3:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#131",
@@ -2689,10 +2555,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-1",
-      "time": "Wednesday 12:15 PM - 1:15 PM",
+      "time": "Tuesday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#132",
@@ -2701,10 +2567,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-2",
-      "time": "Wednesday 12:15 PM - 1:15 PM",
+      "time": "Tuesday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#133",
@@ -2713,10 +2579,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-3",
-      "time": "Wednesday 12:15 PM - 1:15 PM",
+      "time": "Tuesday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#134",
@@ -2725,10 +2591,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-4",
-      "time": "Wednesday 12:15 PM - 1:15 PM",
+      "time": "Tuesday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#135",
@@ -2737,10 +2603,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-1",
-      "time": "Wednesday 2:00 PM - 3:00 PM",
+      "time": "Tuesday 2:50 PM - 3:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#136",
@@ -2749,10 +2615,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-2",
-      "time": "Wednesday 2:00 PM - 3:00 PM",
+      "time": "Tuesday 2:50 PM - 3:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#137",
@@ -2761,10 +2627,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-3",
-      "time": "Wednesday 2:00 PM - 3:00 PM",
+      "time": "Tuesday 2:50 PM - 3:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#138",
@@ -2773,10 +2639,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-4",
-      "time": "Wednesday 2:00 PM - 3:00 PM",
+      "time": "Tuesday 2:50 PM - 3:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#139",
@@ -2785,10 +2651,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-1",
-      "time": "Wednesday 3:00 PM - 4:00 PM",
+      "time": "Tuesday 4:00 PM - 5:00 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to A DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#140",
@@ -2797,10 +2663,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-2",
-      "time": "Wednesday 3:00 PM - 4:00 PM",
+      "time": "Tuesday 4:00 PM - 5:00 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to A DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#141",
@@ -2809,10 +2675,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-3",
-      "time": "Wednesday 3:00 PM - 4:00 PM",
+      "time": "Tuesday 4:00 PM - 5:00 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to A DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#142",
@@ -2821,10 +2687,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-4",
-      "time": "Wednesday 3:00 PM - 4:00 PM",
+      "time": "Tuesday 4:00 PM - 5:00 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to A DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#143",
@@ -2833,10 +2699,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-1",
-      "time": "Wednesday 12:15 PM - 1:15 PM",
+      "time": "Friday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#144",
@@ -2845,10 +2711,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-2",
-      "time": "Wednesday 12:15 PM - 1:15 PM",
+      "time": "Friday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#145",
@@ -2857,10 +2723,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-3",
-      "time": "Wednesday 12:15 PM - 1:15 PM",
+      "time": "Friday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#146",
@@ -2869,10 +2735,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-4",
-      "time": "Wednesday 12:15 PM - 1:15 PM",
+      "time": "Friday 1:50 PM - 2:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#147",
@@ -2881,10 +2747,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-1",
-      "time": "Wednesday 2:00 PM - 3:00 PM",
+      "time": "Friday 2:50 PM - 3:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#148",
@@ -2893,10 +2759,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-2",
-      "time": "Wednesday 2:00 PM - 3:00 PM",
+      "time": "Friday 2:50 PM - 3:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#149",
@@ -2905,10 +2771,10 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-3",
-      "time": "Wednesday 2:00 PM - 3:00 PM",
+      "time": "Friday 2:50 PM - 3:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     },
     {
       "id": "#150",
@@ -2917,10 +2783,35 @@
       "faculty": "Sneha P. Desai",
       "division": "A",
       "resource": "LAB-4",
-      "time": "Wednesday 2:00 PM - 3:00 PM",
+      "time": "Friday 2:50 PM - 3:50 PM",
       "status": "Resolved",
       "issue": "Faculty SPD (Sneha P. Desai) is already assigned to B DBMSL.",
-      "resolution": "Reassigned A TOC to Thursday 2:00 PM - 3:00 PM in CR-1"
+      "resolution": "Reassigned A TOC to Monday 12:10 PM - 1:10 PM in CR-1"
     }
-  ]
+  ],
+  "time_settings": {
+    "start_time": "09:00",
+    "period_duration": 60,
+    "morning_periods": 2,
+    "short_break_1_duration": 10,
+    "pre_lunch_periods": 2,
+    "lunch_duration": 40,
+    "afternoon_periods": 2,
+    "short_break_2_duration": 10,
+    "final_periods": 1,
+    "working_days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday"
+    ],
+    "institute_name": "D. Y. Patil Agriculture and Technical University Talsande, Kolhapur",
+    "dean_name": "Dr. Yuvaraj M. Patil",
+    "hod_name": "Mr. Naresh A. Kamble",
+    "dean_academics": "Dr. S. R. Pawale",
+    "academic_year": "2026-27",
+    "semester": "Semester III"
+  }
 }
