@@ -37,6 +37,15 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # ---------------------------------------------------------------------------
 # 1. HEALTH & SYSTEM STATUS
 # ---------------------------------------------------------------------------
+@app.route("/api/health", methods=["GET"])
+def health_check():
+    return jsonify({
+        "status": "ok",
+        "system": "ClashFree Academic Resource & Timetable Management",
+        "supabase_configured": db.is_configured()
+    })
+
+
 @app.route("/api/status", methods=["GET"])
 def get_status():
     configured = db.is_configured()
@@ -877,9 +886,9 @@ def _build_collegiate_matrix_sheet(ws, dept, div_name, div_sessions, subjects=No
         bottom=Side(style='thin', color='CBD5E1')
     )
 
-    # Row 1-3: College Header
+    # Row 1-3: Clean Institutional Header (No specific college name)
     ws.merge_cells("A1:L1")
-    ws["A1"] = "D. Y. Patil Agriculture and Technical University Talsande, Kolhapur"
+    ws["A1"] = "MASTER TIME TABLE (ACADEMIC YEAR 2026 - 2027)"
     ws["A1"].font = FONT_INSTITUTE
     ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
     ws.row_dimensions[1].height = 25
@@ -891,27 +900,27 @@ def _build_collegiate_matrix_sheet(ws, dept, div_name, div_sessions, subjects=No
     ws.row_dimensions[2].height = 20
 
     ws.merge_cells("A3:L3")
-    ws["A3"] = "Time Table Academic Year 2026 - 2027"
+    ws["A3"] = f"{year_str} - {div_name} (Semester III)"
     ws["A3"].font = FONT_TITLE
     ws["A3"].alignment = Alignment(horizontal="center", vertical="center")
     ws.row_dimensions[3].height = 18
 
     # Row 4: Metadata Line 1
     ws.merge_cells("A4:E4")
-    ws["A4"] = "Name of the Institute: D Y Patil Agriculture & Technical University, Talsande"
+    ws["A4"] = f"Department: {dept if dept != 'CSE' else 'Computer Science & Engineering'}"
     ws.merge_cells("F4:H4")
-    ws["F4"] = "Name of the Dean: Dr. Yuvaraj M. Patil"
+    ws["F4"] = "Status: Approved Official Schedule"
     ws.merge_cells("I4:L4")
-    ws["I4"] = f"Name of the Department: {dept if dept != 'CSE' else 'Computer Science & Engineering'}"
+    ws["I4"] = "Academic Year: 2026-27"
     ws.row_dimensions[4].height = 20
 
     # Row 5: Metadata Line 2
     ws.merge_cells("A5:E5")
-    ws["A5"] = "Name of the HoD: Mr. Naresh A. Kamble"
+    ws["A5"] = "HoD: Department Head"
     ws.merge_cells("F5:H5")
-    ws["F5"] = "Academic Year: 2026-27"
+    ws["F5"] = "Semester: Semester III"
     ws.merge_cells("I5:J5")
-    ws["I5"] = "Semester : III"
+    ws["I5"] = f"Class: {year_str}"
     ws.merge_cells("K5:L5")
     ws["K5"] = f"Division: {div_name}"
     ws.row_dimensions[5].height = 20
@@ -927,20 +936,18 @@ def _build_collegiate_matrix_sheet(ws, dept, div_name, div_sessions, subjects=No
     # Row 6: Blank spacing
     ws.row_dimensions[6].height = 8
 
-    # Row 7: Main Table Header (From - To column headers)
+    # Row 7: Main Table Header (Strict 12-Hour AM/PM Format)
     slots = [
         ("Time/Day", "TIME"),
         ("Class", "CLASS"),
-        ("09:00-10:00", "TEACHING"),
-        ("10:00-11:00", "TEACHING"),
-        ("11:00 - 11:10\nSHORT BREAK", "SHORT_BREAK"),
-        ("11:10-12:10", "TEACHING"),
-        ("12:10-01:10", "TEACHING"),
-        ("01:10 - 01:50\nLUNCH BREAK", "LUNCH"),
-        ("01:50-02:50", "TEACHING"),
-        ("02:50-03:50", "TEACHING"),
-        ("03:50 - 04:00\nSHORT BREAK", "SHORT_BREAK"),
-        ("04:00-05:00", "TEACHING"),
+        ("9:00 AM - 10:00 AM", "TEACHING"),
+        ("10:00 AM - 11:00 AM", "TEACHING"),
+        ("11:00 AM - 11:15 AM\nBREAK", "SHORT_BREAK"),
+        ("11:15 AM - 12:15 PM", "TEACHING"),
+        ("12:15 PM - 1:15 PM", "TEACHING"),
+        ("1:15 PM - 2:00 PM\nLUNCH", "LUNCH"),
+        ("2:00 PM - 3:00 PM", "TEACHING"),
+        ("3:00 PM - 4:00 PM", "TEACHING"),
     ]
 
     ws.row_dimensions[7].height = 28
@@ -952,16 +959,14 @@ def _build_collegiate_matrix_sheet(ws, dept, div_name, div_sessions, subjects=No
         cell.border = THIN_BORDER
 
     slot_mapping = [
-        ("09:00-10:00", "TEACHING"),
-        ("10:00-11:00", "TEACHING"),
-        ("11:00-11:10", "SHORT_BREAK"),
-        ("11:10-12:10", "TEACHING"),
-        ("12:10-01:10", "TEACHING"),
-        ("01:10-01:50", "LUNCH"),
-        ("01:50-02:50", "TEACHING"),
-        ("02:50-03:50", "TEACHING"),
-        ("03:50-04:00", "SHORT_BREAK_2"),
-        ("04:00-05:00", "TEACHING"),
+        ("9:00 AM - 10:00 AM", "TEACHING"),
+        ("10:00 AM - 11:00 AM", "TEACHING"),
+        ("11:00 AM - 11:15 AM", "SHORT_BREAK"),
+        ("11:15 AM - 12:15 PM", "TEACHING"),
+        ("12:15 PM - 1:15 PM", "TEACHING"),
+        ("1:15 PM - 2:00 PM", "LUNCH"),
+        ("2:00 PM - 3:00 PM", "TEACHING"),
+        ("3:00 PM - 4:00 PM", "TEACHING"),
     ]
 
     days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
@@ -1101,7 +1106,7 @@ def _build_collegiate_matrix_sheet(ws, dept, div_name, div_sessions, subjects=No
     legend_count = max(len(distinct_subs), 1)
     coord_row = legend_start + legend_count + 2
     ws.merge_cells(f"A{coord_row}:L{coord_row}")
-    ws[f"A{coord_row}"] = "Class Coordinator : Ms. Rutuja R. Dakare (Contact No. 9156418849)"
+    ws[f"A{coord_row}"] = "Class Coordinator: Department Academic Coordinator"
     ws[f"A{coord_row}"].font = Font(name="Calibri", size=10, bold=True, color="1E293B")
     ws[f"A{coord_row}"].alignment = Alignment(horizontal="left", vertical="center")
     ws.row_dimensions[coord_row].height = 20
@@ -1208,43 +1213,41 @@ def export_timetable_excel():
 # ---------------------------------------------------------------------------
 # 18. ONE-CLICK COLLEGIATE STRUCTURE PRESET (ZERO INPUT REQUIRED)
 # ---------------------------------------------------------------------------
+@app.route("/api/structure/apply-preset", methods=["POST"])
 @app.route("/api/structure/apply-dypatil-preset", methods=["POST"])
-def apply_dypatil_structure_preset():
+def apply_structure_preset():
     """
-    Applies the official collegiate schedule and structure preset (zero input required).
-    Sets the 10 time slots, 6-day week, bell schedule, and institutional presets.
+    Applies the standardized institutional schedule and structure preset.
+    Sets strict 12-hour AM/PM time slots, 6-day week, and bell schedule.
     """
-    dyp_slots = [
-        {"period": "09:00-10:00", "type": "TEACHING",   "is_morning": True,  "start_time": "09:00", "end_time": "10:00", "order_index": 1},
-        {"period": "10:00-11:00", "type": "TEACHING",   "is_morning": True,  "start_time": "10:00", "end_time": "11:00", "order_index": 2},
-        {"period": "11:00-11:10", "type": "SHORT_BREAK", "is_morning": True,  "start_time": "11:00", "end_time": "11:10", "order_index": 3},
-        {"period": "11:10-12:10", "type": "TEACHING",   "is_morning": True,  "start_time": "11:10", "end_time": "12:10", "order_index": 4},
-        {"period": "12:10-01:10", "type": "TEACHING",   "is_morning": True,  "start_time": "12:10", "end_time": "13:10", "order_index": 5},
-        {"period": "01:10-01:50", "type": "LUNCH",      "is_morning": False, "start_time": "13:10", "end_time": "13:50", "order_index": 6},
-        {"period": "01:50-02:50", "type": "TEACHING",   "is_morning": False, "start_time": "13:50", "end_time": "14:50", "order_index": 7},
-        {"period": "02:50-03:50", "type": "TEACHING",   "is_morning": False, "start_time": "14:50", "end_time": "15:50", "order_index": 8},
-        {"period": "03:50-04:00", "type": "SHORT_BREAK", "is_morning": False, "start_time": "15:50", "end_time": "16:00", "order_index": 9},
-        {"period": "04:00-05:00", "type": "TEACHING",   "is_morning": False, "start_time": "16:00", "end_time": "17:00", "order_index": 10},
+    preset_slots = [
+        {"period": "9:00 AM - 10:00 AM", "type": "TEACHING",   "is_morning": True,  "start_time": "9:00 AM", "end_time": "10:00 AM", "order_index": 1},
+        {"period": "10:00 AM - 11:00 AM", "type": "TEACHING",   "is_morning": True,  "start_time": "10:00 AM", "end_time": "11:00 AM", "order_index": 2},
+        {"period": "11:00 AM - 11:15 AM", "type": "SHORT_BREAK", "is_morning": True,  "start_time": "11:00 AM", "end_time": "11:15 AM", "order_index": 3},
+        {"period": "11:15 AM - 12:15 PM", "type": "TEACHING",   "is_morning": True,  "start_time": "11:15 AM", "end_time": "12:15 PM", "order_index": 4},
+        {"period": "12:15 PM - 1:15 PM", "type": "TEACHING",   "is_morning": True,  "start_time": "12:15 PM", "end_time": "1:15 PM", "order_index": 5},
+        {"period": "1:15 PM - 2:00 PM", "type": "LUNCH",      "is_morning": False, "start_time": "1:15 PM", "end_time": "2:00 PM", "order_index": 6},
+        {"period": "2:00 PM - 3:00 PM", "type": "TEACHING",   "is_morning": False, "start_time": "2:00 PM", "end_time": "3:00 PM", "order_index": 7},
+        {"period": "3:00 PM - 4:00 PM", "type": "TEACHING",   "is_morning": False, "start_time": "3:00 PM", "end_time": "4:00 PM", "order_index": 8},
     ]
 
-    dyp_settings = {
+    preset_settings = {
         "start_time": "09:00",
         "period_duration": 60,
         "morning_periods": 2,
-        "short_break_1_duration": 10,
+        "short_break_1_duration": 15,
         "pre_lunch_periods": 2,
-        "lunch_duration": 40,
+        "lunch_duration": 45,
         "afternoon_periods": 2,
-        "short_break_2_duration": 10,
-        "final_periods": 1,
         "working_days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-        "institute_name": "D. Y. Patil Agriculture and Technical University Talsande, Kolhapur",
-        "dean_name": "Dr. Yuvaraj M. Patil",
-        "hod_name": "Mr. Naresh A. Kamble",
-        "dean_academics": "Dr. S. R. Pawale",
+        "institute_name": "Department of Computer Science and Engineering",
+        "dean_name": "Dean Academics",
+        "hod_name": "Head of Department",
         "academic_year": "2026-27",
         "semester": "Semester III"
     }
+    dyp_slots = preset_slots
+    dyp_settings = preset_settings
 
     db.save_time_slots(dyp_slots)
     saved_settings = db.save_time_settings(dyp_settings)

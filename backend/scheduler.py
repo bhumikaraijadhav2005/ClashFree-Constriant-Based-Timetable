@@ -106,16 +106,14 @@ def time_to_minutes(val) -> int:
 # DEFAULT TIME SLOTS (12-Hour AM/PM Standard)
 # ---------------------------------------------------------------------------
 DEFAULT_SCHEDULE = [
-    {"period": "09:00-10:00", "type": "TEACHING",   "is_morning": True},
-    {"period": "10:00-11:00", "type": "TEACHING",   "is_morning": True},
-    {"period": "11:00-11:10", "type": "SHORT_BREAK", "is_morning": True},
-    {"period": "11:10-12:10", "type": "TEACHING",   "is_morning": True},
-    {"period": "12:10-01:10", "type": "TEACHING",   "is_morning": True},
-    {"period": "01:10-01:50", "type": "LUNCH",      "is_morning": False},
-    {"period": "01:50-02:50", "type": "TEACHING",   "is_morning": False},
-    {"period": "02:50-03:50", "type": "TEACHING",   "is_morning": False},
-    {"period": "03:50-04:00", "type": "SHORT_BREAK", "is_morning": False},
-    {"period": "04:00-05:00", "type": "TEACHING",   "is_morning": False},
+    {"period": "9:00 AM - 10:00 AM",  "type": "TEACHING",    "is_morning": True,  "order_index": 1},
+    {"period": "10:00 AM - 11:00 AM", "type": "TEACHING",    "is_morning": True,  "order_index": 2},
+    {"period": "11:00 AM - 11:15 AM", "type": "SHORT_BREAK", "is_morning": True,  "order_index": 3},
+    {"period": "11:15 AM - 12:15 PM", "type": "TEACHING",    "is_morning": True,  "order_index": 4},
+    {"period": "12:15 PM - 1:15 PM",  "type": "TEACHING",    "is_morning": True,  "order_index": 5},
+    {"period": "1:15 PM - 2:00 PM",   "type": "LUNCH",       "is_morning": False, "order_index": 6},
+    {"period": "2:00 PM - 3:00 PM",   "type": "TEACHING",    "is_morning": False, "order_index": 7},
+    {"period": "3:00 PM - 4:00 PM",   "type": "TEACHING",    "is_morning": False, "order_index": 8},
 ]
 
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
@@ -145,8 +143,14 @@ def _faculty_is_available(faculty: dict, day: str, period_label: str) -> bool:
     """
     avail_str = faculty.get("availability")
     if avail_str and str(avail_str).strip() not in ["", "-", "None"]:
-        from backend.excel_reader import parse_availability_string
-        parsed = parse_availability_string(avail_str)
+        try:
+            from excel_reader import parse_availability_string as _parse_avail
+        except ImportError:
+            try:
+                from backend.excel_reader import parse_availability_string as _parse_avail
+            except ImportError:
+                _parse_avail = None
+        parsed = _parse_avail(avail_str) if _parse_avail else {"days": list(DAYS), "from_minutes": 0, "to_minutes": 1440}
         if day not in parsed.get("days", []):
             return False
 
@@ -532,21 +536,59 @@ def _pick_next_session(unscheduled: list, assignment: dict, domains: dict):
     If a variable has very few choices left, it is most likely to cause a dead end
     later; addressing it first fails fast and prunes the search space drastically.
     Tie-breaker: Lab sessions first (due to specialized equipment and lab rooms).
+
+    Performance optimization: Instead of calling the expensive _is_valid() for every
+    domain entry of every unscheduled session, we estimate remaining valid count by
+    checking only slot/faculty/room conflicts against already-assigned sessions.
+    This is O(unscheduled * assignment_size) instead of O(unscheduled * domain * assignment).
     """
+    # Pre-compute used slots per entity from current assignment for fast lookup
+    used_fac_slots = {}  # faculty_code -> set of (day, period)
+    used_room_slots = {}  # room_name -> set of (day, period)
+    used_div_slots = {}  # division -> set of (day, period)
+
+    for aid, (a_slot, a_room, a_faculty) in assignment.items():
+        a_sess = _session_lookup.get(aid)
+        if not a_sess:
+            continue
+        fc = a_faculty.get("code")
+        rn = a_room.get("name")
+        dv = a_sess.get("division")
+        if fc:
+            used_fac_slots.setdefault(fc, set()).add(a_slot)
+        if rn:
+            used_room_slots.setdefault(rn, set()).add(a_slot)
+        if dv:
+            used_div_slots.setdefault(dv, set()).add(a_slot)
+
     best_session = None
     best_count = float("inf")
+    best_priority = 1
 
     for session in unscheduled:
         sid = session["id"]
-        valid_count = sum(
-            1 for (slot, room, faculty) in domains[sid]
-            if _is_valid(session, slot, room, faculty, assignment)[0]
-        )
-
+        div = session.get("division")
         priority = 0 if session.get("is_lab") else 1
 
-        if (valid_count, priority) < (best_count, 1):
+        # Fast count: how many domain entries can avoid known conflicts
+        valid_count = 0
+        for (slot, room, faculty) in domains[sid]:
+            fc = faculty.get("code")
+            rn = room.get("name")
+            # Skip if faculty already busy in this slot
+            if fc and slot in used_fac_slots.get(fc, set()):
+                continue
+            # Skip if room already busy in this slot
+            if rn and slot in used_room_slots.get(rn, set()):
+                continue
+            # Skip if division already busy (for full-div lectures)
+            if div and not session.get("batch") and slot in used_div_slots.get(div, set()):
+                continue
+            valid_count += 1
+
+        if (valid_count, priority) < (best_count, best_priority):
             best_count = valid_count
+            best_priority = priority
             best_session = session
 
         if best_count == 0:
@@ -564,7 +606,7 @@ def _backtrack(unscheduled: list, assignment: dict, domains: dict, step_counter:
     and automatic clash resolution logging (Section 18, 19, 20 requirement).
     """
     step_counter[0] += 1
-    if step_counter[0] > 100000:
+    if step_counter[0] > 200000:
         return None
 
     if not unscheduled:
