@@ -378,7 +378,7 @@ function DashboardView({ data, department, setPage, onRefresh }) {
           <div>
             <h3 style={{ margin: 0, color: "#1e3a8a" }}>📥 Timetable & Workload Excel Downloads</h3>
             <p style={{ color: "#64748b", margin: "4px 0 0", fontSize: "0.85rem" }}>
-              Official D. Y. Patil collegiate matrix layout with courses, faculty codes, rooms, and signatures.
+              Collegiate matrix layout with courses, faculty codes, rooms, and signature fields.
             </p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
@@ -3120,7 +3120,7 @@ function ReportsView({ department }) {
     <div className="card">
       <h3>📄 Academic Reports & Export Hub</h3>
       <p style={{ color: "#64748b", margin: "6px 0 24px" }}>
-        Generate standardized collegiate reports matching D. Y. Patil Engineering format for HOD review, board approvals, and accreditation documentation.
+        Generate standardized collegiate reports for HOD review, board approvals, and accreditation documentation.
       </p>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
@@ -3307,7 +3307,7 @@ function SettingsView({ notify }) {
     notify(`Generated ${newSlots.length} schedule periods with configured break & lecture times!`);
   };
 
-  const handleLoadDYPatilPreset = () => {
+  const handleLoadCollegePreset = () => {
     setStartTime("09:00");
     setPeriodDuration(60);
     setMorningPeriods(2);
@@ -3321,16 +3321,16 @@ function SettingsView({ notify }) {
 
     // Directly build the matching array
     const dypSlots = [
-      { order_index: 1, period: "09:00-10:00", start_time: "09:00", end_time: "10:00", type: "TEACHING", is_morning: true },
-      { order_index: 2, period: "10:00-11:00", start_time: "10:00", end_time: "11:00", type: "TEACHING", is_morning: true },
-      { order_index: 3, period: "11:00-11:10", start_time: "11:00", end_time: "11:10", type: "SHORT_BREAK", is_morning: true },
-      { order_index: 4, period: "11:10-12:10", start_time: "11:10", end_time: "12:10", type: "TEACHING", is_morning: true },
-      { order_index: 5, period: "12:10-01:10", start_time: "12:10", end_time: "13:10", type: "TEACHING", is_morning: true },
-      { order_index: 6, period: "01:10-01:50", start_time: "13:10", end_time: "13:50", type: "LUNCH", is_morning: false },
-      { order_index: 7, period: "01:50-02:50", start_time: "13:50", end_time: "14:50", type: "TEACHING", is_morning: false },
-      { order_index: 8, period: "02:50-03:50", start_time: "14:50", end_time: "15:50", type: "TEACHING", is_morning: false },
-      { order_index: 9, period: "03:50-04:00", start_time: "15:50", end_time: "16:00", type: "SHORT_BREAK", is_morning: false },
-      { order_index: 10, period: "04:00-05:00", start_time: "16:00", end_time: "17:00", type: "TEACHING", is_morning: false },
+      { order_index: 1, period: "9:00 AM - 10:00 AM", start_time: "09:00", end_time: "10:00", type: "TEACHING", is_morning: true },
+      { order_index: 2, period: "10:00 AM - 11:00 AM", start_time: "10:00", end_time: "11:00", type: "TEACHING", is_morning: true },
+      { order_index: 3, period: "11:00 AM - 11:10 AM", start_time: "11:00", end_time: "11:10", type: "SHORT_BREAK", is_morning: true },
+      { order_index: 4, period: "11:10 AM - 12:10 PM", start_time: "11:10", end_time: "12:10", type: "TEACHING", is_morning: true },
+      { order_index: 5, period: "12:10 PM - 1:10 PM", start_time: "12:10", end_time: "13:10", type: "TEACHING", is_morning: true },
+      { order_index: 6, period: "1:10 PM - 1:50 PM", start_time: "13:10", end_time: "13:50", type: "LUNCH", is_morning: false },
+      { order_index: 7, period: "1:50 PM - 2:50 PM", start_time: "13:50", end_time: "14:50", type: "TEACHING", is_morning: false },
+      { order_index: 8, period: "2:50 PM - 3:50 PM", start_time: "14:50", end_time: "15:50", type: "TEACHING", is_morning: false },
+      { order_index: 9, period: "3:50 PM - 4:00 PM", start_time: "15:50", end_time: "16:00", type: "SHORT_BREAK", is_morning: false },
+      { order_index: 10, period: "4:00 PM - 5:00 PM", start_time: "16:00", end_time: "17:00", type: "TEACHING", is_morning: false },
     ];
     setSlots(dypSlots);
     notify("Loaded standard 6-Day college bell schedule!");
@@ -3349,15 +3349,15 @@ function SettingsView({ notify }) {
     setWorkingDays(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]);
 
     const stdSlots = [
-      { order_index: 1, period: "09:00-10:00", start_time: "09:00", end_time: "10:00", type: "TEACHING", is_morning: true },
-      { order_index: 2, period: "10:00-11:00", start_time: "10:00", end_time: "11:00", type: "TEACHING", is_morning: true },
-      { order_index: 3, period: "11:00-11:15", start_time: "11:00", end_time: "11:15", type: "SHORT_BREAK", is_morning: true },
-      { order_index: 4, period: "11:15-12:15", start_time: "11:15", end_time: "12:15", type: "TEACHING", is_morning: true },
-      { order_index: 5, period: "12:15-13:00", start_time: "12:15", end_time: "13:00", type: "LUNCH", is_morning: false },
-      { order_index: 6, period: "13:00-14:00", start_time: "13:00", end_time: "14:00", type: "TEACHING", is_morning: false },
-      { order_index: 7, period: "14:00-15:00", start_time: "14:00", end_time: "15:00", type: "TEACHING", is_morning: false },
-      { order_index: 8, period: "15:00-15:15", start_time: "15:00", end_time: "15:15", type: "SHORT_BREAK", is_morning: false },
-      { order_index: 9, period: "15:15-16:15", start_time: "15:15", end_time: "16:15", type: "TEACHING", is_morning: false },
+      { order_index: 1, period: "9:00 AM - 10:00 AM", start_time: "09:00", end_time: "10:00", type: "TEACHING", is_morning: true },
+      { order_index: 2, period: "10:00 AM - 11:00 AM", start_time: "10:00", end_time: "11:00", type: "TEACHING", is_morning: true },
+      { order_index: 3, period: "11:00 AM - 11:15 AM", start_time: "11:00", end_time: "11:15", type: "SHORT_BREAK", is_morning: true },
+      { order_index: 4, period: "11:15 AM - 12:15 PM", start_time: "11:15", end_time: "12:15", type: "TEACHING", is_morning: true },
+      { order_index: 5, period: "12:15 PM - 1:00 PM", start_time: "12:15", end_time: "13:00", type: "LUNCH", is_morning: false },
+      { order_index: 6, period: "1:00 PM - 2:00 PM", start_time: "13:00", end_time: "14:00", type: "TEACHING", is_morning: false },
+      { order_index: 7, period: "2:00 PM - 3:00 PM", start_time: "14:00", end_time: "15:00", type: "TEACHING", is_morning: false },
+      { order_index: 8, period: "3:00 PM - 3:15 PM", start_time: "15:00", end_time: "15:15", type: "SHORT_BREAK", is_morning: false },
+      { order_index: 9, period: "3:15 PM - 4:15 PM", start_time: "15:15", end_time: "16:15", type: "TEACHING", is_morning: false },
     ];
     setSlots(stdSlots);
     notify("Loaded standard 5-Day engineering schedule!");
@@ -3440,18 +3440,18 @@ function SettingsView({ notify }) {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <span style={{ fontSize: "1.5rem" }}>🏛️</span>
-              <h3 style={{ margin: 0, color: "#1e3a8a" }}>Official D. Y. Patil Engineering Structure & Schedule</h3>
+              <h3 style={{ margin: 0, color: "#1e3a8a" }}>Standard Engineering Academic Structure & Bell Schedule Preset</h3>
             </div>
             <p style={{ color: "#475569", margin: "8px 0 12px", fontSize: "0.9rem" }}>
-              Zero manual input required! One-click institutional structure configuration matching D. Y. Patil Agriculture & Technical University (CSE Dept).
+              Zero manual input required! One-click structure configuration for CSE Department — sets up divisions, academic years, time slots, and working days automatically.
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "8px", fontSize: "0.82rem", color: "#334155" }}>
-              <div>🏢 <strong>Institute:</strong> D Y Patil Agriculture & Tech Univ</div>
-              <div>👔 <strong>Dean:</strong> Dr. Yuvaraj M. Patil</div>
-              <div>👨‍💼 <strong>HoD:</strong> Mr. Naresh A. Kamble</div>
-              <div>🎓 <strong>Dean Academics:</strong> Dr. S. R. Pawale</div>
+              <div>🏢 <strong>Department:</strong> Computer Science & Engineering</div>
               <div>📅 <strong>Academic Year:</strong> 2026-27 (Sem III)</div>
               <div>⏰ <strong>Working Days:</strong> Mon - Sat (6 Days, 10 Periods)</div>
+              <div>🕘 <strong>Schedule:</strong> 9:00 AM – 5:00 PM</div>
+              <div>☕ <strong>Short Break:</strong> 11:00 AM (10 mins)</div>
+              <div>🍽️ <strong>Lunch Break:</strong> 1:10 PM – 1:50 PM</div>
             </div>
           </div>
           <button
@@ -3460,8 +3460,8 @@ function SettingsView({ notify }) {
             onClick={async () => {
               setLoading(true);
               try {
-                await api.applyDYPatilPreset();
-                notify("✅ Official D. Y. Patil collegiate structure & 6-day bell schedule applied successfully with zero user input!");
+                await api.applyStructurePreset();
+                notify("✅ Standard CSE academic structure & 6-day bell schedule applied successfully with zero user input!");
                 load();
               } catch (e) {
                 notify("Failed to apply preset", "error");
@@ -3471,7 +3471,7 @@ function SettingsView({ notify }) {
             }}
             disabled={loading}
           >
-            ⚡ Apply Official Structure Preset (Zero Input)
+            ⚡ Apply Standard Structure Preset (Zero Input)
           </button>
         </div>
       </div>
@@ -3484,7 +3484,7 @@ function SettingsView({ notify }) {
           </p>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
-          <button className="btn btn-secondary" onClick={handleLoadDYPatilPreset}>
+          <button className="btn btn-secondary" onClick={handleLoadCollegePreset}>
             🏫 Load College Reference Preset (Mon-Sat)
           </button>
           <button className="btn btn-secondary" onClick={handleLoadStandard5DayPreset}>

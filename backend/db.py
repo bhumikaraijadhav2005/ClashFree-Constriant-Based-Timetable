@@ -64,7 +64,7 @@ DEFAULT_STORE = {
     "faculty": [
         {"id": 1, "name": "Mr. Vishal H. Pundikar", "code": "VHP", "designation": "Assistant Professor", "department": "CSE", "subjects": ["DSA", "DS Lab"], "available_from": "09:00", "available_to": "17:00", "preferred_time": "Morning", "blocked_slots": [], "max_load": 18},
         {"id": 2, "name": "Dr. Vikas L. Bhise", "code": "VLB", "designation": "Associate Professor", "department": "CSE", "subjects": ["DS Lab", "DBMS"], "available_from": "09:00", "available_to": "17:00", "preferred_time": "Morning", "blocked_slots": [], "max_load": 18},
-        {"id": 3, "name": "Dr. Amit R. Sharma", "code": "ARS", "designation": "Professor & HOD", "department": "CSE", "subjects": ["TOC", "Maths"], "available_from": "09:00", "available_to": "13:00", "preferred_time": "Morning", "blocked_slots": ["Friday 14:00-15:00"], "max_load": 12},
+        {"id": 3, "name": "Dr. Amit R. Sharma", "code": "ARS", "designation": "Professor & HOD", "department": "CSE", "subjects": ["TOC", "Maths"], "available_from": "09:00", "available_to": "13:00", "preferred_time": "Morning", "blocked_slots": ["Friday 2:00 PM - 3:00 PM"], "max_load": 12},
         {"id": 4, "name": "Mrs. Sneha P. Desai", "code": "SPD", "designation": "Assistant Professor", "department": "CSE", "subjects": ["OS", "CN"], "available_from": "11:00", "available_to": "17:00", "preferred_time": "Afternoon", "blocked_slots": [], "max_load": 18},
         {"id": 5, "name": "Mr. Rahul K. Mehta", "code": "RKM", "designation": "Assistant Professor", "department": "CSE", "subjects": ["OS", "TOC"], "available_from": "09:00", "available_to": "17:00", "preferred_time": "Any", "blocked_slots": [], "max_load": 18},
         {"id": 6, "name": "Ms. Priya S. Joshi", "code": "PSJ", "designation": "Assistant Professor", "department": "CSE", "subjects": ["DBMS", "CN"], "available_from": "09:00", "available_to": "15:00", "preferred_time": "Morning", "blocked_slots": [], "max_load": 16}
@@ -79,16 +79,14 @@ DEFAULT_STORE = {
         {"id": 7, "name": "TOC", "code": "CS307", "department": "CSE", "year": "Second Year", "semester": "Semester III", "lectures_per_week": 3, "labs_per_week": 0, "requires_lab": False, "lab_type": "", "student_pc_ratio": 1.0}
     ],
     "time_slots": [
-        {"period": "09:00-10:00", "type": "TEACHING",   "is_morning": True,  "start_time": "09:00", "end_time": "10:00", "order_index": 1},
-        {"period": "10:00-11:00", "type": "TEACHING",   "is_morning": True,  "start_time": "10:00", "end_time": "11:00", "order_index": 2},
-        {"period": "11:00-11:10", "type": "SHORT_BREAK", "is_morning": True,  "start_time": "11:00", "end_time": "11:10", "order_index": 3},
-        {"period": "11:10-12:10", "type": "TEACHING",   "is_morning": True,  "start_time": "11:10", "end_time": "12:10", "order_index": 4},
-        {"period": "12:10-01:10", "type": "TEACHING",   "is_morning": True,  "start_time": "12:10", "end_time": "13:10", "order_index": 5},
-        {"period": "01:10-01:50", "type": "LUNCH",      "is_morning": False, "start_time": "13:10", "end_time": "13:50", "order_index": 6},
-        {"period": "01:50-02:50", "type": "TEACHING",   "is_morning": False, "start_time": "13:50", "end_time": "14:50", "order_index": 7},
-        {"period": "02:50-03:50", "type": "TEACHING",   "is_morning": False, "start_time": "14:50", "end_time": "15:50", "order_index": 8},
-        {"period": "03:50-04:00", "type": "SHORT_BREAK", "is_morning": False, "start_time": "15:50", "end_time": "16:00", "order_index": 9},
-        {"period": "04:00-05:00", "type": "TEACHING",   "is_morning": False, "start_time": "16:00", "end_time": "17:00", "order_index": 10},
+        {"period": "9:00 AM - 10:00 AM", "type": "TEACHING",   "is_morning": True,  "start_time": "9:00 AM", "end_time": "10:00 AM", "order_index": 1},
+        {"period": "10:00 AM - 11:00 AM", "type": "TEACHING",   "is_morning": True,  "start_time": "10:00 AM", "end_time": "11:00 AM", "order_index": 2},
+        {"period": "11:00 AM - 11:15 AM", "type": "SHORT_BREAK", "is_morning": True,  "start_time": "11:00 AM", "end_time": "11:15 AM", "order_index": 3},
+        {"period": "11:15 AM - 12:15 PM", "type": "TEACHING",   "is_morning": True,  "start_time": "11:15 AM", "end_time": "12:15 PM", "order_index": 4},
+        {"period": "12:15 PM - 1:15 PM", "type": "TEACHING",   "is_morning": True,  "start_time": "12:15 PM", "end_time": "1:15 PM", "order_index": 5},
+        {"period": "1:15 PM - 2:00 PM", "type": "LUNCH",      "is_morning": False, "start_time": "1:15 PM", "end_time": "2:00 PM", "order_index": 6},
+        {"period": "2:00 PM - 3:00 PM", "type": "TEACHING",   "is_morning": False, "start_time": "2:00 PM", "end_time": "3:00 PM", "order_index": 7},
+        {"period": "3:00 PM - 4:00 PM", "type": "TEACHING",   "is_morning": False, "start_time": "3:00 PM", "end_time": "4:00 PM", "order_index": 8}
     ],
     "timetable_versions": [
         {"id": 1, "version_number": 1, "name": "Version 1 (Initial)", "academic_year": "2026-2027", "semester": "Semester III", "department": "CSE", "description": "Baseline generated schedule", "is_active": True, "created_by": "HOD CSE"}
@@ -99,7 +97,7 @@ DEFAULT_STORE = {
             "id": 1,
             "resource_name": "CR-03",
             "day": "Monday",
-            "period": "14:00-15:00",
+            "period": "2:00 PM - 3:00 PM",
             "owner_department": "CSE",
             "requesting_department": "E&TC",
             "reason": "Guest lecture on Embedded Systems",
@@ -160,14 +158,25 @@ def get_client():
 # ---------------------------------------------------------------------------
 def get_all_departments():
     client = get_client()
+    raw = []
     if client:
         try:
             res = client.table("departments").select("*").order("code").execute()
             if res.data:
-                return res.data
+                raw = res.data
         except Exception:
             pass
-    return _memory_store.get("departments", [])
+    if not raw:
+        raw = _memory_store.get("departments", DEFAULT_STORE.get("departments", []))
+
+    seen = set()
+    unique = []
+    for d in raw:
+        code = (d.get("code") or "").strip().upper()
+        if code and code not in seen:
+            seen.add(code)
+            unique.append(d)
+    return unique
 
 def upsert_department(record: dict):
     client = get_client()
@@ -179,16 +188,16 @@ def upsert_department(record: dict):
         except Exception:
             pass
     depts = _memory_store.setdefault("departments", [])
-    if "id" not in record or not record["id"]:
-        record["id"] = max([d.get("id", 0) for d in depts] or [0]) + 1
-        depts.append(record)
+    dept_code = (record.get("code") or "").strip().upper()
+    for idx, d in enumerate(depts):
+        if (record.get("id") and d.get("id") == record["id"]) or (dept_code and (d.get("code") or "").strip().upper() == dept_code):
+            record["id"] = d.get("id", record.get("id"))
+            depts[idx] = record
+            break
     else:
-        for idx, d in enumerate(depts):
-            if d.get("id") == record["id"] or d.get("code") == record.get("code"):
-                depts[idx] = record
-                break
-        else:
-            depts.append(record)
+        if "id" not in record or not record["id"]:
+            record["id"] = max([d.get("id", 0) for d in depts] or [0]) + 1
+        depts.append(record)
     _save_local_store(_memory_store)
     return record
 
@@ -800,32 +809,41 @@ def delete_subject(subject_id: int):
 # ---------------------------------------------------------------------------
 # TIME SLOTS
 # ---------------------------------------------------------------------------
-OFFICIAL_DYPATIL_SLOTS = [
-    {"period": "09:00-10:00", "type": "TEACHING",   "is_morning": True,  "start_time": "09:00", "end_time": "10:00", "order_index": 1},
-    {"period": "10:00-11:00", "type": "TEACHING",   "is_morning": True,  "start_time": "10:00", "end_time": "11:00", "order_index": 2},
-    {"period": "11:00-11:10", "type": "SHORT_BREAK", "is_morning": True,  "start_time": "11:00", "end_time": "11:10", "order_index": 3},
-    {"period": "11:10-12:10", "type": "TEACHING",   "is_morning": True,  "start_time": "11:10", "end_time": "12:10", "order_index": 4},
-    {"period": "12:10-01:10", "type": "TEACHING",   "is_morning": True,  "start_time": "12:10", "end_time": "13:10", "order_index": 5},
-    {"period": "01:10-01:50", "type": "LUNCH",      "is_morning": False, "start_time": "13:10", "end_time": "13:50", "order_index": 6},
-    {"period": "01:50-02:50", "type": "TEACHING",   "is_morning": False, "start_time": "13:50", "end_time": "14:50", "order_index": 7},
-    {"period": "02:50-03:50", "type": "TEACHING",   "is_morning": False, "start_time": "14:50", "end_time": "15:50", "order_index": 8},
-    {"period": "03:50-04:00", "type": "SHORT_BREAK", "is_morning": False, "start_time": "15:50", "end_time": "16:00", "order_index": 9},
-    {"period": "04:00-05:00", "type": "TEACHING",   "is_morning": False, "start_time": "16:00", "end_time": "17:00", "order_index": 10},
+DEFAULT_TIME_SLOTS = [
+    {"period": "9:00 AM - 10:00 AM", "type": "TEACHING",   "is_morning": True,  "start_time": "9:00 AM", "end_time": "10:00 AM", "order_index": 1},
+    {"period": "10:00 AM - 11:00 AM", "type": "TEACHING",   "is_morning": True,  "start_time": "10:00 AM", "end_time": "11:00 AM", "order_index": 2},
+    {"period": "11:00 AM - 11:15 AM", "type": "SHORT_BREAK", "is_morning": True,  "start_time": "11:00 AM", "end_time": "11:15 AM", "order_index": 3},
+    {"period": "11:15 AM - 12:15 PM", "type": "TEACHING",   "is_morning": True,  "start_time": "11:15 AM", "end_time": "12:15 PM", "order_index": 4},
+    {"period": "12:15 PM - 1:15 PM", "type": "TEACHING",   "is_morning": True,  "start_time": "12:15 PM", "end_time": "1:15 PM", "order_index": 5},
+    {"period": "1:15 PM - 2:00 PM", "type": "LUNCH",      "is_morning": False, "start_time": "1:15 PM", "end_time": "2:00 PM", "order_index": 6},
+    {"period": "2:00 PM - 3:00 PM", "type": "TEACHING",   "is_morning": False, "start_time": "2:00 PM", "end_time": "3:00 PM", "order_index": 7},
+    {"period": "3:00 PM - 4:00 PM", "type": "TEACHING",   "is_morning": False, "start_time": "3:00 PM", "end_time": "4:00 PM", "order_index": 8}
 ]
+OFFICIAL_DYPATIL_SLOTS = DEFAULT_TIME_SLOTS
 
 def _deduplicate_slots(slots_list):
     if not slots_list:
-        return list(OFFICIAL_DYPATIL_SLOTS)
+        return list(DEFAULT_TIME_SLOTS)
     seen = set()
     unique = []
+    import scheduler
     for s in slots_list:
-        p = s.get("period") or f"{s.get('start_time')}-{s.get('end_time')}"
-        if not p or p in seen:
+        raw_p = s.get("period") or f"{s.get('start_time')}-{s.get('end_time')}"
+        if not raw_p:
+            continue
+        p = scheduler.format_time_12h(raw_p)
+        if p in seen:
             continue
         seen.add(p)
-        unique.append(dict(s))
+        s_copy = dict(s)
+        s_copy["period"] = p
+        if s_copy.get("start_time"):
+            s_copy["start_time"] = scheduler.format_time_12h(s_copy["start_time"])
+        if s_copy.get("end_time"):
+            s_copy["end_time"] = scheduler.format_time_12h(s_copy["end_time"])
+        unique.append(s_copy)
     if len(unique) <= 2:
-        return list(OFFICIAL_DYPATIL_SLOTS)
+        return list(DEFAULT_TIME_SLOTS)
     for idx, s in enumerate(unique, start=1):
         s["order_index"] = idx
     return unique

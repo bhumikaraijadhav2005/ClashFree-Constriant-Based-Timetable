@@ -146,7 +146,7 @@ export async function saveResourceConfig(config) {
   return res.json();
 }
 
-export async function fetchOccupancy(day = "Monday", period = "09:00-10:00", department = "CSE", type = "ALL") {
+export async function fetchOccupancy(day = "Monday", period = "9:00 AM - 10:00 AM", department = "CSE", type = "ALL") {
   const url = `${API_BASE}/occupancy?day=${encodeURIComponent(day)}&period=${encodeURIComponent(period)}&department=${encodeURIComponent(department)}&type=${encodeURIComponent(type)}`;
   const res = await fetch(url);
   return res.json();
@@ -346,6 +346,11 @@ export async function applyDYPatilPreset() {
     headers: { "Content-Type": "application/json" }
   });
   return res.json();
+}
+
+// Alias for applyDYPatilPreset — use this in Settings UI (no college-specific naming)
+export async function applyStructurePreset() {
+  return applyDYPatilPreset();
 }
 
 export function getExportWorkloadUrl(department = "CSE") {
