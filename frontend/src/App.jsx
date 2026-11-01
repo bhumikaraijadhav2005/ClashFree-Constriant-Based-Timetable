@@ -324,6 +324,8 @@ export default function App() {
               department={selectedDept}
               selectedYear={selectedYear}
               selectedSem={selectedSem}
+              availableYears={availableYears}
+              availableSemesters={availableSemesters}
               notify={notify}
               onSuccess={() => {
                 loadDashboard();
@@ -1611,6 +1613,15 @@ function TimetableView({ department, selectedYear = "ALL", selectedSem = "ALL", 
     }
     return false;
   };
+
+  const isSessionSecondHour = (t, day, slot) => {
+    if (t.day !== day) return false;
+    if (Array.isArray(t.periods) && t.periods.length > 1) {
+      const secondP = t.periods[1];
+      return secondP === slot.period || formatTime12Hour(secondP) === slot.displayPeriod || formatTime12Hour(secondP) === formatTime12Hour(slot.period);
+    }
+    return false;
+  };
   const [timeSlots, setTimeSlots] = useState([]);
   const [timeSettings, setTimeSettings] = useState(null);
   const [divisions, setDivisions] = useState([]);
@@ -1621,6 +1632,7 @@ function TimetableView({ department, selectedYear = "ALL", selectedSem = "ALL", 
   // View Modes: "MASTER", "DIVISION", "FACULTY", "CLASSROOM", "LAB", "BATCH"
   const [viewFilter, setViewFilter] = useState("MASTER");
   const [selectedDivision, setSelectedDivision] = useState("");
+  const [selectedDivKey, setSelectedDivKey] = useState("");
   const [selectedFaculty, setSelectedFaculty] = useState("");
   const [selectedRoom, setSelectedRoom] = useState("");
   const [selectedLab, setSelectedLab] = useState("");
@@ -1656,6 +1668,7 @@ function TimetableView({ department, selectedYear = "ALL", selectedSem = "ALL", 
 
       if (divData && divData.length > 0) {
         setSelectedDivision(divData[0].name);
+        setSelectedDivKey(`${divData[0].year || "Y"}-${divData[0].name}`);
       }
       if (facData && facData.length > 0) {
         setSelectedFaculty(facData[0].code);
@@ -1696,17 +1709,31 @@ function TimetableView({ department, selectedYear = "ALL", selectedSem = "ALL", 
     ? timeSettings.working_days
     : ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-  // Sort slots by order_index and format labels to 12-hour AM/PM
-  const orderedSlots = [...timeSlots]
-    .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
-    .map(s => ({
-      ...s,
-      displayPeriod: formatTime12Hour(s.period)
-    }));
+  // Deduplicate slots across weekdays so columns represent the unique daily bell schedule (no 5x repetition)
+  const orderedSlots = (() => {
+    const seen = new Set();
+    const result = [];
+    const sorted = [...timeSlots].sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+    for (const s of sorted) {
+      const p12 = formatTime12Hour(s.period);
+      if (!seen.has(p12)) {
+        seen.add(p12);
+        result.push({
+          ...s,
+          displayPeriod: p12
+        });
+      }
+    }
+    return result;
+  })();
 
-  // Build Course Legend for the currently viewed division
-  const curDivObj = divisions.find(d => d.name === selectedDivision) || divisions[0];
-  const divTimetableSessions = timetable.filter(t => t.section === (curDivObj?.name || selectedDivision));
+  const getDivKey = (d) => (d ? `${d.year || "Y"}-${d.name}` : "");
+  // Build Course Legend for the currently viewed division (strictly scoped by year + section)
+  const curDivObj = divisions.find(d => getDivKey(d) === selectedDivKey) || divisions.find(d => d.name === selectedDivision) || divisions[0];
+  const divTimetableSessions = timetable.filter(t =>
+    (t.section === curDivObj?.name || t.division === curDivObj?.name) &&
+    (!t.year || !curDivObj?.year || normalizeYearCode(t.year) === normalizeYearCode(curDivObj.year))
+  );
   const distinctSubjectNames = Array.from(new Set(divTimetableSessions.map(t => t.subject)));
 
   const courseLegend = distinctSubjectNames.map((sName, idx) => {
@@ -1809,13 +1836,17 @@ function TimetableView({ department, selectedYear = "ALL", selectedSem = "ALL", 
         <div style={{ background: "#fff", padding: "10px 16px", borderRadius: "8px", border: "1px solid #e2e8f0", marginBottom: "16px", display: "flex", alignItems: "center", gap: "10px" }}>
           <label style={{ fontSize: "0.85rem", fontWeight: "700" }}>Select Division / Class:</label>
           <select
-            value={selectedDivision}
-            onChange={(e) => setSelectedDivision(e.target.value)}
+            value={selectedDivKey || getDivKey(curDivObj)}
+            onChange={(e) => {
+              setSelectedDivKey(e.target.value);
+              const found = divisions.find(d => getDivKey(d) === e.target.value);
+              if (found) setSelectedDivision(found.name);
+            }}
             style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #ccc", fontWeight: "600" }}
           >
-            {divisions.map((d) => (
-              <option key={d.name} value={d.name}>
-                {d.name} ({d.year || "Second Year"} - {d.department_code || department})
+            {divisions.map((d, dIdx) => (
+              <option key={`${getDivKey(d)}-${dIdx}`} value={getDivKey(d)}>
+                {d.year ? `${d.year} - ` : ""}Division {d.name} ({d.semester || "Semester"})
               </option>
             ))}
           </select>
@@ -1981,6 +2012,15 @@ function TimetableView({ department, selectedYear = "ALL", selectedSem = "ALL", 
 
                           // If batch lab sessions
                           if (slotSessions[0].is_lab) {
+                            if (isSessionSecondHour(slotSessions[0], day, slot)) {
+                              return (
+                                <td key={slotIdx} style={{ padding: "6px", background: "#f8fafc", textAlign: "center" }}>
+                                  <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600, fontStyle: "italic" }}>
+                                    ↳ {slotSessions[0].subject} <span style={{ color: "#94a3b8" }}>(Hr 2)</span>
+                                  </div>
+                                </td>
+                              );
+                            }
                             return (
                               <td key={slotIdx} style={{ padding: 0 }}>
                                 <div className="cell-lab-container">
@@ -2083,7 +2123,9 @@ function TimetableView({ department, selectedYear = "ALL", selectedSem = "ALL", 
                       }
 
                       const slotSessions = timetable.filter(
-                        (t) => isSessionInSlot(t, day, slot) && t.section === selectedDivision
+                        (t) => isSessionInSlot(t, day, slot) &&
+                               (t.section === curDivObj?.name || t.division === curDivObj?.name) &&
+                               (!t.year || !curDivObj?.year || normalizeYearCode(t.year) === normalizeYearCode(curDivObj.year))
                       );
 
                       if (!slotSessions || slotSessions.length === 0) {
@@ -2091,6 +2133,15 @@ function TimetableView({ department, selectedYear = "ALL", selectedSem = "ALL", 
                       }
 
                       if (slotSessions[0].is_lab) {
+                        if (isSessionSecondHour(slotSessions[0], day, slot)) {
+                          return (
+                            <td key={slotIdx} style={{ padding: "8px", background: "#f8fafc", textAlign: "center" }}>
+                              <div style={{ fontSize: "0.8rem", color: "#64748b", fontWeight: 600, fontStyle: "italic" }}>
+                                ↳ {slotSessions[0].subject} <span style={{ color: "#94a3b8" }}>(Hr 2)</span>
+                              </div>
+                            </td>
+                          );
+                        }
                         return (
                           <td key={slotIdx} style={{ padding: 0 }}>
                             <div className="cell-lab-container">
@@ -3236,14 +3287,21 @@ function VersionHistoryView({ department, notify }) {
   );
 }
 
-function GenerateTimetableView({ department, selectedYear, selectedSem, notify, onSuccess }) {
+function GenerateTimetableView({ department, selectedYear, selectedSem, availableYears = [], availableSemesters = [], notify, onSuccess }) {
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState(null);
   const [stageIndex, setStageIndex] = useState(0);
 
   // Scope parameters
-  const [scopeYear, setScopeYear] = useState(selectedYear !== "ALL" ? selectedYear : "");
-  const [scopeSem, setScopeSem] = useState(selectedSem !== "ALL" ? selectedSem : "");
+  const [scopeYear, setScopeYear] = useState("");
+  const [scopeSem, setScopeSem] = useState("");
+
+  const yearsList = availableYears && availableYears.length > 0
+    ? availableYears
+    : ["Year 1", "Year 2", "Year 3", "Year 4"];
+  const semestersList = availableSemesters && availableSemesters.length > 0
+    ? availableSemesters
+    : ["Semester I", "Semester II", "Semester III", "Semester IV", "Semester V", "Semester VI"];
   const [deptDivs, setDeptDivs] = useState([]);
   const [selectedDivs, setSelectedDivs] = useState([]);
   const [versionLabel, setVersionLabel] = useState("");
@@ -3346,10 +3404,9 @@ function GenerateTimetableView({ department, selectedYear, selectedSem, notify, 
               style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontWeight: 600 }}
             >
               <option value="">All Academic Years in Department</option>
-              <option value="First Year">First Year (FE)</option>
-              <option value="Second Year">Second Year (SE)</option>
-              <option value="Third Year">Third Year (TE)</option>
-              <option value="Final Year">Final Year (BE)</option>
+              {yearsList.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
             </select>
           </div>
 
@@ -3361,12 +3418,9 @@ function GenerateTimetableView({ department, selectedYear, selectedSem, notify, 
               style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontWeight: 600 }}
             >
               <option value="">All Semesters in Scope</option>
-              <option value="Semester I">Semester I</option>
-              <option value="Semester II">Semester II</option>
-              <option value="Semester III">Semester III</option>
-              <option value="Semester IV">Semester IV</option>
-              <option value="Semester V">Semester V</option>
-              <option value="Semester VI">Semester VI</option>
+              {semestersList.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
             </select>
           </div>
 

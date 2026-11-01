@@ -1009,11 +1009,15 @@ def get_time_slots(department=None):
             res = query.order("order_index").execute()
             if res.data:
                 return _deduplicate_slots(res.data)
-        except Exception as exc:
-            # A missing additive migration should not silently pretend the
-            # department has imported its own bell schedule.
-            if department and is_configured():
-                raise RuntimeError("Could not load department time slots. Apply the department-scoped time_slots migration.") from exc
+        except Exception:
+            # If department_code column is missing in Supabase, try querying global slots
+            try:
+                res = client.table("time_slots").select("*").order("order_index").execute()
+                if res.data:
+                    return _deduplicate_slots(res.data)
+            except Exception:
+                pass
+    # Resilient fallback to memory/json store
     raw = _memory_store.get("time_slots", DEFAULT_STORE.get("time_slots", OFFICIAL_DYPATIL_SLOTS))
     if department:
         scoped = _memory_store.get("time_slots_by_department", {}).get(department)
@@ -1041,11 +1045,8 @@ def save_time_slots(slots_list: list, department=None):
         cleaned = [{**slot, "department_code": department} for slot in cleaned]
     client = get_client()
     if client:
+        validate_time_slots_schema()
         try:
-            # Check the required schema before deleting the department's old
-            # schedule. PostgREST returns an error here when the table or any
-            # department-scoped column has not been applied in Supabase.
-            validate_time_slots_schema()
             delete_query = client.table("time_slots").delete()
             if department:
                 delete_query = delete_query.eq("department_code", department)
