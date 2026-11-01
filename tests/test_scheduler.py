@@ -1,6 +1,6 @@
 # test_scheduler.py
 # Comprehensive automated test suite for ClashFree CSP+MRV Scheduling Engine:
-# 1. Single-sheet CLASHFREE_INPUT Excel reading and validation
+# 1. Multi-sheet Excel workbook reading and validation
 # 2. Dynamic resource matching (type, capacity >= required, equipment)
 # 3. CSP + MRV + Backtracking search with clash resolution tracking
 # 4. Strict 12-hour AM/PM format validation (NEVER 24-hour time)
@@ -9,8 +9,10 @@
 
 import os
 import sys
+from pathlib import Path
 
-backend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "backend")
+project_root = Path(__file__).resolve().parents[1]
+backend_dir = str(project_root / "backend")
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
@@ -24,16 +26,17 @@ def test_clashfree_pipeline():
     print("=" * 60)
 
     # 1. Test Excel Reader & Faculty Code Engine
-    print("\n[Test 1] Testing Single-Sheet Excel Reader & Faculty Short Codes...")
-    valid, errors, warnings, summary, data = excel_reader.validate_excel_data("sample_data.xlsx")
+    print("\n[Test 1] Testing Simple Multi-Sheet Workbook & Faculty Codes...")
+    template_path = project_root / "assets" / "templates" / "CLASHFREE_Input_Template.xlsx"
+    valid, errors, warnings, summary, data = excel_reader.validate_excel_data(template_path)
     assert valid, f"Excel validation failed: {errors}"
     print(f"[OK] Excel validated successfully: {summary}")
 
     print("\nFaculty Short Codes Generated:")
     for f in data["faculty"]:
         print(f"  {f['name']} -> [{f['code']}] | Preference: {f.get('preference', 'Any')} | Availability: {f.get('availability')}")
-    assert any(f["code"] == "VHP" for f in data["faculty"]), "Expected VHP short code for Vishal H. Pundikar"
-    assert any(f["code"] == "NAK" for f in data["faculty"]), "Expected NAK short code for Naresh A. Kamble"
+    assert any(f["code"] == "FAC001" for f in data["faculty"]), "Expected master faculty code FAC001"
+    assert any(f["code"] == "FAC002" for f in data["faculty"]), "Expected master faculty code FAC002"
 
     # 2. Test Dynamic Resource Allocation (No reserved room buffer)
     print("\n[Test 2] Testing Dynamic Resource Allocation Matching...")
@@ -41,9 +44,9 @@ def test_clashfree_pipeline():
     active_rooms = [r for r in rooms if r.get("is_active", True)]
     print(f"Total Resources Configured: {len(rooms)}")
     print(f"Active Resources: {len(active_rooms)} {[r['name'] for r in active_rooms]}")
-    assert len(active_rooms) >= 8, f"Expected at least 8 active resources, got {len(active_rooms)}"
+    assert len(active_rooms) >= 4, f"Expected at least 4 active resources, got {len(active_rooms)}"
 
-    # 3. Test CSP + MRV + Backtracking Scheduler using Single-Sheet Requirements
+    # 3. Test CSP + MRV + Backtracking Scheduler using workbook requirements
     print("\n[Test 3] Running CSP + MRV + Backtracking Scheduler...")
     reqs = data["requirements"]
     time_slots = data["time_slots"]

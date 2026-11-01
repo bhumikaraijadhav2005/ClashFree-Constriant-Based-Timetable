@@ -1,151 +1,83 @@
-# ClashFree – Constraint-Based Timetable & Academic Resource Management System
-### College Mini Project | BTech CSE (2nd Year)
+# ClashFree Timetable
 
----
+ClashFree is a React and Flask application for configuring college teaching data, generating timetables with CSP, MRV and backtracking, and viewing timetable and resource reports. Supabase is the intended database; a local JSON fallback remains in the current implementation.
 
-## 🚀 Architecture Overview
+## Current capabilities
 
-ClashFree is built using a clean, modern, and viva-friendly full-stack architecture:
+- Department-aware pages and API operations, with year and semester filters discovered from configured records.
+- A styled multi-sheet Excel setup workbook with a master Faculty directory, separate year tabs, a reusable Year Template, Resources, and Time Slots.
+- Workbook validation before import, faculty/resource suitability checks, automatic lab group creation for oversized divisions, and explicit batch coverage checks.
+- Duration-aware scheduling that excludes breaks/lunch and requires contiguous teaching periods with no clock gap.
+- Timetable version creation and restore support in the existing application.
+- Department-scoped imported bell schedules. Apply the additive migration in `backend/schema.sql` before using this feature with Supabase.
 
-- **Frontend**: React + Modern CSS (Vite build system)
-- **Backend**: Python + Flask REST API
-- **Database**: Supabase PostgreSQL
-- **Excel Processing**: `openpyxl`
-- **Scheduling Engine**: CSP (Constraint Satisfaction Problem) + MRV (Minimum Remaining Values) + Backtracking
+## Project layout
 
-```
-Browser (React Frontend - 11 Views & Role Switcher)
-          ↓ (REST API / CORS)
-     Flask Backend (app.py)
-          ↓
- Supabase PostgreSQL ↔ Python CSP+MRV Scheduling Engine
-```
-
----
-
-## 📁 Project Structure
-
-```
-ClashFree/
-│
-├── backend/
-│   ├── app.py             ← Flask REST API endpoints (Occupancy, Sharing, Workload, Timetable)
-│   ├── db.py              ← Supabase PostgreSQL connection & resilient CRUD
-│   ├── scheduler.py       ← CSP + MRV + Backtracking engine with HOD reservations
-│   ├── excel_reader.py    ← Multi-sheet Excel parser & validator (.xlsx)
-│   └── schema.sql         ← Complete database schema for Supabase SQL Editor
-│
-├── frontend/
-│   ├── src/
-│   │   ├── App.jsx        ← React application & 11 ERP navigation views
-│   │   ├── api.js         ← API client connecting to Flask backend
-│   │   └── index.css      ← Clean, professional stylesheet & print styles
-│   └── package.json       ← Frontend dependencies
-│
-├── .env                   ← Configured Supabase credentials
-├── .env.example           ← Environment variables template
-├── sample_data.xlsx       ← Comprehensive multi-sheet test dataset (8 sheets)
-├── create_sample.py       ← Script to generate sample_data.xlsx
-├── test_scheduler.py      ← Automated verification test suite
-├── requirements.txt       ← Python dependencies
-├── run.bat                ← One-click Windows launch script
-└── README.md
+```text
+backend/                 Flask API, scheduler, database access, schema, local store
+frontend/                React application and frontend package files
+assets/templates/        Official Excel workbook served by the API
+tests/                   Automated backend regression and scheduler tests
+tests/manual/            Manual acceptance flow that writes local test data
+scripts/                 Template generator and explicit maintenance tools
+docs/                    Deployment notes and deployment blockers
 ```
 
----
+## Local development
 
-## ⚡ How to Setup & Run
+From the project root, create and activate a Python virtual environment, then install backend dependencies:
 
-### 1. Database Setup (Supabase)
-1. Go to [supabase.com](https://supabase.com) and create or open your project.
-2. In your Supabase dashboard, open the **SQL Editor**.
-3. Copy the contents of [`backend/schema.sql`](backend/schema.sql) and click **Run**.
-4. In your project root, verify your `.env` file:
-   ```ini
-   SUPABASE_URL=https://your-project-ref.supabase.co
-   SUPABASE_KEY=your-supabase-anon-or-service-key
-   PORT=5000
-   ```
-
-### 2. Backend Setup
-1. In the root directory, install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. Start the Flask backend:
-   ```bash
-   python backend/app.py
-   ```
-   *Runs at `http://127.0.0.1:5000`*
-
-### 3. Frontend Setup
-1. Open a new terminal and navigate to `frontend`:
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
-2. Open your browser at `http://localhost:5173`.
-
-### 4. Run Automated Tests
-```bash
-python test_scheduler.py
+```sh
+python -m venv .venv
+# Windows PowerShell: .venv\Scripts\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
----
+Copy `.env.example` to `.env`. Supabase credentials are read by Flask only; keep `.env` local and untracked, and never put credentials in frontend variables. If real credentials were committed previously, rotate them in Supabase. Start both local services with:
 
-## 🎯 Completed Upgrades & Features
+```sh
+python run.py
+```
 
-### 1. HOD Resource Reservation Policy
-- Configurable reserved count for classrooms and labs (e.g. 1 out of 10 classrooms reserved, 1 out of 6 labs reserved).
-- Scheduler strictly considers `Total - Reserved` resources and keeps reserved rooms untouched for seminars, electives, or emergency use.
+If frontend packages are not installed yet, run `npm install` from `frontend` first. You can also start the API with `python backend/app.py` and start Vite separately with `npm run dev` from `frontend`.
 
-### 2. Slot-Wise Resource Occupancy Module
-- Real-time slot matrix: user selects **Day**, **Time Slot**, **Department**, and **Resource Type**.
-- Live indicators: **OCCUPIED**, **AVAILABLE**, **RESERVED**.
-- Detailed allocation cards showing Division/Batch, Faculty, Subject, and Room capacity.
-- Slot-wise occupancy percentages for classrooms and labs.
+The API listens on port 5000 and Vite serves the UI on port 5173. The default development API URL is `http://127.0.0.1:5000/api`. To use a different API base, set `VITE_API_BASE_URL` at frontend build time, including the `/api` suffix.
 
-### 3. Inter-Department Resource Sharing
-- Free/available resources identifiable across departments (e.g. E&TC can request free CSE classroom CR-03).
-- Complete workflow: **PENDING** → **APPROVED** / **REJECTED** with HOD approval controls.
-- Structural clash prevention across departments.
+## Excel setup workbook
 
-### 4. Academic Structure & Batch-Level Lab Scheduling
-- Hierarchical structure: Department → Degree → Year → Semester → Division → Batch.
-- Individual student strengths per division (e.g. Div A = 75 students, Div B = 72 students).
-- Lab sessions scheduled **batch-wise** (e.g. Batch A1 in Lab 1, Batch A2 in Lab 2) with Student:PC ratio constraints.
+Download the workbook from the Import page or regenerate the example with:
 
-### 5. Central Master Timetable & Filtered Views
-- Single source of truth containing Academic Year, Department, Semester, Day, Period, Division, Batch, Subject, Faculty, and Room.
-- Filtered views generated from the same dataset:
-  1. Master Timetable
-  2. Division-wise Timetable
-  3. Batch-wise Timetable
-  4. Faculty-wise Timetable
-  5. Classroom-wise Timetable
-  6. Lab-wise Timetable
+```sh
+python -B scripts/create_excel_template.py
+```
 
-### 6. Faculty Initials & Workload Analysis
-- Automatic initials generation with honorific stripping:
-  - `Mr. Vishal H. Pundikar` → `VHP`
-  - `Dr. Vikas L. Bhise` → `VLB`
-  - `Dr. Amit R. Sharma` → `ARS`
-- Weekly workload tracking (Lecture hours, Lab hours, Max allowed load, Overload/Underload status).
-- Standardized college Academic Load Report table.
+The official workbook is `assets/templates/CLASHFREE_Input_Template.xlsx`. It contains `Instructions`, `Faculty`, `Year 1`, `Year 2`, `Year 3`, `Year Template`, `Resources`, and `Time Slots`. Faculty codes are defined once and reused in the year tabs. To add a year, duplicate `Year Template` and rename it to the next `Year N`. Validate the workbook in the application before importing it.
 
-### 7. Break and Lunch Handling
-- Breaks and lunch periods configured as `SHORT_BREAK` and `LUNCH`.
-- Structurally impossible for the CSP engine to schedule classes during non-teaching intervals.
+## Checks
 
-### 8. Timetable Version History & Auditing
-- Version tracking (`v1`, `v2`, `v3`) with created date, description, and active status toggle.
+Run backend regression tests from the project root:
 
-### 9. Multi-Sheet Excel Import & Export
-- Import support for: `Departments`, `Divisions`, `Batches`, `Faculty`, `Rooms`, `Labs`, `Subjects`, `Sections`.
-- Comprehensive validation report showing imported rows, rejected rows, and missing fields.
-- Excel `.xlsx` download for Master Timetable and Academic Load Report.
-- Clean printable PDF layouts via browser print preview.
+```sh
+pytest -q
+```
 
-### 10. Role-Based Access Control
-- Live role switcher in header: `ADMIN`, `HOD`, `TIMETABLE_COORDINATOR`, `DEPARTMENT_COORDINATOR`.
+Run the frontend production build from `frontend`:
+
+```sh
+npm run build
+```
+
+`npm run lint` currently reports existing warnings in `App.jsx` and `api.js`; it is not yet warning-free.
+
+## Deployment status
+
+For a WSGI server on Linux, build `frontend/dist`, serve it through a static host or reverse proxy, and run the Flask API with:
+
+```sh
+gunicorn --bind 0.0.0.0:${PORT:-5000} backend.wsgi:app
+```
+
+Set `CORS_ORIGINS` to exact UI origins when using separate hosts. `FLASK_DEBUG` defaults to false, and uploads are limited by `MAX_UPLOAD_BYTES`.
+
+**This codebase is not yet safe for public production deployment with real college data.** Authentication, college membership authorization, full college-level schema scope, restrictive RLS policies, atomic Excel persistence, and complete active-version scope guarantees are not implemented. The existing schema grants broad access to `anon` and disables RLS; do not expose the current database publicly. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the blockers and migration notes.

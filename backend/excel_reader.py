@@ -242,10 +242,392 @@ def generate_faculty_codes(faculty_data: list) -> list:
     return faculty_data
 
 
+def _normalise_header(value):
+    return re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
+
+
+def _sheet_records(ws):
+    """Return row-numbered dictionaries using the first non-empty row as headers."""
+    values = list(ws.iter_rows(values_only=True))
+    # Official workbooks reserve rows 1-3 for the title, help text, and spacing;
+    # legacy/plain sheets continue to use their first non-empty row as headers.
+    if len(values) > 3 and values[3] and any(value is not None for value in values[3]):
+        header_index = 3
+    else:
+        header_index = next((i for i, row in enumerate(values) if row and any(v is not None for v in row)), None)
+    if header_index is None:
+        return [], None
+    headers = [_normalise_header(value) for value in values[header_index]]
+    records = []
+    for row_index, row in enumerate(values[header_index + 1:], start=header_index + 2):
+        if not row or all(value is None or str(value).strip() == "" for value in row):
+            continue
+        records.append((row_index, {headers[i]: row[i] for i in range(min(len(headers), len(row))) if headers[i]}))
+    return records, header_index + 1
+
+
+def _record_value(record, *names, default=None):
+    for name in names:
+        key = _normalise_header(name)
+        if key in record and record[key] is not None and str(record[key]).strip() != "":
+            value = record[key]
+            return value.strip() if isinstance(value, str) else value
+    return default
+
+
+def _positive_integer(value, label, errors, location):
+    try:
+        number = int(value)
+        if number < 1:
+            raise ValueError
+        return number
+    except (ValueError, TypeError):
+        errors.append(f"{location}: {label} must be a positive whole number.")
+        return None
+
+
+def _duration_periods(value, errors, location):
+    match = re.fullmatch(r"\s*(\d+)\s*(?:hr|hrs|hour|hours|period|periods)?\s*", str(value or ""), re.IGNORECASE)
+    if not match:
+        errors.append(f"{location}: Duration must be a positive number of periods, such as 1, 2, or 3.")
+        return None
+    periods = int(match.group(1))
+    if periods < 1:
+        errors.append(f"{location}: Duration must be at least one period.")
+        return None
+    return periods
+
+
+def _parse_active(value):
+    return str(value if value is not None else "yes").strip().lower() in {"yes", "true", "1", "y", "active"}
+
+
+def parse_multisheet_workbook(wb, context_dept, context_academic_year, context_semester=None):
+    """Validate and parse the structured faculty/year/resources/time workbook."""
+    errors, warnings = [], []
+    sheets = {ws.title.strip().lower(): ws for ws in wb.worksheets}
+    required = {"instructions", "faculty"}
+    for name in sorted(required - set(sheets)):
+        errors.append(f"Workbook is missing the required '{name.title()}' sheet.")
+    if "resources" not in sheets and "rooms" not in sheets:
+        errors.append("Workbook is missing the required 'Rooms' sheet.")
+    if "time slots" not in sheets and "weekly schedule" not in sheets:
+        errors.append("Workbook is missing the required 'Weekly Schedule' sheet.")
+    year_sheets = [
+        ws for ws in wb.worksheets
+        if re.fullmatch(r"year\s+\d+", ws.title.strip(), flags=re.IGNORECASE)
+    ]
+    classes_sheet = sheets.get("classes")
+    if not year_sheets and classes_sheet is None:
+        errors.append("Workbook must contain a 'Classes' sheet or numbered sheets such as 'Year 1'.")
+    if errors:
+        return None, errors, warnings, {}
+
+    faculty_records, _ = _sheet_records(sheets["faculty"])
+    faculty_by_code = {}
+    faculty_loads = {}
+    faculty_data = []
+    for row_num, row in faculty_records:
+        location = f"Faculty, row {row_num}"
+        code = str(_record_value(row, "Faculty Code", "Code", default="")).strip().upper()
+        name = str(_record_value(row, "Faculty Name", "Name", default="")).strip()
+        if not code or not name:
+            errors.append(f"{location}: Faculty Code and Faculty Name are required.")
+            continue
+        if code in faculty_by_code:
+            errors.append(f"{location}: Faculty Code '{code}' is duplicated (also used by {faculty_by_code[code]['name']}).")
+            continue
+        max_load = _positive_integer(_record_value(row, "Maximum Weekly Load", "Weekly Max Load", "Max Load"), "Maximum Weekly Load", errors, location)
+        preference = str(_record_value(row, "Preference", default="Any")).strip().title()
+        if preference not in {"Morning", "Afternoon", "Any"}:
+            errors.append(f"{location}: Preference must be Morning, Afternoon, or Any.")
+        availability = str(_record_value(row, "Availability", default="")).strip()
+        if not availability:
+            errors.append(f"{location}: Availability is required.")
+        elif len(parse_availability_string(availability).get("days", [])) == 0:
+            errors.append(f"{location}: Availability must include at least one valid working day.")
+        faculty = {
+            "code": code,
+            "name": name,
+            "department": context_dept,
+            "max_load": max_load or 0,
+            "weekly_max_load": max_load or 0,
+            "preference": preference,
+            "preferred_time": preference,
+            "availability": availability,
+            "subjects": [],
+        }
+        faculty_by_code[code] = faculty
+        faculty_loads[code] = 0
+        faculty_data.append(faculty)
+
+    resource_records, _ = _sheet_records(sheets.get("resources") or sheets.get("rooms"))
+    room_data, resource_codes = [], set()
+    for row_num, row in resource_records:
+        location = f"Resources, row {row_num}"
+        name = str(_record_value(row, "Resource Name", "Room Name", "Name", default="")).strip()
+        code = str(_record_value(row, "Resource Code", "Code", default=name)).strip().upper()
+        resource_type = str(_record_value(row, "Type", "Resource Type", default="")).strip().title()
+        capacity = _positive_integer(_record_value(row, "Capacity"), "Capacity", errors, location)
+        equipment = str(_record_value(row, "Equipment", default="")).strip()
+        if not code or not name:
+            errors.append(f"{location}: Resource Code and Resource Name are required.")
+            continue
+        if code in resource_codes:
+            errors.append(f"{location}: Resource Code '{code}' is duplicated.")
+            continue
+        if resource_type not in {"Classroom", "Lab"}:
+            errors.append(f"{location}: Type must be Classroom or Lab.")
+            continue
+        resource_codes.add(code)
+        room_data.append({
+            "code": code, "name": name, "type": resource_type,
+            "capacity": capacity or 0, "equipment": equipment,
+            "is_active": _parse_active(_record_value(row, "Active", default="Yes")),
+            "is_shared": _parse_active(_record_value(row, "Shared", default="No")),
+            "department": context_dept,
+        })
+    if not room_data:
+        errors.append("Resources sheet must contain at least one resource.")
+
+    time_records, _ = _sheet_records(sheets.get("time slots") or sheets.get("weekly schedule"))
+    time_data, by_day = [], {}
+    valid_days = {"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"}
+    for row_num, row in time_records:
+        location = f"Time Slots, row {row_num}"
+        day = str(_record_value(row, "Day", default="")).strip().title()
+        order = _positive_integer(_record_value(row, "Order", "Period Order"), "Order", errors, location)
+        start = format_time_12h(_record_value(row, "Start Time", "Start"))
+        end = format_time_12h(_record_value(row, "End Time", "End"))
+        slot_type = str(_record_value(row, "Type", "Slot Type", default="")).strip().lower()
+        if day.lower() not in valid_days:
+            errors.append(f"{location}: Day '{day}' is not a valid weekday.")
+            continue
+        if slot_type not in {"teaching", "break", "lunch"}:
+            errors.append(f"{location}: Type must be Teaching, Break, or Lunch.")
+            continue
+        start_minute, end_minute = time_str_to_minutes(start), time_str_to_minutes(end)
+        if not start or not end or start_minute >= end_minute:
+            errors.append(f"{location}: Start and End must be valid times, and End must be later than Start.")
+            continue
+        period = format_period_label(start, end)
+        slot = {
+            "day": day, "order_index": order or 0, "period": period,
+            "start_time": start, "end_time": end,
+            "type": "TEACHING" if slot_type == "teaching" else ("LUNCH" if slot_type == "lunch" else "SHORT_BREAK"),
+            "is_teaching": slot_type == "teaching", "is_morning": start_minute < 720,
+        }
+        by_day.setdefault(day, []).append(slot)
+        time_data.append(slot)
+    for day, slots in by_day.items():
+        slots.sort(key=lambda slot: slot["order_index"])
+        for previous, current in zip(slots, slots[1:]):
+            if current["order_index"] == previous["order_index"]:
+                errors.append(f"Time Slots: {day} has duplicate Order {current['order_index']}.")
+            if time_str_to_minutes(current["start_time"]) < time_str_to_minutes(previous["end_time"]):
+                errors.append(f"Time Slots: {day} has overlapping periods {previous['period']} and {current['period']}.")
+    if not time_data or not any(slot["is_teaching"] for slot in time_data):
+        errors.append("Time Slots sheet must contain at least one Teaching period.")
+
+    active_rooms = [room for room in room_data if room["is_active"]]
+    max_lab_capacity = max((room["capacity"] for room in active_rooms if room["type"] == "Lab"), default=0)
+    requirements, divisions, batches, subjects = [], {}, {}, {}
+    subject_names_by_code = {}
+    source_sheets = [(ws, None) for ws in year_sheets]
+    if classes_sheet is not None:
+        source_sheets.append((classes_sheet, "from_column"))
+    for ws, year_source in source_sheets:
+        records, _ = _sheet_records(ws)
+        if not records:
+            warnings.append(f"{ws.title}: no teaching rows are configured yet.")
+            continue
+        for row_num, row in records:
+            location = f"{ws.title}, row {row_num}"
+            if year_source == "from_column":
+                year_label = str(_record_value(row, "Year", "Year Level", default="")).strip()
+                if year_label.isdigit():
+                    year_label = f"Year {year_label}"
+            else:
+                year_value = ws.title.strip()[len("Year"):].strip()
+                year_label = f"Year {year_value}"
+            semester = str(_record_value(row, "Semester", default="")).strip()
+            division = str(_record_value(row, "Division", "Section", default="")).strip()
+            division_strength = _positive_integer(_record_value(row, "Division Strength", "Strength"), "Division Strength", errors, location)
+            subject_code = str(_record_value(row, "Subject Code", "Course Code", default="")).strip().upper()
+            subject_name = str(_record_value(row, "Subject Name", "Subject", "Course", default="")).strip()
+            kind = str(_record_value(row, "Type", "Session Type", "Class Type", default="")).strip().title()
+            sessions = _positive_integer(_record_value(row, "Sessions/Week", "Sessions Per Week"), "Sessions/Week", errors, location)
+            duration = _duration_periods(_record_value(row, "Duration", "Duration (Periods)", "Periods/Session"), errors, location)
+            faculty_code = str(_record_value(row, "Faculty Code", default="")).strip().upper()
+            resource_type = str(_record_value(row, "Required Resource Type", "Resource Type", default="")).strip().title()
+            if not resource_type:
+                resource_type = "Classroom" if kind == "Lecture" else "Lab"
+            equipment = str(_record_value(row, "Required Equipment", "Equipment Needed", "Equipment", default="")).strip()
+            batch_name = str(_record_value(row, "Batch", default="")).strip()
+            batch_name = None if batch_name.lower() in {"", "-", "none", "whole division"} else batch_name
+            batch_strength_value = _record_value(row, "Batch Strength")
+            batch_strength = None
+            if batch_name:
+                batch_strength = _positive_integer(batch_strength_value, "Batch Strength", errors, location)
+
+            if not year_label or not semester or not division or not subject_code or not subject_name:
+                required_fields = "Year, Semester, Division, Subject Code, and Subject Name" if year_source else "Semester, Division, Subject Code, and Subject Name"
+                errors.append(f"{location}: {required_fields} are required.")
+                continue
+            if kind not in {"Lecture", "Lab"}:
+                errors.append(f"{location}: Type must be Lecture or Lab.")
+                continue
+            if resource_type not in {"Classroom", "Lab"}:
+                errors.append(f"{location}: Required Resource Type must be Classroom or Lab.")
+                continue
+            if not faculty_code or faculty_code not in faculty_by_code:
+                errors.append(f"{location}: Faculty Code '{faculty_code or '(blank)'}' does not exist on the Faculty sheet.")
+                continue
+            if not sessions or not duration or not division_strength:
+                continue
+            if kind == "Lecture" and resource_type != "Classroom":
+                errors.append(f"{location}: Lecture sessions require a Classroom resource type.")
+            if kind == "Lab" and resource_type != "Lab":
+                errors.append(f"{location}: Lab sessions require a Lab resource type.")
+
+            prior_subject_name = subject_names_by_code.get(subject_code)
+            if prior_subject_name and prior_subject_name != subject_name:
+                errors.append(f"{location}: Subject Code '{subject_code}' is already assigned to '{prior_subject_name}', not '{subject_name}'.")
+            else:
+                subject_names_by_code[subject_code] = subject_name
+
+            scope_key = (year_label, semester, division)
+            div = divisions.setdefault(scope_key, {
+                "name": division, "division": division, "strength": division_strength,
+                "department_code": context_dept, "department": context_dept,
+                "year": year_label, "semester": semester,
+                "academic_year": context_academic_year,
+            })
+            if div["strength"] != division_strength:
+                errors.append(f"{location}: Division Strength conflicts with another row for division {division} in {year_label}.")
+
+            if kind == "Lab" and not batch_name and max_lab_capacity and division_strength > max_lab_capacity:
+                batch_names = []
+                remaining = division_strength
+                index = 1
+                while remaining > 0:
+                    size = min(max_lab_capacity, remaining)
+                    generated_name = f"{division}{index}"
+                    batch_names.append((generated_name, size))
+                    remaining -= size
+                    index += 1
+            elif kind == "Lab" and not batch_name and division_strength > 1:
+                errors.append(f"{location}: No active lab is available; cannot form a valid lab batch.")
+                continue
+            else:
+                batch_names = [(batch_name, batch_strength)] if batch_name else [(None, division_strength)]
+
+            for batch_code, required_capacity in batch_names:
+                if batch_code and (not required_capacity or required_capacity > division_strength):
+                    errors.append(f"{location}: Batch '{batch_code}' must have a positive strength no greater than its division strength.")
+                    continue
+                suitable = [room for room in active_rooms if room["type"] == resource_type and room["capacity"] >= required_capacity and (not equipment or equipment.lower() in room["equipment"].lower())]
+                if not suitable:
+                    errors.append(f"{location}: No active {resource_type.lower()} can fit {required_capacity} students and required equipment '{equipment or 'none'}'.")
+                    continue
+                if duration > 1:
+                    block_exists = False
+                    for slots in by_day.values():
+                        ordered = sorted(slots, key=lambda slot: slot["order_index"])
+                        teaching_run = []
+                        for slot in ordered + [{"is_teaching": False}]:
+                            contiguous = not teaching_run or bool(
+                                slot.get("is_teaching")
+                                and (
+                                    slot["order_index"] == teaching_run[-1]["order_index"] + 1
+                                    and time_str_to_minutes(slot["start_time"]) == time_str_to_minutes(teaching_run[-1]["end_time"])
+                                )
+                            )
+                            if slot.get("is_teaching") and contiguous:
+                                teaching_run.append(slot)
+                            else:
+                                if len(teaching_run) >= duration:
+                                    block_exists = True
+                                teaching_run = [slot] if slot.get("is_teaching") else []
+                        if block_exists:
+                            break
+                    if not block_exists:
+                        errors.append(f"{location}: No day has {duration} consecutive Teaching periods for this session duration.")
+
+                if batch_code:
+                    batch_key = (year_label, semester, division, batch_code)
+                    existing_batch = batches.get(batch_key)
+                    if existing_batch and existing_batch["strength"] != required_capacity:
+                        errors.append(f"{location}: Batch '{batch_code}' has inconsistent strength.")
+                    batches[batch_key] = {
+                        "division_name": division, "name": batch_code,
+                        "strength": required_capacity, "department_code": context_dept,
+                        "year": year_label, "semester": semester,
+                    }
+                requirement = {
+                    "department": context_dept, "academic_year": context_academic_year,
+                    "year": year_label, "semester": semester, "division": division,
+                    "batch": batch_code, "strength": required_capacity,
+                    "subject_code": subject_code, "subject": subject_name,
+                    "type": kind, "sessions_week": sessions, "duration": f"{duration} hr",
+                    "duration_periods": duration, "faculty_code": faculty_code,
+                    "faculty_name": faculty_by_code[faculty_code]["name"],
+                    "preference": faculty_by_code[faculty_code]["preference"],
+                    "availability": faculty_by_code[faculty_code]["availability"],
+                    "resource_type": resource_type, "capacity_required": required_capacity,
+                    "equipment": equipment,
+                }
+                requirements.append(requirement)
+                faculty_by_code[faculty_code]["subjects"].append(subject_name)
+                faculty_loads[faculty_code] += sessions * duration
+                subject = subjects.setdefault((subject_code, subject_name), {
+                    "name": subject_name, "code": subject_code, "department": context_dept,
+                    "year": year_label, "semester": semester,
+                    "lectures_per_week": 0, "labs_per_week": 0,
+                    "requires_lab": kind == "Lab", "lab_type": "" if kind == "Lecture" else "Lab",
+                    "equipment": equipment,
+                })
+                subject["labs_per_week" if kind == "Lab" else "lectures_per_week"] += sessions
+
+    for (year, semester, division), div in divisions.items():
+        configured_batches = [batch for (batch_year, batch_semester, batch_division, _), batch in batches.items()
+                              if (batch_year, batch_semester, batch_division) == (year, semester, division)]
+        if configured_batches:
+            covered = sum(batch["strength"] for batch in configured_batches)
+            if covered != div["strength"]:
+                errors.append(
+                    f"Year {year.split()[-1]}, Semester {semester}, Division {division}: batch strengths total {covered}, "
+                    f"but division strength is {div['strength']}."
+                )
+
+    for code, faculty in faculty_by_code.items():
+        if faculty_loads[code] > faculty["max_load"]:
+            errors.append(f"Faculty '{code}' has {faculty_loads[code]} required weekly hours, above maximum {faculty['max_load']}.")
+        faculty["subjects"] = sorted(set(faculty["subjects"]))
+    if not requirements:
+        errors.append("Year sheets must contain at least one valid teaching requirement.")
+    data = {
+        "requirements": requirements, "faculty": faculty_data,
+        "subjects": list(subjects.values()), "divisions": list(divisions.values()),
+        "batches": list(batches.values()), "rooms": room_data, "time_slots": time_data,
+        "sections": [{"name": d["name"], "strength": d["strength"], "department": context_dept} for d in divisions.values()],
+        "departments": [],
+    }
+    summary = {
+        "teaching_requirements_count": len(requirements), "faculty_count": len(faculty_data),
+        "subjects_count": len(subjects), "divisions_count": len(divisions),
+        "classrooms_count": sum(room["type"] == "Classroom" for room in room_data),
+        "labs_count": sum(room["type"] == "Lab" for room in room_data),
+        "teaching_slots_count": sum(slot["is_teaching"] for slot in time_data),
+        "total_slots_count": len(time_data),
+    }
+    return data, errors, warnings, summary
+
+
 # ---------------------------------------------------------------------------
 # SINGLE-SHEET (CLASHFREE_INPUT) PARSER
 # ---------------------------------------------------------------------------
-def parse_clashfree_single_sheet(ws):
+def parse_clashfree_single_sheet(ws, context_dept="CSE", context_academic_year="2026-2027", context_semester="Semester 3"):
     """
     Parses the new human-friendly single sheet template containing:
     1. Teaching Requirements table (18 columns)
@@ -292,7 +674,7 @@ def parse_clashfree_single_sheet(ws):
         norm = re.sub(r"[^A-Z0-9]", "", col_name.upper())
         col_map[norm] = c_idx
 
-    req_cols = ["YEAR", "SEMESTER", "DIVISION", "STRENGTH", "SUBJECT", "TYPE", "SESSIONSWEEK", "FACULTYNAME", "RESOURCETYPE", "CAPACITYREQUIRED"]
+    req_cols = ["YEAR", "SEMESTER", "DIVISION", "STRENGTH", "SUBJECT", "TYPE", "SESSIONSWEEK", "FACULTYNAME"]
     missing_teaching_cols = []
     for rc in req_cols:
         matched = any(rc in k or k in rc for k in col_map.keys())
@@ -425,22 +807,22 @@ def parse_clashfree_single_sheet(ws):
             "equipment": equipment if equipment != "-" else "",
             "is_active": is_active,
             "is_reserved": False,
-            "department": "CSE",
+            "department": context_dept,
             "num_pcs": capacity if is_lab and ("comp" in equipment.lower() or "pc" in equipment.lower()) else 0
         })
 
     # Fallback to default resources if none parsed
     if not parsed_resources:
         parsed_resources = [
-            {"name": "CR-1", "type": "Classroom", "capacity": 65, "equipment": "", "is_active": True, "department": "CSE"},
-            {"name": "CR-2", "type": "Classroom", "capacity": 65, "equipment": "Projector", "is_active": True, "department": "CSE"},
-            {"name": "CR-3", "type": "Classroom", "capacity": 70, "equipment": "Projector", "is_active": True, "department": "CSE"},
-            {"name": "CR-4", "type": "Classroom", "capacity": 65, "equipment": "", "is_active": True, "department": "CSE"},
-            {"name": "CR-5", "type": "Classroom", "capacity": 65, "equipment": "", "is_active": True, "department": "CSE"},
-            {"name": "LAB-1", "type": "Lab", "capacity": 35, "equipment": "Computer", "is_active": True, "department": "CSE", "num_pcs": 35},
-            {"name": "LAB-2", "type": "Lab", "capacity": 35, "equipment": "Computer", "is_active": True, "department": "CSE", "num_pcs": 35},
-            {"name": "LAB-3", "type": "Lab", "capacity": 35, "equipment": "Computer", "is_active": True, "department": "CSE", "num_pcs": 35},
-            {"name": "LAB-4", "type": "Lab", "capacity": 35, "equipment": "Computer", "is_active": True, "department": "CSE", "num_pcs": 35},
+            {"name": "CR-1", "type": "Classroom", "capacity": 65, "equipment": "", "is_active": True, "department": context_dept},
+            {"name": "CR-2", "type": "Classroom", "capacity": 65, "equipment": "Projector", "is_active": True, "department": context_dept},
+            {"name": "CR-3", "type": "Classroom", "capacity": 70, "equipment": "Projector", "is_active": True, "department": context_dept},
+            {"name": "CR-4", "type": "Classroom", "capacity": 65, "equipment": "", "is_active": True, "department": context_dept},
+            {"name": "CR-5", "type": "Classroom", "capacity": 65, "equipment": "", "is_active": True, "department": context_dept},
+            {"name": "LAB-1", "type": "Lab", "capacity": 35, "equipment": "Computer", "is_active": True, "department": context_dept, "num_pcs": 35},
+            {"name": "LAB-2", "type": "Lab", "capacity": 35, "equipment": "Computer", "is_active": True, "department": context_dept, "num_pcs": 35},
+            {"name": "LAB-3", "type": "Lab", "capacity": 35, "equipment": "Computer", "is_active": True, "department": context_dept, "num_pcs": 35},
+            {"name": "LAB-4", "type": "Lab", "capacity": 35, "equipment": "Computer", "is_active": True, "department": context_dept, "num_pcs": 35},
         ]
 
     active_rooms = [r for r in parsed_resources if r.get("is_active", True)]
@@ -538,9 +920,10 @@ def parse_clashfree_single_sheet(ws):
         max_load_val = get_val(row, ["WEEKLYMAXLOAD", "MAXLOAD"], 18)
         preference = str(get_val(row, ["PREFERENCE", "PREF"], "Any")).strip()
         availability = str(get_val(row, ["AVAILABILITY", "AVAIL"], "")).strip()
-        res_type = str(get_val(row, ["RESOURCETYPE", "ROOMTYPE"], "Classroom")).strip()
-        cap_req_val = get_val(row, ["CAPACITYREQUIRED", "CAPACITYREQ", "CAPACITY"], 60)
-        equipment = str(get_val(row, ["EQUIPMENT", "EQ"], "-")).strip()
+        # resource_type auto-derived from Type column; no separate column needed
+        res_type = "Lab" if "lab" in str(get_val(row, ["TYPE", "SESSIONTYPE"], "Lecture")).lower() else "Classroom"
+        cap_req_val = None   # auto-set from strength below
+        equipment = ""       # belongs to RESOURCE CONFIGURATION section, not teaching row
 
         # Validations on required values
         if not subj_name:
@@ -567,12 +950,7 @@ def parse_clashfree_single_sheet(ws):
         except (ValueError, TypeError):
             strength = 60
 
-        try:
-            capacity_req = int(cap_req_val)
-            if capacity_req <= 0:
-                capacity_req = strength
-        except (ValueError, TypeError):
-            capacity_req = strength
+        capacity_req = strength  # directly derived from Strength column
 
         try:
             max_load = int(max_load_val)
@@ -581,22 +959,16 @@ def parse_clashfree_single_sheet(ws):
 
         is_lab = ("lab" in sess_type.lower() or "lab" in res_type.lower())
 
-        # Check capacity feasibility against active resources
+        # Capacity feasibility: batch/division must fit in at least one active resource
         if is_lab:
-            if capacity_req > max_lab_cap:
+            if max_lab_cap > 0 and capacity_req > max_lab_cap:
                 errors.append(
-                    f'ERROR: {subj_name} requires a lab capacity of {capacity_req}, but no active lab has capacity >= {capacity_req} (Maximum active lab capacity is {max_lab_cap}).'
+                    f'ERROR: {subj_name} batch strength {capacity_req} exceeds max active lab capacity ({max_lab_cap}). Add a larger lab in RESOURCE CONFIGURATION.'
                 )
-            if equipment and equipment != "-":
-                has_eq = any(r["type"] == "Lab" and equipment.lower() in (r.get("equipment") or "").lower() for r in active_rooms)
-                if not has_eq:
-                    errors.append(
-                        f'ERROR: Lab session "{subj_name}" requires equipment "{equipment}", but no active lab provides it.'
-                    )
         else:
-            if capacity_req > max_classroom_cap:
+            if max_classroom_cap > 0 and capacity_req > max_classroom_cap:
                 errors.append(
-                    f'ERROR: {subj_name} requires a classroom capacity of {capacity_req}, but no active classroom has capacity >= {capacity_req} (Maximum active classroom capacity is {max_classroom_cap}).'
+                    f'ERROR: {subj_name} strength {capacity_req} exceeds max active classroom capacity ({max_classroom_cap}). Add a larger classroom in RESOURCE CONFIGURATION.'
                 )
 
         # Track weekly load per division
@@ -605,6 +977,8 @@ def parse_clashfree_single_sheet(ws):
 
         # Record requirements row
         requirements.append({
+            "department": context_dept,
+            "academic_year": context_academic_year or "2026-2027",
             "year": year,
             "semester": semester,
             "division": division,
@@ -637,7 +1011,7 @@ def parse_clashfree_single_sheet(ws):
                 "availability": availability,
                 "subjects": set(),
                 "assigned_load": 0,
-                "department": "CSE"
+                "department": context_dept
             }
         faculty_map[fac_name]["subjects"].add(subj_name)
         faculty_map[fac_name]["assigned_load"] += sessions_week
@@ -656,30 +1030,38 @@ def parse_clashfree_single_sheet(ws):
                 "resource_type": "Lab" if is_lab else "Classroom",
                 "capacity_required": capacity_req,
                 "equipment": equipment if equipment != "-" else "",
-                "department": "CSE"
+                "department": context_dept
             }
         if is_lab:
             subjects_map[s_key]["labs_per_week"] += sessions_week
         else:
             subjects_map[s_key]["lectures_per_week"] += sessions_week
 
-        # Track division & batches
-        if division not in divisions_map:
-            divisions_map[division] = {
+        # Track division & batches - Key by (year, semester, division) to support multi-year divisions
+        div_key = (year, semester, division)
+        if div_key not in divisions_map:
+            divisions_map[div_key] = {
                 "name": division,
+                "division": division,
                 "strength": strength,
-                "department_code": "CSE",
+                "department_code": context_dept,
+                "department": context_dept,
                 "year": f"Year {year}",
-                "semester": f"Semester {semester}"
+                "semester": f"Semester {semester}",
+                "academic_year": context_academic_year or "2026-2027",
+                "display_name": f"Year {year} Div {division}"
             }
         else:
-            divisions_map[division]["strength"] = max(divisions_map[division]["strength"], strength)
+            divisions_map[div_key]["strength"] = max(divisions_map[div_key]["strength"], strength)
 
         if batch:
-            batches_map[(division, batch)] = {
+            batches_map[(year, semester, division, batch)] = {
                 "division_name": division,
                 "name": batch,
-                "strength": strength
+                "strength": strength,
+                "department_code": context_dept,
+                "year": f"Year {year}",
+                "semester": f"Semester {semester}"
             }
 
     # Division load checks
@@ -723,8 +1105,10 @@ def parse_clashfree_single_sheet(ws):
         "batches": list(batches_map.values()),
         "rooms": parsed_resources,
         "time_slots": parsed_time_slots,
-        "sections": [{"name": d["name"], "strength": d["strength"], "department": "CSE"} for d in divisions_map.values()],
-        "departments": [{"code": "CSE", "name": "Computer Science and Engineering"}]
+        "sections": [{"name": d["name"], "strength": d["strength"], "department": context_dept} for d in divisions_map.values()],
+        # Department identity is supplied and validated by the selected request
+        # context. A teaching workbook must never create or redirect a department.
+        "departments": []
     }
 
     classrooms_count = len([r for r in parsed_resources if r["type"] == "Classroom"])
@@ -747,9 +1131,9 @@ def parse_clashfree_single_sheet(ws):
 # ---------------------------------------------------------------------------
 # PUBLIC ENTRY POINT
 # ---------------------------------------------------------------------------
-def read_excel(filepath_or_bytes):
+def read_excel(filepath_or_bytes, department="CSE", academic_year="2026-2027", semester="Semester 3"):
     """
-    Read .xlsx workbook from filepath or BytesIO.
+    Read .xlsx workbook from filepath or BytesIO with explicit department and academic context.
     Prioritizes CLASHFREE_INPUT single sheet.
     Falls back gracefully to legacy multi-sheet workbooks.
     Returns: (data_dict, errors, warnings, summary)
@@ -765,6 +1149,18 @@ def read_excel(filepath_or_bytes):
 
     sheetnames = wb.sheetnames
 
+    structured_sheets = {name.strip().lower() for name in sheetnames}
+    if ("instructions" in structured_sheets and "faculty" in structured_sheets
+            and ("resources" in structured_sheets or "rooms" in structured_sheets)
+            and ("time slots" in structured_sheets or "weekly schedule" in structured_sheets)):
+        data, errors, warnings, summary = parse_multisheet_workbook(
+            wb,
+            context_dept=department,
+            context_academic_year=academic_year,
+            context_semester=semester,
+        )
+        return data, errors, warnings, summary
+
     # Check for CLASHFREE_INPUT sheet
     clashfree_sheet = None
     for name in sheetnames:
@@ -774,18 +1170,17 @@ def read_excel(filepath_or_bytes):
 
     if clashfree_sheet is not None or len(sheetnames) == 1:
         target_ws = clashfree_sheet if clashfree_sheet is not None else wb.active
-        return parse_clashfree_single_sheet(target_ws)
+        return parse_clashfree_single_sheet(target_ws, context_dept=department, context_academic_year=academic_year, context_semester=semester)
 
-    # Legacy multi-sheet parser fallback
-    from backend import excel_reader_legacy
-    return parse_clashfree_single_sheet(wb.active)
+    # Single-sheet or active sheet parser fallback
+    return parse_clashfree_single_sheet(wb.active, context_dept=department, context_academic_year=academic_year, context_semester=semester)
 
 
-def validate_excel_data(filepath_or_bytes):
+def validate_excel_data(filepath_or_bytes, department="CSE", academic_year="2026-2027", semester="Semester 3"):
     """
-    Performs pure validation on Excel without importing into database.
+    Performs pure validation on Excel with explicit department and academic context.
     Returns: (valid: bool, errors: list, warnings: list, summary: dict, data_dict: dict)
     """
-    data_dict, errors, warnings, summary = read_excel(filepath_or_bytes)
+    data_dict, errors, warnings, summary = read_excel(filepath_or_bytes, department=department, academic_year=academic_year, semester=semester)
     is_valid = (data_dict is not None and len(errors) == 0)
     return is_valid, errors, warnings, summary, data_dict

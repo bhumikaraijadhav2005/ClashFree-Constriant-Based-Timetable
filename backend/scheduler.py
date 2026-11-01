@@ -102,6 +102,17 @@ def time_to_minutes(val) -> int:
     return 0
 
 
+def _parse_duration_periods(duration_str) -> int:
+    """Parse '1 hr', '2 hr', '2 hours', '1', '2' to integer number of periods."""
+    if not duration_str:
+        return 1
+    s = str(duration_str).strip().lower()
+    m = re.match(r'^(\d+)', s)
+    if m:
+        return max(1, min(int(m.group(1)), 4))  # Cap at 4 periods
+    return 1
+
+
 # ---------------------------------------------------------------------------
 # DEFAULT TIME SLOTS (12-Hour AM/PM Standard)
 # ---------------------------------------------------------------------------
@@ -123,6 +134,7 @@ _session_lookup = {}
 _period_order_map = {}
 _active_days = list(DAYS)
 _day_order = dict(DAY_ORDER)
+_contiguous_blocks_cache = {}
 
 
 def _are_periods_consecutive(p1: str, p2: str) -> bool:
@@ -248,11 +260,21 @@ def _build_sessions(subject_list: list, division_list: list, batch_list: list, d
         for req in requirements:
             sess_count = req.get("sessions_week", 1)
             is_lab = (req.get("type") == "Lab" or req.get("resource_type") == "Lab")
+            # Parse duration_periods from req
+            raw_duration = req.get("duration")
+            if raw_duration:
+                duration_periods = _parse_duration_periods(raw_duration)
+            else:
+                # Default: Labs = 2 periods, Lectures = 1 period
+                duration_periods = 2 if is_lab else 1
             for i in range(sess_count):
                 sessions.append({
                     "id": f"s{sid}",
                     "department": department,
                     "division": req.get("division", "A"),
+                    "year": req.get("year"),
+                    "semester": req.get("semester"),
+                    "academic_year": req.get("academic_year"),
                     "batch": req.get("batch"),
                     "subject": req.get("subject"),
                     "subject_code": req.get("subject_code"),
@@ -265,6 +287,7 @@ def _build_sessions(subject_list: list, division_list: list, batch_list: list, d
                     "preference": req.get("preference", "Any"),
                     "index": i,
                     "total_sessions": sess_count,
+                    "duration_periods": duration_periods,
                 })
                 sid += 1
         return sessions
@@ -296,6 +319,9 @@ def _build_sessions(subject_list: list, division_list: list, batch_list: list, d
                     "id": f"s{sid}",
                     "department": department,
                     "division": div_name,
+                    "year": div.get("year"),
+                    "semester": div.get("semester"),
+                    "academic_year": div.get("academic_year"),
                     "batch": None,
                     "subject": subj["name"],
                     "subject_code": subj.get("code", ""),
@@ -305,6 +331,7 @@ def _build_sessions(subject_list: list, division_list: list, batch_list: list, d
                     "equipment": subj.get("equipment", ""),
                     "index": i,
                     "total_sessions": lec_count,
+                    "duration_periods": 1,
                 })
                 sid += 1
 
@@ -315,6 +342,9 @@ def _build_sessions(subject_list: list, division_list: list, batch_list: list, d
                         "id": f"s{sid}",
                         "department": department,
                         "division": div_name,
+                        "year": div.get("year"),
+                        "semester": div.get("semester"),
+                        "academic_year": div.get("academic_year"),
                         "batch": batch["name"],
                         "subject": subj["name"],
                         "subject_code": subj.get("code", ""),
@@ -324,6 +354,7 @@ def _build_sessions(subject_list: list, division_list: list, batch_list: list, d
                         "equipment": subj.get("equipment") or "Computer",
                         "index": i,
                         "total_sessions": lab_count,
+                        "duration_periods": 2,
                     })
                     sid += 1
 
@@ -331,17 +362,63 @@ def _build_sessions(subject_list: list, division_list: list, batch_list: list, d
 
 
 # ---------------------------------------------------------------------------
+# CONTIGUOUS BLOCK BUILDER
+# ---------------------------------------------------------------------------
+def _build_contiguous_blocks(teaching_slots, n_periods):
+    """
+    Build all valid n-period contiguous TEACHING blocks.
+    A block is valid if:
+    - All n periods are on the same day
+    - All n periods are consecutive in the period order
+    - No break or lunch separates them (they are all TEACHING type — already enforced since teaching_slots only has TEACHING type)
+
+    Returns: list of (day, periods_tuple) where periods_tuple is a tuple of n period strings
+    """
+    from collections import defaultdict
+    day_periods = defaultdict(list)  # day -> [(order_index, period), ...]
+
+    # We need the full slot list including breaks to detect gaps
+    # Use _period_order_map to check consecutive ordering
+    for (day, period, is_morning) in teaching_slots:
+        idx = _period_order_map.get(period, -1)
+        day_periods[day].append((idx, period))
+
+    blocks = []
+    for day, slots_with_idx in day_periods.items():
+        # Sort by order index
+        slots_sorted = sorted(slots_with_idx, key=lambda x: x[0])
+        periods_only = [p for (_, p) in slots_sorted]
+        indices_only = [i for (i, _) in slots_sorted]
+
+        # Find consecutive runs of length n_periods
+        for start in range(len(periods_only) - n_periods + 1):
+            # Check that these n periods are truly consecutive (index gap of exactly 1)
+            is_consecutive = all(
+                indices_only[start + k + 1] == indices_only[start + k] + 1
+                and time_to_minutes(periods_only[start + k].split("-")[-1].strip())
+                == time_to_minutes(periods_only[start + k + 1].split("-")[0].strip())
+                for k in range(n_periods - 1)
+            )
+            if is_consecutive:
+                block_periods = tuple(periods_only[start:start + n_periods])
+                blocks.append((day, block_periods))
+
+    return blocks
+
+
+# ---------------------------------------------------------------------------
 # BUILD DOMAIN (CSP DOMAINS)
 # ---------------------------------------------------------------------------
 def _build_domain(session: dict, faculty_list: list, active_rooms: list, teaching_slots: list, approved_sharing: list = None):
     """
-    Return all valid ((day, period), room, faculty) options for a session.
+    Return all valid ((day, periods_tuple), room, faculty) options for a session.
     Enforces:
     - Only valid TEACHING slots (breaks & lunches are already excluded).
     - Faculty subject qualification.
     - Faculty hard availability.
     - Suitable active room matching type, capacity, and equipment.
     - Cross-department resource sharing reservations.
+    - Multi-period contiguous blocks for labs or sessions with duration_periods > 1.
     """
     if approved_sharing is None:
         approved_sharing = []
@@ -369,46 +446,103 @@ def _build_domain(session: dict, faculty_list: list, active_rooms: list, teachin
             key = (req.get("day"), format_time_12h(req.get("period")), req.get("resource_name"))
             sharing_blocks[key] = req.get("requesting_department")
 
-    domain = []
-    for (day, period, is_morning) in teaching_slots:
-        for room in suitable_rooms:
-            block_key = (day, period, room.get("name"))
-            if block_key in sharing_blocks and sharing_blocks[block_key] != session.get("department"):
-                continue
+    n = session.get("duration_periods", 1)
 
-            for faculty in possible_faculty:
-                if _faculty_is_available(faculty, day, period):
-                    domain.append(((day, period), room, faculty))
+    if n <= 1:
+        # Single period: existing logic
+        domain = []
+        for (day, period, is_morning) in teaching_slots:
+            for room in suitable_rooms:
+                block_key = (day, period, room.get("name"))
+                if block_key in sharing_blocks and sharing_blocks[block_key] != session.get("department"):
+                    continue
 
-    # Soft constraint sorting (Section 16 requirement):
-    # 1. Faculty preferred time (Morning vs Afternoon)
-    # 2. Spread across distinct days to avoid clustering
-    def sort_key(entry):
-        (day, period), room, faculty = entry
-        is_morning = any(slot[2] for slot in teaching_slots if slot[0] == day and slot[1] == period)
-        pref = faculty.get("preferred_time") or session.get("preference") or "Any"
+                for faculty in possible_faculty:
+                    if _faculty_is_available(faculty, day, period):
+                        domain.append(((day, (period,)), room, faculty))  # period is a TUPLE
 
-        pref_score = 0
-        if pref == "Morning" and is_morning:
-            pref_score = -2
-        elif pref == "Morning" and not is_morning:
-            pref_score = 2
-        elif pref == "Afternoon" and not is_morning:
-            pref_score = -2
-        elif pref == "Afternoon" and is_morning:
-            pref_score = 2
+        # Soft constraint sorting (Section 16 requirement):
+        # 1. Faculty preferred time (Morning vs Afternoon)
+        # 2. Spread across distinct days to avoid clustering
+        def sort_key(entry):
+            (day, periods_tuple), room, faculty = entry
+            period = periods_tuple[0]
+            is_morning = any(slot[2] for slot in teaching_slots if slot[0] == day and slot[1] == period)
+            pref = faculty.get("preferred_time") or session.get("preference") or "Any"
 
-        num_days = max(1, len(_active_days))
-        total_s = max(1, session.get("total_sessions", 3))
-        subj_hash = sum(ord(c) for c in session["subject"])
-        ideal_day_idx = (int(session.get("index", 0) * (num_days / total_s)) + subj_hash) % num_days
-        curr_day_idx = _day_order.get(day, 0)
-        day_dist = min(abs(curr_day_idx - ideal_day_idx), num_days - abs(curr_day_idx - ideal_day_idx))
+            pref_score = 0
+            if pref == "Morning" and is_morning:
+                pref_score = -2
+            elif pref == "Morning" and not is_morning:
+                pref_score = 2
+            elif pref == "Afternoon" and not is_morning:
+                pref_score = -2
+            elif pref == "Afternoon" and is_morning:
+                pref_score = 2
 
-        return pref_score + (day_dist * 2.5)
+            num_days = max(1, len(_active_days))
+            total_s = max(1, session.get("total_sessions", 3))
+            subj_hash = sum(ord(c) for c in session["subject"])
+            ideal_day_idx = (int(session.get("index", 0) * (num_days / total_s)) + subj_hash) % num_days
+            curr_day_idx = _day_order.get(day, 0)
+            day_dist = min(abs(curr_day_idx - ideal_day_idx), num_days - abs(curr_day_idx - ideal_day_idx))
 
-    domain.sort(key=sort_key)
-    return domain
+            return pref_score + (day_dist * 2.5)
+
+        domain.sort(key=sort_key)
+        return domain
+    else:
+        # Multi-period contiguous block
+        if n not in _contiguous_blocks_cache:
+            _contiguous_blocks_cache[n] = _build_contiguous_blocks(teaching_slots, n)
+        blocks = _contiguous_blocks_cache[n]
+
+        domain = []
+        for (day, block_periods) in blocks:
+            # Check ALL periods in the block are available for the faculty
+            for room in suitable_rooms:
+                # Check no sharing blocks conflict
+                any_blocked = False
+                for p in block_periods:
+                    bk = (day, p, room.get("name"))
+                    if bk in sharing_blocks and sharing_blocks[bk] != session.get("department"):
+                        any_blocked = True
+                        break
+                if any_blocked:
+                    continue
+
+                for faculty in possible_faculty:
+                    # Check faculty available for all periods in block
+                    all_avail = all(_faculty_is_available(faculty, day, p) for p in block_periods)
+                    if all_avail:
+                        domain.append(((day, block_periods), room, faculty))
+
+        # Sort by soft constraints (use first period of block for morning check)
+        def sort_key_block(entry):
+            (day, block_periods), room, faculty = entry
+            first_period = block_periods[0]
+            is_morning = any(slot[2] for slot in teaching_slots if slot[0] == day and slot[1] == first_period)
+            pref = faculty.get("preferred_time") or session.get("preference") or "Any"
+            pref_score = 0
+            if pref == "Morning" and is_morning:
+                pref_score = -2
+            elif pref == "Morning" and not is_morning:
+                pref_score = 2
+            elif pref == "Afternoon" and not is_morning:
+                pref_score = -2
+            elif pref == "Afternoon" and is_morning:
+                pref_score = 2
+
+            num_days = max(1, len(_active_days))
+            total_s = max(1, session.get("total_sessions", 3))
+            subj_hash = sum(ord(c) for c in session["subject"])
+            ideal_day_idx = (int(session.get("index", 0) * (num_days / total_s)) + subj_hash) % num_days
+            curr_day_idx = _day_order.get(day, 0)
+            day_dist = min(abs(curr_day_idx - ideal_day_idx), num_days - abs(curr_day_idx - ideal_day_idx))
+            return pref_score + (day_dist * 2.5)
+
+        domain.sort(key=sort_key_block)
+        return domain
 
 
 # ---------------------------------------------------------------------------
@@ -430,83 +564,94 @@ def _is_valid(session: dict, slot: tuple, room: dict, faculty: dict, assignment:
 
     Returns: (is_valid: bool, conflict_details: dict or None)
     """
-    day, period = slot
-    same_fac_consec = 0
+    day, periods_tuple = slot
+    period = periods_tuple[0]  # Primary period (for logging/display)
 
     for assigned_id, (a_slot, a_room, a_faculty) in assignment.items():
-        a_day, a_period = a_slot
+        a_day, a_periods_tuple = a_slot
         a_session = _session_lookup.get(assigned_id)
         if not a_session:
             continue
 
-        # Same slot clashes
-        if a_day == day and a_period == period:
-            # Constraint 1: Faculty clash
-            if a_faculty.get("code") == faculty.get("code"):
-                return False, {
-                    "type": "Faculty Clash",
-                    "entity": faculty.get("code"),
-                    "faculty_name": faculty.get("name"),
-                    "division": session.get("division"),
-                    "resource": room.get("name"),
-                    "time": f"{day} {period}",
-                    "issue": f"Faculty {faculty.get('code')} ({faculty.get('name')}) is already assigned to {a_session['division']} {a_session['subject']}.",
-                    "resolution": f"Reassigned {session['division']} {session['subject']} to alternate slot"
-                }
+        # Check overlap: any period in current block overlaps with any assigned period on the same day
+        if a_day == day:
+            overlap = bool(set(periods_tuple) & set(a_periods_tuple))
 
-            # Constraint 2 & 3: Room double booking
-            if a_room.get("name") == room.get("name"):
-                return False, {
-                    "type": "Room Clash",
-                    "entity": room.get("name"),
-                    "faculty_name": faculty.get("name"),
-                    "division": session.get("division"),
-                    "resource": room.get("name"),
-                    "time": f"{day} {period}",
-                    "issue": f"Resource {room.get('name')} is already occupied by {a_session['division']} {a_session['subject']}.",
-                    "resolution": f"Assigned alternate room for {session['division']} {session['subject']}"
-                }
-
-            # Constraint 4, 5, 7: Division and Batch checks
-            if a_session["division"] == session["division"]:
-                if not a_session.get("batch") or not session.get("batch"):
+            if overlap:
+                # Constraint 1: Faculty clash
+                if a_faculty.get("code") == faculty.get("code"):
                     return False, {
-                        "type": "Division Clash",
-                        "entity": session.get("division"),
+                        "type": "Faculty Clash",
+                        "entity": faculty.get("code"),
                         "faculty_name": faculty.get("name"),
                         "division": session.get("division"),
                         "resource": room.get("name"),
                         "time": f"{day} {period}",
-                        "issue": f"Division {session['division']} already has class {a_session['subject']} scheduled in this slot.",
+                        "issue": f"Faculty {faculty.get('code')} ({faculty.get('name')}) is already assigned to {a_session['division']} {a_session['subject']}.",
                         "resolution": f"Reassigned {session['division']} {session['subject']} to alternate slot"
                     }
-                if a_session.get("batch") == session.get("batch"):
+
+                # Constraint 2 & 3: Room double booking
+                if a_room.get("name") == room.get("name"):
                     return False, {
-                        "type": "Batch Clash",
-                        "entity": session.get("batch"),
+                        "type": "Room Clash",
+                        "entity": room.get("name"),
                         "faculty_name": faculty.get("name"),
                         "division": session.get("division"),
                         "resource": room.get("name"),
                         "time": f"{day} {period}",
-                        "issue": f"Batch {session.get('batch')} already has lab {a_session['subject']} in this slot.",
-                        "resolution": f"Reassigned Batch {session.get('batch')} to alternate slot"
+                        "issue": f"Resource {room.get('name')} is already occupied by {a_session['division']} {a_session['subject']}.",
+                        "resolution": f"Assigned alternate room for {session['division']} {session['subject']}"
                     }
 
-        # Constraint 8: No back-to-back duplicate lecture of the same subject
-        if a_day == day and a_session["division"] == session["division"]:
-            if not session.get("is_lab") and not a_session.get("is_lab"):
-                if a_session["subject"] == session["subject"]:
-                    if _are_periods_consecutive(a_period, period):
-                        return False, None
+                # Constraint 4, 5, 7: Division and Batch checks
+                if a_session["division"] == session["division"]:
+                    if not a_session.get("batch") or not session.get("batch"):
+                        return False, {
+                            "type": "Division Clash",
+                            "entity": session.get("division"),
+                            "faculty_name": faculty.get("name"),
+                            "division": session.get("division"),
+                            "resource": room.get("name"),
+                            "time": f"{day} {period}",
+                            "issue": f"Division {session['division']} already has class {a_session['subject']} in this slot.",
+                            "resolution": f"Reassigned {session['division']} {session['subject']} to alternate slot"
+                        }
+                    if a_session.get("batch") == session.get("batch"):
+                        return False, {
+                            "type": "Batch Clash",
+                            "entity": session.get("batch"),
+                            "faculty_name": faculty.get("name"),
+                            "division": session.get("division"),
+                            "resource": room.get("name"),
+                            "time": f"{day} {period}",
+                            "issue": f"Batch {session.get('batch')} already has lab {a_session['subject']} in this slot.",
+                            "resolution": f"Reassigned Batch {session.get('batch')} to alternate slot"
+                        }
 
-        # Constraint 10: Faculty consecutive fatigue check on same day
+            # Constraint 8: No back-to-back duplicate lecture (only for single-period sessions)
+            n_cur = session.get("duration_periods", 1)
+            n_a = a_session.get("duration_periods", 1)
+            if not session.get("is_lab") and not a_session.get("is_lab") and n_cur == 1 and n_a == 1:
+                if a_session["division"] == session["division"]:
+                    if a_session["subject"] == session["subject"]:
+                        if _are_periods_consecutive(a_periods_tuple[-1], periods_tuple[0]) or _are_periods_consecutive(periods_tuple[-1], a_periods_tuple[0]):
+                            return False, None
+
+        # Constraint 10: Faculty consecutive fatigue (count consecutive single periods only)
         if a_day == day and a_faculty.get("code") == faculty.get("code"):
-            if _are_periods_consecutive(a_period, period):
-                same_fac_consec += 1
-                if same_fac_consec >= 3:
+            # Check consecutive between this block's first/last and assigned block's first/last
+            if (_are_periods_consecutive(a_periods_tuple[-1], periods_tuple[0]) or
+                _are_periods_consecutive(periods_tuple[-1], a_periods_tuple[0])):
+                # Count total consecutive faculty load on this day
+                fac_day_sessions = sum(
+                    1 for aid, (asl, _, af) in assignment.items()
+                    if asl[0] == day and af.get("code") == faculty.get("code")
+                )
+                if fac_day_sessions >= 3:
                     return False, None
 
-    # Constraint 9: Daily lecture limit per subject for a division
+    # Constraint 9: Daily lecture limit per subject for a division (single-period only)
     if not session.get("is_lab"):
         total_s = session.get("total_sessions", 3)
         num_days = max(1, len(_active_days))
@@ -536,55 +681,21 @@ def _pick_next_session(unscheduled: list, assignment: dict, domains: dict):
     If a variable has very few choices left, it is most likely to cause a dead end
     later; addressing it first fails fast and prunes the search space drastically.
     Tie-breaker: Lab sessions first (due to specialized equipment and lab rooms).
-
-    Performance optimization: Instead of calling the expensive _is_valid() for every
-    domain entry of every unscheduled session, we estimate remaining valid count by
-    checking only slot/faculty/room conflicts against already-assigned sessions.
-    This is O(unscheduled * assignment_size) instead of O(unscheduled * domain * assignment).
     """
-    # Pre-compute used slots per entity from current assignment for fast lookup
-    used_fac_slots = {}  # faculty_code -> set of (day, period)
-    used_room_slots = {}  # room_name -> set of (day, period)
-    used_div_slots = {}  # division -> set of (day, period)
-
-    for aid, (a_slot, a_room, a_faculty) in assignment.items():
-        a_sess = _session_lookup.get(aid)
-        if not a_sess:
-            continue
-        fc = a_faculty.get("code")
-        rn = a_room.get("name")
-        dv = a_sess.get("division")
-        if fc:
-            used_fac_slots.setdefault(fc, set()).add(a_slot)
-        if rn:
-            used_room_slots.setdefault(rn, set()).add(a_slot)
-        if dv:
-            used_div_slots.setdefault(dv, set()).add(a_slot)
-
     best_session = None
     best_count = float("inf")
-    best_priority = 1
+    best_priority = float("inf")
 
     for session in unscheduled:
         sid = session["id"]
-        div = session.get("division")
         priority = 0 if session.get("is_lab") else 1
-
-        # Fast count: how many domain entries can avoid known conflicts
-        valid_count = 0
-        for (slot, room, faculty) in domains[sid]:
-            fc = faculty.get("code")
-            rn = room.get("name")
-            # Skip if faculty already busy in this slot
-            if fc and slot in used_fac_slots.get(fc, set()):
-                continue
-            # Skip if room already busy in this slot
-            if rn and slot in used_room_slots.get(rn, set()):
-                continue
-            # Skip if division already busy (for full-div lectures)
-            if div and not session.get("batch") and slot in used_div_slots.get(div, set()):
-                continue
-            valid_count += 1
+        # Count using the same complete hard-constraint checker as assignment.
+        # Separate occupancy approximations drifted from _is_valid as constraints
+        # were added, which made the variable order cease to be true MRV.
+        valid_count = sum(
+            1 for slot, room, faculty in domains.get(sid, [])
+            if _is_valid(session, slot, room, faculty, assignment)[0]
+        )
 
         if (valid_count, priority) < (best_count, best_priority):
             best_count = valid_count
@@ -625,6 +736,7 @@ def _backtrack(unscheduled: list, assignment: dict, domains: dict, step_counter:
             if conflict_info:
                 cid = clash_tracker["counter"]
                 clash_tracker["counter"] += 1
+                day, periods_tuple = slot
                 conflict_entry = {
                     "id": f"#{cid}",
                     "type": conflict_info["type"],
@@ -649,8 +761,9 @@ def _backtrack(unscheduled: list, assignment: dict, domains: dict, step_counter:
             # Mark clashes for this session as Resolved
             for c in clash_tracker["log"]:
                 if c.get("division") == session.get("division") and c.get("status") == "Detected":
+                    day, periods_tuple = slot
                     c["status"] = "Resolved"
-                    c["resolution"] = f"Reassigned {session['division']} {session['subject']} to {slot[0]} {slot[1]} in {room['name']}"
+                    c["resolution"] = f"Reassigned {session['division']} {session['subject']} to {day} {periods_tuple[0]} in {room['name']}"
             return res
 
         # Undo tentative assignment (Backtrack)
@@ -730,7 +843,8 @@ def generate_timetable(
     Tracks detected and resolved clashes.
     Returns: (success: bool, message: str, timetable_rows: list, conflicts: list, metadata: dict)
     """
-    global _session_lookup, _period_order_map, _active_days, _day_order
+    global _session_lookup, _period_order_map, _active_days, _day_order, _contiguous_blocks_cache
+    _contiguous_blocks_cache = {}
 
     if batch_list is None:
         batch_list = []
@@ -755,13 +869,26 @@ def generate_timetable(
             formatted_slots.append(s_copy)
         time_slots = formatted_slots
 
-    _period_order_map = {slot["period"]: idx for idx, slot in enumerate(time_slots)}
+    # Build distinct periods in chronological order from time_slots
+    unique_periods_in_order = []
+    for slot in time_slots:
+        p = slot.get("period")
+        if p and p not in unique_periods_in_order:
+            unique_periods_in_order.append(p)
+    _period_order_map = {p: idx for idx, p in enumerate(unique_periods_in_order)}
 
     teaching_slots = []
-    for d in _active_days:
+    has_explicit_day = any("day" in slot and slot["day"] for slot in time_slots)
+    if has_explicit_day:
         for slot in time_slots:
-            if slot.get("type") == "TEACHING":
+            d = slot.get("day")
+            if d in _active_days and slot.get("type") == "TEACHING" and slot.get("is_teaching", True):
                 teaching_slots.append((d, slot["period"], slot.get("is_morning", False)))
+    else:
+        for d in _active_days:
+            for slot in time_slots:
+                if slot.get("type") == "TEACHING":
+                    teaching_slots.append((d, slot["period"], slot.get("is_morning", False)))
 
     if not faculty_list:
         return False, "No faculty records found.", [], ["No faculty available to schedule."], {}
@@ -827,14 +954,38 @@ def generate_timetable(
     for s in sessions:
         sid = s["id"]
         if sid in result:
-            (day, period), room, faculty = result[sid]
-            is_morning = any(slot[2] for slot in teaching_slots if slot[0] == day and slot[1] == period)
+            (day, periods_tuple), room, faculty = result[sid]
+            n = s.get("duration_periods", 1)
+
+            # Build a human-friendly period label
+            if len(periods_tuple) == 1:
+                period_label = format_time_12h(periods_tuple[0])
+            else:
+                # e.g. "1:00 PM - 3:00 PM" for a 2-period lab
+                # Extract start of first and end of last period
+                first = periods_tuple[0]
+                last = periods_tuple[-1]
+                # Try to get start of first and end of last
+                first_parts = str(first).split(" - ")
+                last_parts = str(last).split(" - ")
+                if len(first_parts) >= 1 and len(last_parts) >= 2:
+                    period_label = f"{first_parts[0]} - {last_parts[1]}"
+                else:
+                    period_label = f"{format_time_12h(first)} - {format_time_12h(last)}"
+
+            is_morning = any(slot[2] for slot in teaching_slots if slot[0] == day and slot[1] == periods_tuple[0])
+
             timetable_rows.append({
                 "day": day,
                 "day_order": _day_order.get(day, 99),
-                "period": format_time_12h(period),
+                "period": period_label,
+                "periods": list(periods_tuple),  # Keep all individual periods for occupancy checks
+                "duration_periods": n,
                 "is_morning": is_morning,
                 "department": department,
+                "year": s.get("year"),
+                "semester": s.get("semester"),
+                "academic_year": s.get("academic_year"),
                 "section": s["division"],
                 "batch": s.get("batch"),
                 "subject": s["subject"],

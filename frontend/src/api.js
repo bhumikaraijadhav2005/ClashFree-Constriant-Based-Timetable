@@ -1,7 +1,7 @@
 // frontend/src/api.js
 // Centralized API client communicating with Flask Backend
 
-const API_BASE = "http://127.0.0.1:5000/api";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? "http://127.0.0.1:5000/api" : "/api")).replace(/\/$/, "");
 
 export async function fetchStatus() {
   const res = await fetch(`${API_BASE}/status`);
@@ -35,6 +35,32 @@ export async function deleteDepartment(id) {
   return res.json();
 }
 
+export async function fetchAcademicStructure(department = "CSE") {
+  const res = await fetch(`${API_BASE}/academic-structure?department=${encodeURIComponent(department)}`);
+  return res.json();
+}
+
+export async function saveAcademicStructure(structure) {
+  const res = await fetch(`${API_BASE}/academic-structure`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(structure),
+  });
+  return res.json();
+}
+
+export async function fetchAcademicYears(department = "CSE") {
+  const res = await fetch(`${API_BASE}/academic-years?department=${encodeURIComponent(department)}`);
+  return res.json();
+}
+
+export async function fetchSemesters(department = "CSE", year = "") {
+  let url = `${API_BASE}/semesters?department=${encodeURIComponent(department)}`;
+  if (year) url += `&year=${encodeURIComponent(year)}`;
+  const res = await fetch(url);
+  return res.json();
+}
+
 export async function fetchDivisions(department = "CSE") {
   const res = await fetch(`${API_BASE}/divisions?department=${encodeURIComponent(department)}`);
   return res.json();
@@ -54,10 +80,12 @@ export async function deleteDivision(id) {
   return res.json();
 }
 
-export async function fetchBatches(divisionName = "") {
-  const url = divisionName
-    ? `${API_BASE}/batches?division=${encodeURIComponent(divisionName)}`
-    : `${API_BASE}/batches`;
+export async function fetchBatches(divisionName = "", department = "") {
+  const params = new URLSearchParams();
+  if (divisionName) params.set("division", divisionName);
+  if (department) params.set("department", department);
+  const suffix = params.toString();
+  const url = `${API_BASE}/batches${suffix ? `?${suffix}` : ""}`;
   const res = await fetch(url);
   return res.json();
 }
@@ -110,7 +138,7 @@ export async function fetchAcademicLoadReport(department = "CSE") {
 }
 
 // -------------------------------------------------------------
-// ROOMS & RESOURCE RESERVATION & OCCUPANCY
+// ROOMS & RESOURCE RESERVATION
 // -------------------------------------------------------------
 export async function fetchRooms(department = "") {
   const url = department ? `${API_BASE}/rooms?department=${encodeURIComponent(department)}` : `${API_BASE}/rooms`;
@@ -129,6 +157,11 @@ export async function saveRoom(room) {
 
 export async function deleteRoom(id) {
   const res = await fetch(`${API_BASE}/rooms/${id}`, { method: "DELETE" });
+  return res.json();
+}
+
+export async function toggleRoomActive(roomId) {
+  const res = await fetch(`${API_BASE}/rooms/${roomId}/toggle-active`, { method: "POST" });
   return res.json();
 }
 
@@ -201,10 +234,12 @@ export async function deleteSubject(id) {
 // -------------------------------------------------------------
 // TIMETABLE & SCHEDULER & VERSIONS
 // -------------------------------------------------------------
-export async function fetchTimetable(department = "CSE", versionId = "") {
-  const url = versionId
-    ? `${API_BASE}/timetable?department=${encodeURIComponent(department)}&version_id=${encodeURIComponent(versionId)}`
-    : `${API_BASE}/timetable?department=${encodeURIComponent(department)}`;
+export async function fetchTimetable(department = "CSE", versionId = "", options = {}) {
+  let url = `${API_BASE}/timetable?department=${encodeURIComponent(department)}`;
+  if (versionId) url += `&version_id=${encodeURIComponent(versionId)}`;
+  if (options.year) url += `&year=${encodeURIComponent(options.year)}`;
+  if (options.semester) url += `&semester=${encodeURIComponent(options.semester)}`;
+  if (options.division) url += `&division=${encodeURIComponent(options.division)}`;
   const res = await fetch(url);
   return res.json();
 }
@@ -218,16 +253,25 @@ export async function generateTimetable(payload = {}) {
   return res.json();
 }
 
-export async function fetchTimetableVersions() {
-  const res = await fetch(`${API_BASE}/timetable-versions`);
+export async function fetchTimetableVersions(department = "CSE") {
+  const res = await fetch(`${API_BASE}/timetable-versions?department=${encodeURIComponent(department)}`);
   return res.json();
 }
 
-export async function activateTimetableVersion(versionId) {
+export async function activateTimetableVersion(versionId, department = "CSE") {
   const res = await fetch(`${API_BASE}/timetable-versions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ version_id: versionId }),
+    body: JSON.stringify({ version_id: versionId, department }),
+  });
+  return res.json();
+}
+
+export async function restoreTimetableVersion(versionId, department = "CSE") {
+  const res = await fetch(`${API_BASE}/timetable-versions/${versionId}/restore`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ department }),
   });
   return res.json();
 }
@@ -241,15 +285,17 @@ export async function fetchConflicts(department = "CSE") {
 }
 
 // -------------------------------------------------------------
-// TIME SLOTS
+// TIME SLOTS & SETTINGS
 // -------------------------------------------------------------
-export async function fetchTimeSlots() {
-  const res = await fetch(`${API_BASE}/time-slots`);
+export async function fetchTimeSlots(department = "") {
+  const suffix = department ? `?department=${encodeURIComponent(department)}` : "";
+  const res = await fetch(`${API_BASE}/time-slots${suffix}`);
   return res.json();
 }
 
-export async function saveTimeSlots(slots) {
-  const res = await fetch(`${API_BASE}/time-slots`, {
+export async function saveTimeSlots(slots, department = "") {
+  const suffix = department ? `?department=${encodeURIComponent(department)}` : "";
+  const res = await fetch(`${API_BASE}/time-slots${suffix}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(slots),
@@ -272,40 +318,35 @@ export async function saveTimeSettings(settings) {
 }
 
 // -------------------------------------------------------------
-// EXCEL IMPORT, VALIDATION & TEMPLATE
+// EXCEL IMPORT & EXPORT
 // -------------------------------------------------------------
-export async function validateExcelFile(file) {
+export async function validateExcelFile(file, department = "CSE", academicYear = "2026-2027", semester = "Semester 3") {
   try {
     const formData = new FormData();
     formData.append("file", file);
+    if (department) formData.append("department", department);
+    if (academicYear) formData.append("academic_year", academicYear);
+    if (semester) formData.append("semester", semester);
     const res = await fetch(`${API_BASE}/validate-excel`, {
       method: "POST",
       body: formData,
     });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      return {
-        success: false,
-        valid: false,
-        errors: data.errors || [data.error || `Validation failed (${res.status})`],
-        warnings: data.warnings || [],
-        summary: data.summary || {}
-      };
-    }
-    return data;
+    return await res.json();
   } catch (err) {
     return {
       success: false,
-      valid: false,
       errors: ["Could not connect to Flask Backend API (http://127.0.0.1:5000). Please ensure backend is running."]
     };
   }
 }
 
-export async function uploadExcelFile(file) {
+export async function uploadExcelFile(file, department = "CSE", academicYear = "2026-2027", semester = "Semester 3") {
   try {
     const formData = new FormData();
     formData.append("file", file);
+    if (department) formData.append("department", department);
+    if (academicYear) formData.append("academic_year", academicYear);
+    if (semester) formData.append("semester", semester);
     const res = await fetch(`${API_BASE}/import-excel`, {
       method: "POST",
       body: formData,
@@ -356,4 +397,3 @@ export async function applyStructurePreset() {
 export function getExportWorkloadUrl(department = "CSE") {
   return `${API_BASE}/export/workload?department=${encodeURIComponent(department)}`;
 }
-
