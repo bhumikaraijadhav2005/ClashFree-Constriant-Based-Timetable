@@ -28,7 +28,9 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 app = Flask(__name__)
-CORS(app)
+app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_UPLOAD_BYTES", str(16 * 1024 * 1024)))
+allowed_origins = [origin.strip() for origin in os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",") if origin.strip()]
+CORS(app, resources={r"/api/*": {"origins": allowed_origins}})
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -163,6 +165,43 @@ def manage_academic_structure():
         return jsonify({"success": True, "data": res})
 
 
+@app.route("/api/academic-years", methods=["GET"])
+def get_academic_years():
+    """Return distinct years available for a department."""
+    dept = request.args.get("department", "CSE")
+    divisions = db.get_all_divisions(dept)
+    subjects = db.get_all_subjects(dept)
+
+    years = set()
+    for d in divisions:
+        if d.get("year"): years.add(d.get("year"))
+    for s in subjects:
+        if s.get("year"): years.add(s.get("year"))
+
+    def year_sort_key(value):
+        match = re.search(r"\d+", str(value))
+        return (0, int(match.group())) if match else (1, str(value).casefold())
+    return jsonify(sorted(years, key=year_sort_key))
+
+
+@app.route("/api/semesters", methods=["GET"])
+def get_semesters():
+    """Return distinct semesters available for a department."""
+    dept = request.args.get("department", "CSE")
+    year_filter = request.args.get("year")
+    subjects = db.get_all_subjects(dept)
+    if year_filter:
+        subjects = [s for s in subjects if s.get("year") == year_filter]
+
+    sems = set()
+    for s in subjects:
+        if s.get("semester"): sems.add(s.get("semester"))
+
+    sorted_sems = sorted(sems, key=lambda value: (normalize_sem_code(value).isdigit() is False,
+                                                   int(normalize_sem_code(value)) if normalize_sem_code(value).isdigit() else str(value).casefold()))
+    return jsonify(sorted_sems)
+
+
 # ---------------------------------------------------------------------------
 # 5. DIVISIONS & BATCHES CRUD
 # ---------------------------------------------------------------------------
@@ -185,10 +224,15 @@ def delete_division_item(did):
 @app.route("/api/batches", methods=["GET", "POST"])
 def manage_batches():
     div_name = request.args.get("division")
+    dept = request.args.get("department")
     if request.method == "GET":
-        return jsonify(db.get_all_batches(div_name))
+        return jsonify(db.get_all_batches(div_name, department_code=dept))
     elif request.method == "POST":
-        res = db.upsert_batch(request.json or {})
+        payload = request.json or {}
+        dept = payload.get("department_code") or dept
+        if dept:
+            payload["department_code"] = dept
+        res = db.upsert_batch(payload)
         return jsonify({"success": True, "data": res})
 
 
@@ -250,6 +294,35 @@ def delete_room_item(rid):
     return jsonify({"success": True})
 
 
+@app.route("/api/rooms/<int:rid>/toggle-active", methods=["POST"])
+def toggle_room_active(rid):
+    """Toggle is_active status of a room/lab."""
+    rooms = db.get_all_rooms()
+    target = next((r for r in rooms if r.get("id") == rid), None)
+    if not target:
+        return jsonify({"success": False, "error": "Room not found"}), 404
+    new_active = not target.get("is_active", True)
+    target["is_active"] = new_active
+    db.upsert_room(target)
+    return jsonify({"success": True, "is_active": new_active, "room": target.get("name")})
+
+
+@app.route("/api/rooms/bulk-active", methods=["POST"])
+def set_rooms_bulk_active():
+    """Set is_active for multiple rooms at once. Payload: {ids: [1,2,3], is_active: true}"""
+    payload = request.json or {}
+    ids = payload.get("ids", [])
+    is_active = payload.get("is_active", True)
+    rooms = db.get_all_rooms()
+    updated = []
+    for room in rooms:
+        if room.get("id") in ids:
+            room["is_active"] = is_active
+            db.upsert_room(room)
+            updated.append(room.get("name"))
+    return jsonify({"success": True, "updated": updated, "count": len(updated)})
+
+
 @app.route("/api/resource-config", methods=["GET", "POST"])
 def manage_resource_config():
     dept = request.args.get("department", "CSE")
@@ -284,10 +357,11 @@ def delete_subject_item(sid):
 # ---------------------------------------------------------------------------
 @app.route("/api/time-slots", methods=["GET", "POST"])
 def manage_time_slots():
+    dept = request.args.get("department")
     if request.method == "GET":
-        return jsonify(db.get_time_slots())
+        return jsonify(db.get_time_slots(dept))
     elif request.method == "POST":
-        db.save_time_slots(request.json or [])
+        db.save_time_slots(request.json or [], department=dept)
         return jsonify({"success": True})
 
 
@@ -485,35 +559,133 @@ def manage_resource_sharing():
 def get_timetable_data():
     dept = request.args.get("department", "CSE")
     version_id = request.args.get("version_id")
+    year_filter = request.args.get("year")
+    sem_filter = request.args.get("semester")
+    division_filter = request.args.get("division")
+    faculty_filter = request.args.get("faculty_code")
+    room_filter = request.args.get("room")
+
     data = db.get_timetable(version_id=version_id, department=dept)
+
+    # Apply optional server-side filters
+    if year_filter:
+        target_year = normalize_year_code(year_filter)
+        data = [r for r in data if normalize_year_code(r.get("year")) == target_year]
+    if sem_filter:
+        target_semester = normalize_sem_code(sem_filter)
+        data = [r for r in data if normalize_sem_code(r.get("semester")) == target_semester]
+    if division_filter:
+        data = [r for r in data if r.get("section") == division_filter]
+    if faculty_filter:
+        data = [r for r in data if r.get("faculty_code") == faculty_filter]
+    if room_filter:
+        data = [r for r in data if r.get("room") == room_filter]
+
     return jsonify(data)
+
+
+def normalize_sem_code(val):
+    if val is None:
+        return ""
+    s = str(val).strip().upper()
+    digits = re.findall(r"\d+", s)
+    if digits:
+        return digits[0]
+    roman = re.sub(r"^(?:SEMESTER|SEM|TERM)\s*", "", s).strip()
+    if roman and re.fullmatch(r"[IVXLCDM]+", roman):
+        values = {"I": 1, "V": 5, "X": 10, "L": 50, "C": 100, "D": 500, "M": 1000}
+        total, previous = 0, 0
+        for character in reversed(roman):
+            value = values[character]
+            total += -value if value < previous else value
+            previous = max(previous, value)
+        return str(total)
+    return s
+
+
+def normalize_year_code(val):
+    if val is None:
+        return ""
+    s = str(val).strip().upper()
+    year_aliases = (("FIRST", "1"), ("SECOND", "2"), ("THIRD", "3"), ("FOURTH", "4"), ("FINAL", "4"))
+    for alias, year_code in year_aliases:
+        if alias in s:
+            return year_code
+    digits = re.findall(r"\d+", s)
+    return digits[0] if digits else s
 
 
 @app.route("/api/generate-timetable", methods=["POST"])
 def run_scheduler():
+    """
+    Generate timetable with full scope control.
+    Payload options:
+      department:       Department code (required, default "CSE")
+      year:             Filter by academic year string (optional, e.g. "Second Year")
+      semester:         Filter by semester string (optional, e.g. "Semester III")
+      division_filter:  List of division names to include (optional)
+      days:             List of working day names (optional)
+      version_name:     Name for the new version (optional)
+      created_by:       Who is generating (optional)
+    """
     try:
         payload = request.json or {}
         dept = payload.get("department", "CSE")
+        year_filter = payload.get("year")           # e.g. "Second Year"
+        sem_filter = payload.get("semester")        # e.g. "Semester III"
+        div_filter = payload.get("division_filter") # e.g. ["Division A", "Division B"]
         version_name = payload.get("version_name") or f"Version {len(db.get_timetable_versions()) + 1}"
 
         faculty = db.get_all_faculty(dept)
         rooms = db.get_all_rooms(dept)
         subjects = db.get_all_subjects(dept)
         divisions = db.get_all_divisions(dept)
-        batches = db.get_all_batches()
-        time_slots = db.get_time_slots()
+        batches = db.get_all_batches(department_code=dept)
+        time_slots = db.get_time_slots(dept)
         resource_cfg = db.get_resource_config(dept)
         sharing_reqs = db.get_resource_sharing_requests()
         time_settings = db.get_time_settings()
         days = payload.get("days") or time_settings.get("working_days", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"])
         requirements = db.get_requirements(dept)
+        # --- SCOPE FILTERING WITH ROBUST NORMALIZATION ---
+        norm_y = normalize_year_code(year_filter) if year_filter else ""
+        norm_s = normalize_sem_code(sem_filter) if sem_filter else ""
+
+        if norm_y:
+            subjects = [s for s in subjects if not s.get("year") or normalize_year_code(s.get("year")) == norm_y]
+            divisions = [d for d in divisions if not d.get("year") or normalize_year_code(d.get("year")) == norm_y]
+            if requirements:
+                requirements = [r for r in requirements if not r.get("year") or normalize_year_code(r.get("year")) == norm_y]
+
+        if norm_s:
+            subjects = [s for s in subjects if not s.get("semester") or normalize_sem_code(s.get("semester")) == norm_s]
+            divisions = [d for d in divisions if not d.get("semester") or normalize_sem_code(d.get("semester")) == norm_s]
+            if requirements:
+                requirements = [r for r in requirements if not r.get("semester") or normalize_sem_code(r.get("semester")) == norm_s]
+
+        # Apply explicit division filter
+        if div_filter and isinstance(div_filter, list) and len(div_filter) > 0:
+            div_filter_clean = [d.strip() for d in div_filter]
+            divisions = [d for d in divisions if d.get("name") in div_filter_clean or d.get("code") in div_filter_clean]
+            if requirements:
+                requirements = [r for r in requirements if not r.get("division") or r.get("division") in div_filter_clean]
+
+        # Filter batches to selected divisions
+        selected_div_names = {d.get("name") for d in divisions}
+        filtered_batches = [b for b in batches if b.get("division_name") in selected_div_names] if selected_div_names else batches
+
+        # Scope info for version description
+        scope_desc = dept
+        if year_filter: scope_desc += f" {year_filter}"
+        if sem_filter: scope_desc += f" {sem_filter}"
+        if div_filter: scope_desc += f" Divs: {', '.join(div_filter)}"
 
         success, message, timetable_rows, conflicts, meta = scheduler.generate_timetable(
             faculty_list=faculty,
             room_list=rooms,
             subject_list=subjects,
             division_list=divisions,
-            batch_list=batches,
+            batch_list=filtered_batches,
             time_slots=time_slots,
             resource_config=resource_cfg,
             department=dept,
@@ -526,22 +698,32 @@ def run_scheduler():
             if meta.get("clash_history"):
                 db.save_clash_history(meta.get("clash_history"))
 
-            # Create new timetable version
-            new_v_id = len(db.get_timetable_versions()) + 1
+            # Create new timetable version scoped to department
+            dept_versions = db.get_timetable_versions(dept)
+            next_vnum = max([v.get("version_number", 0) for v in dept_versions] or [0]) + 1
             new_version = {
-                "id": new_v_id,
-                "version_number": new_v_id,
-                "name": version_name,
-                "academic_year": "2026-2027",
-                "semester": "Semester III",
+                "version_number": next_vnum,
+                "name": version_name or f"Version {next_vnum}",
+                "academic_year": payload.get("academic_year", "2026-2027"),
+                "semester": sem_filter or "Semester III",
+                "year": year_filter or "All Years",
+                "scope": scope_desc,
                 "department": dept,
-                "description": f"Generated clash-free schedule with {len(timetable_rows)} sessions ({meta.get('detected_clashes', 0)} clashes resolved)",
+                "status": "ACTIVE",
                 "is_active": True,
-                "created_by": payload.get("created_by", "HOD")
+                "description": f"Generated for {scope_desc}: {len(timetable_rows)} sessions, {meta.get('detected_clashes', 0)} clashes resolved",
+                "created_by": payload.get("created_by", "HOD"),
+                "sessions_count": len(timetable_rows),
+                "conflicts_count": 0
             }
-            db.create_timetable_version(new_version)
-            db.set_active_version(new_v_id)
-            db.save_timetable(timetable_rows, version_id=new_v_id, department=dept)
+            created_v = db.create_timetable_version(new_version)
+            db.save_timetable(
+                timetable_rows,
+                version_id=created_v["id"],
+                department=dept,
+                academic_year=payload.get("academic_year", "2026-2027"),
+                semester=sem_filter or "Semester III"
+            )
 
             return jsonify({
                 "success": True,
@@ -549,6 +731,7 @@ def run_scheduler():
                 "count": len(timetable_rows),
                 "timetable": timetable_rows,
                 "version": new_version,
+                "scope": scope_desc,
                 "metadata": meta,
                 "clash_history": meta.get("clash_history", []),
                 "conflicts": []
@@ -557,12 +740,29 @@ def run_scheduler():
             return jsonify({
                 "success": False,
                 "message": message,
+                "scope": scope_desc,
                 "conflicts": conflicts,
                 "metadata": meta
             }), 422
 
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e), "conflicts": [str(e)]}), 500
+    except Exception as exc:
+        app.logger.exception("Timetable generation failed")
+        if isinstance(exc, RuntimeError) and str(exc).startswith("Could not load department time slots."):
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Supabase is missing the public.time_slots table or its department-scoped columns. "
+                    "Apply the time_slots table definition and its department_code, day, and is_teaching "
+                    "columns from backend/schema.sql in the Supabase SQL Editor, then restart Flask "
+                    "and try generation again."
+                ),
+                "conflicts": [],
+            }), 503
+        return jsonify({
+            "success": False,
+            "message": "Timetable generation failed because of a server error. Check the server log for details.",
+            "conflicts": [],
+        }), 500
 
 
 # ---------------------------------------------------------------------------
@@ -570,15 +770,27 @@ def run_scheduler():
 # ---------------------------------------------------------------------------
 @app.route("/api/timetable-versions", methods=["GET", "POST"])
 def manage_versions():
+    dept = request.args.get("department")
     if request.method == "GET":
-        return jsonify(db.get_timetable_versions())
+        return jsonify(db.get_timetable_versions(department=dept))
     elif request.method == "POST":
         payload = request.json or {}
         vid = payload.get("version_id")
+        dept = payload.get("department") or dept
         if vid:
-            db.set_active_version(int(vid))
+            db.set_active_version(int(vid), department=dept)
             return jsonify({"success": True, "active_version_id": vid})
         return jsonify({"error": "Version ID required"}), 400
+
+@app.route("/api/timetable-versions/<int:vid>/restore", methods=["POST"])
+def restore_version_endpoint(vid):
+    payload = request.json or {}
+    dept = payload.get("department") or request.args.get("department")
+    user = payload.get("created_by", "Admin")
+    restored = db.restore_timetable_version(vid, department=dept, restored_by=user)
+    if restored:
+        return jsonify({"success": True, "version": restored, "message": "Version restored as new active version"})
+    return jsonify({"success": False, "error": "Version not found"}), 404
 
 
 # ---------------------------------------------------------------------------
@@ -603,8 +815,9 @@ def get_faculty_workload():
         lec_sessions = [r for r in fac_sessions if not r.get("is_lab")]
         lab_sessions = [r for r in fac_sessions if r.get("is_lab")]
 
-        lec_hours = len(lec_sessions)
-        lab_hours = len(lab_sessions) * 1  # 1 hour per session
+        # Each lab session may be multi-period (e.g. 2-hour lab = 2 periods)
+        lec_hours = sum(r.get("duration_periods", 1) for r in lec_sessions)
+        lab_hours = sum(r.get("duration_periods", 2) for r in lab_sessions)
         total_load = lec_hours + lab_hours
 
         # Group by subject and division/batch
@@ -716,7 +929,7 @@ def get_conflicts():
         subjects = db.get_all_subjects(dept)
         divisions = db.get_all_divisions(dept)
         batches = db.get_all_batches()
-        time_slots = db.get_time_slots()
+        time_slots = db.get_time_slots(dept)
         requirements = db.get_requirements(dept)
 
         success, msg, rows, conflicts, meta = scheduler.generate_timetable(
@@ -765,17 +978,30 @@ def get_clash_history_api():
 @app.route("/api/validate-excel", methods=["POST"])
 def validate_excel_endpoint():
     """
-    Step 1 of Import: Validates uploaded Excel file without writing to DB.
+    Step 1 of Import: Validates uploaded Excel file with explicit target department and academic context.
     Returns clear summary of found records, errors, and warnings.
     """
     if "file" not in request.files:
         return jsonify({"success": False, "error": "No file uploaded"}), 400
     file = request.files["file"]
-    if not file.filename.endswith(".xlsx"):
+    if not file.filename or file.filename.rsplit(".", 1)[-1].lower() != "xlsx":
         return jsonify({"success": False, "error": "Only .xlsx files are supported"}), 400
 
+    dept = request.form.get("department") or request.args.get("department") or "CSE"
+    ay = request.form.get("academic_year") or request.args.get("academic_year") or "2026-2027"
+    sem = request.form.get("semester") or request.args.get("semester") or "Semester 3"
+
     file_bytes = io.BytesIO(file.read())
-    valid, errors, warnings, summary, data_dict = excel_reader.validate_excel_data(file_bytes)
+    valid, errors, warnings, summary, data_dict = excel_reader.validate_excel_data(
+        file_bytes,
+        department=dept,
+        academic_year=ay,
+        semester=sem
+    )
+
+    summary["target_department"] = dept
+    summary["target_academic_year"] = ay
+    summary["target_semester"] = sem
 
     return jsonify({
         "success": valid,
@@ -789,42 +1015,70 @@ def validate_excel_endpoint():
 @app.route("/api/import-excel", methods=["POST"])
 def import_excel():
     """
-    Step 2 of Import: Validates and saves structured data to Database.
-    Supports single-sheet CLASHFREE_INPUT with teaching requirements,
-    resource configuration, and time configuration.
+    Step 2 of Import: Validates and saves structured data to Database strictly scoped
+    to the target department and academic year without wiping or corrupting other departments.
     """
     if "file" not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
     file = request.files["file"]
-    if not file.filename.endswith(".xlsx"):
+    if not file.filename or file.filename.rsplit(".", 1)[-1].lower() != "xlsx":
         return jsonify({"error": "Only .xlsx files are supported"}), 400
 
+    dept = request.form.get("department") or request.args.get("department") or "CSE"
+    ay = request.form.get("academic_year") or request.args.get("academic_year") or "2026-2027"
+    sem = request.form.get("semester") or request.args.get("semester") or "Semester 3"
+
     file_bytes = io.BytesIO(file.read())
-    valid, errors, warnings, summary, data_dict = excel_reader.validate_excel_data(file_bytes)
+    valid, errors, warnings, summary, data_dict = excel_reader.validate_excel_data(
+        file_bytes,
+        department=dept,
+        academic_year=ay,
+        semester=sem
+    )
     if not valid:
         return jsonify({"success": False, "errors": errors, "warnings": warnings, "summary": summary}), 400
 
     try:
+        # Check the only schema that causes an expected import failure before
+        # writing any of the workbook's other sheets.
+        if data_dict.get("time_slots"):
+            db.validate_time_slots_schema()
+        # Scoped insertion to preserve multi-department tenancy
         if data_dict.get("faculty"):
-            db.insert_faculty(data_dict["faculty"])
+            db.insert_faculty(data_dict["faculty"], dept_code=dept)
         if data_dict.get("rooms"):
-            db.insert_rooms(data_dict["rooms"])
+            db.insert_rooms(data_dict["rooms"], dept_code=dept)
         if data_dict.get("subjects"):
-            db.insert_subjects(data_dict["subjects"])
-        if data_dict.get("sections"):
-            db.insert_sections(data_dict["sections"])
+            db.insert_subjects(data_dict["subjects"], dept_code=dept)
         if data_dict.get("divisions"):
-            db.insert_divisions(data_dict["divisions"])
+            db.insert_divisions(data_dict["divisions"], dept_code=dept)
         if data_dict.get("batches"):
-            db.insert_batches(data_dict["batches"])
-        if data_dict.get("departments"):
-            for dep in data_dict["departments"]:
-                db.upsert_department(dep)
+            db.insert_batches(data_dict["batches"], dept_code=dept)
         if data_dict.get("requirements"):
-            db.save_requirements(data_dict["requirements"])
-        # Timetable structure/bell schedule is predefined in ClashFree and is not overwritten by data file uploads.
-    except Exception as e:
-        print(f"Import DB warning: {e}")
+            db.save_requirements(data_dict["requirements"], department=dept)
+        if data_dict.get("time_slots"):
+            db.save_time_slots(data_dict["time_slots"], department=dept)
+    except Exception as exc:
+        app.logger.exception("Excel import persistence failed")
+        if isinstance(exc, RuntimeError) and str(exc).startswith("Could not save time slots to Supabase"):
+            return jsonify({
+                "success": False,
+                "error": (
+                    "Supabase is missing the public.time_slots table or its department-scoped columns, "
+                    "so it could not save this department's time slots. Apply the time_slots table "
+                    "definition and its department_code, day, and is_teaching columns from "
+                    "backend/schema.sql in the Supabase SQL Editor before retrying. No workbook sheets "
+                    "were written by this attempt."
+                ),
+            }), 503
+        return jsonify({
+            "success": False,
+            "error": "Import failed during persistence. Some records may have been written; inspect the selected department before retrying.",
+        }), 500
+
+    summary["target_department"] = dept
+    summary["target_academic_year"] = ay
+    summary["target_semester"] = sem
 
     return jsonify({
         "success": True,
@@ -835,11 +1089,13 @@ def import_excel():
 
 @app.route("/api/download-template", methods=["GET"])
 def download_sample_template():
-    """Downloads the official styled single-sheet CLASHFREE_INPUT template."""
-    sample_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sample_data.xlsx")
+    """Downloads the official multi-sheet timetable setup workbook."""
+    project_root = Path(__file__).resolve().parent.parent
+    sample_file = project_root / "assets" / "templates" / "CLASHFREE_Input_Template.xlsx"
     if not os.path.exists(sample_file):
         import subprocess
-        subprocess.run([sys.executable, os.path.join(os.path.dirname(sample_file), "create_sample.py")])
+        generator = project_root / "scripts" / "create_excel_template.py"
+        subprocess.run([sys.executable, str(generator)], check=True)
     return send_file(
         sample_file,
         as_attachment=True,
@@ -1159,8 +1415,6 @@ def export_timetable_excel():
         div_names = sorted(list(set([r.get("section") for r in timetable if r.get("section")])))
         if not div_names:
             div_names = [d.get("name") for d in divisions if d.get("name")]
-        if not div_names:
-            div_names = ["Division A", "Division B", "Division C"]
 
         first = True
         for dname in div_names:
@@ -1172,7 +1426,7 @@ def export_timetable_excel():
             year_str = div_obj.get("year", "Second Year") if div_obj else "Second Year"
             _build_collegiate_matrix_sheet(ws, dept, dname, div_sessions, subjects, faculty, year_str)
 
-        # Add Master All-Sessions Tab
+        # Always include a master sheet, including when the active version is empty.
         ws_master = wb.create_sheet(title="All Sessions Master")
         ws_master.views.sheetView[0].showGridLines = True
         headers = ["Day", "Time Slot", "Department", "Division", "Batch", "Subject", "Faculty Code", "Faculty Name", "Room", "Type"]
@@ -1308,4 +1562,5 @@ def export_workload_excel():
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
     print(f"ClashFree Backend API running on http://127.0.0.1:{port}")
-    app.run(host="0.0.0.0", port=port, debug=True)
+    debug = os.getenv("FLASK_DEBUG", "false").strip().lower() in {"1", "true", "yes"}
+    app.run(host="0.0.0.0", port=port, debug=debug)

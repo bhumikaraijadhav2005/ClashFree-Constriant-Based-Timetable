@@ -54,14 +54,19 @@ const PAGES = [
   { id: "occupancy", label: "Occupancy", icon: "🏢" },
   { id: "import", label: "Import Data", icon: "📥" },
   { id: "generate", label: "Generate Timetable", icon: "⚡" },
+  { id: "versions", label: "Version History", icon: "📜" },
 ];
 
 
 export default function App() {
   const [activePage, setActivePage] = useState("dashboard");
   const [selectedDept, setSelectedDept] = useState("CSE");
+  const [selectedYear, setSelectedYear] = useState("ALL");
+  const [selectedSem, setSelectedSem] = useState("ALL");
   const [currentRole, setCurrentRole] = useState("HOD");
   const [departments, setDepartments] = useState([]);
+  const [availableYears, setAvailableYears] = useState([]);
+  const [availableSemesters, setAvailableSemesters] = useState([]);
   const [status, setStatus] = useState({ online: false, supabase: false });
   const [dashboardData, setDashboardData] = useState(null);
   const [notification, setNotification] = useState(null);
@@ -74,6 +79,26 @@ export default function App() {
   useEffect(() => {
     loadDashboard();
   }, [selectedDept]);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      api.fetchAcademicYears(selectedDept),
+      api.fetchSemesters(selectedDept, selectedYear === "ALL" ? "" : selectedYear),
+    ]).then(([years, semesters]) => {
+      if (cancelled) return;
+      const nextYears = Array.isArray(years) ? years : [];
+      const nextSemesters = Array.isArray(semesters) ? semesters : [];
+      setAvailableYears(nextYears);
+      setAvailableSemesters(nextSemesters);
+      if (selectedYear !== "ALL" && !nextYears.includes(selectedYear)) setSelectedYear("ALL");
+    }).catch((error) => console.error("Could not load academic filters", error));
+    return () => { cancelled = true; };
+  }, [selectedDept, selectedYear]);
+
+  useEffect(() => {
+    if (selectedSem !== "ALL" && !availableSemesters.includes(selectedSem)) setSelectedSem("ALL");
+  }, [availableSemesters, selectedSem]);
 
   const notify = (msg, type = "success") => {
     setNotification({ msg, type });
@@ -160,6 +185,32 @@ export default function App() {
                 {departments.length === 0 && <option value="CSE">CSE</option>}
               </select>
             </div>
+
+            {/* Academic Year / Year Context Pill */}
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "#f8fafc", padding: "4px 8px", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
+              <span style={{ fontSize: "0.8rem", color: "#64748b", fontWeight: "500" }}>Year:</span>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                style={{ border: "none", background: "transparent", fontWeight: "700", color: "#0f766e", outline: "none", cursor: "pointer" }}
+              >
+                <option value="ALL">All Years</option>
+                {availableYears.map((year) => <option key={year} value={year}>{year}</option>)}
+              </select>
+            </div>
+
+            {/* Semester Context Pill */}
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "#f8fafc", padding: "4px 8px", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
+              <span style={{ fontSize: "0.8rem", color: "#64748b", fontWeight: "500" }}>Sem:</span>
+              <select
+                value={selectedSem}
+                onChange={(e) => setSelectedSem(e.target.value)}
+                style={{ border: "none", background: "transparent", fontWeight: "700", color: "#6d28d9", outline: "none", cursor: "pointer" }}
+              >
+                <option value="ALL">All Semesters</option>
+                {availableSemesters.map((semester) => <option key={semester} value={semester}>{semester}</option>)}
+              </select>
+            </div>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
@@ -218,7 +269,7 @@ export default function App() {
           )}
 
           {activePage === "timetable" && (
-            <TimetableView department={selectedDept} currentRole={currentRole} notify={notify} />
+            <TimetableView department={selectedDept} selectedYear={selectedYear} selectedSem={selectedSem} currentRole={currentRole} notify={notify} />
           )}
 
           {activePage === "faculty" && (
@@ -251,16 +302,17 @@ export default function App() {
 
           {activePage === "import" && (
             <ImportView
+              department={selectedDept}
               notify={notify}
               onSuccess={() => {
                 loadDashboard();
-                setActivePage("dashboard");
+                setActivePage("timetable");
               }}
             />
           )}
 
           {activePage === "structure" && (
-            <SettingsView notify={notify} />
+            <SettingsView department={selectedDept} notify={notify} />
           )}
 
           {activePage === "reports" && (
@@ -270,12 +322,20 @@ export default function App() {
           {activePage === "generate" && (
             <GenerateTimetableView
               department={selectedDept}
+              selectedYear={selectedYear}
+              selectedSem={selectedSem}
+              availableYears={availableYears}
+              availableSemesters={availableSemesters}
               notify={notify}
               onSuccess={() => {
                 loadDashboard();
                 setActivePage("timetable");
               }}
             />
+          )}
+
+          {activePage === "versions" && (
+            <VersionHistoryView department={selectedDept} notify={notify} />
           )}
         </div>
       </main>
@@ -469,7 +529,7 @@ function AcademicStructureView({ department, notify }) {
   const loadAll = async () => {
     const depts = await api.fetchDepartments();
     const divs = await api.fetchDivisions(department);
-    const bts = await api.fetchBatches();
+    const bts = await api.fetchBatches("", department);
     setDepartments(depts || []);
     setDivisions(divs || []);
     setBatches(bts || []);
@@ -498,7 +558,8 @@ function AcademicStructureView({ department, notify }) {
     await api.saveBatch({
       division_name: batchDiv,
       name: batchName,
-      strength: Number(batchStrength)
+      strength: Number(batchStrength),
+      department_code: department
     });
     setBatchName("");
     notify("Batch added to division");
@@ -1531,8 +1592,36 @@ function ResourcesView({ department, currentRole, notify }) {
 // =============================================================
 // 6. MASTER TIMETABLE VIEW (Matches Reference College Formats)
 // =============================================================
-function TimetableView({ department, currentRole, notify }) {
+function normalizeYearCode(value) {
+  const text = String(value ?? "").trim().toLowerCase();
+  const words = ["first", "second", "third", "fourth", "final"];
+  const wordIndex = words.findIndex((word) => text.includes(word));
+  if (wordIndex >= 0) return String(wordIndex + 1);
+  const numeric = text.match(/\d+/);
+  return numeric ? numeric[0] : text;
+}
+
+function TimetableView({ department, selectedYear = "ALL", selectedSem = "ALL", currentRole, notify }) {
   const [timetable, setTimetable] = useState([]);
+
+  // Helper to match a timetable session against a column slot (handles 2-hr lab blocks)
+  const isSessionInSlot = (t, day, slot) => {
+    if (t.day !== day) return false;
+    if (t.period === slot.period || formatTime12Hour(t.period) === slot.displayPeriod) return true;
+    if (Array.isArray(t.periods) && t.periods.length > 0) {
+      return t.periods.some(p => p === slot.period || formatTime12Hour(p) === slot.displayPeriod || formatTime12Hour(p) === formatTime12Hour(slot.period));
+    }
+    return false;
+  };
+
+  const isSessionSecondHour = (t, day, slot) => {
+    if (t.day !== day) return false;
+    if (Array.isArray(t.periods) && t.periods.length > 1) {
+      const secondP = t.periods[1];
+      return secondP === slot.period || formatTime12Hour(secondP) === slot.displayPeriod || formatTime12Hour(secondP) === formatTime12Hour(slot.period);
+    }
+    return false;
+  };
   const [timeSlots, setTimeSlots] = useState([]);
   const [timeSettings, setTimeSettings] = useState(null);
   const [divisions, setDivisions] = useState([]);
@@ -1543,6 +1632,7 @@ function TimetableView({ department, currentRole, notify }) {
   // View Modes: "MASTER", "DIVISION", "FACULTY", "CLASSROOM", "LAB", "BATCH"
   const [viewFilter, setViewFilter] = useState("MASTER");
   const [selectedDivision, setSelectedDivision] = useState("");
+  const [selectedDivKey, setSelectedDivKey] = useState("");
   const [selectedFaculty, setSelectedFaculty] = useState("");
   const [selectedRoom, setSelectedRoom] = useState("");
   const [selectedLab, setSelectedLab] = useState("");
@@ -1551,13 +1641,16 @@ function TimetableView({ department, currentRole, notify }) {
 
   useEffect(() => {
     loadAll();
-  }, [department]);
+  }, [department, selectedYear, selectedSem]);
 
   const loadAll = async () => {
     try {
       const [ttData, slotsData, settingsData, divData, subData, facData, roomData] = await Promise.all([
-        api.fetchTimetable(department),
-        api.fetchTimeSlots(),
+        api.fetchTimetable(department, "", {
+          year: selectedYear !== "ALL" ? selectedYear : "",
+          semester: selectedSem !== "ALL" ? selectedSem : ""
+        }),
+        api.fetchTimeSlots(department),
         api.fetchTimeSettings(),
         api.fetchDivisions(department),
         api.fetchSubjects(department),
@@ -1575,6 +1668,7 @@ function TimetableView({ department, currentRole, notify }) {
 
       if (divData && divData.length > 0) {
         setSelectedDivision(divData[0].name);
+        setSelectedDivKey(`${divData[0].year || "Y"}-${divData[0].name}`);
       }
       if (facData && facData.length > 0) {
         setSelectedFaculty(facData[0].code);
@@ -1615,17 +1709,31 @@ function TimetableView({ department, currentRole, notify }) {
     ? timeSettings.working_days
     : ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-  // Sort slots by order_index and format labels to 12-hour AM/PM
-  const orderedSlots = [...timeSlots]
-    .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
-    .map(s => ({
-      ...s,
-      displayPeriod: formatTime12Hour(s.period)
-    }));
+  // Deduplicate slots across weekdays so columns represent the unique daily bell schedule (no 5x repetition)
+  const orderedSlots = (() => {
+    const seen = new Set();
+    const result = [];
+    const sorted = [...timeSlots].sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+    for (const s of sorted) {
+      const p12 = formatTime12Hour(s.period);
+      if (!seen.has(p12)) {
+        seen.add(p12);
+        result.push({
+          ...s,
+          displayPeriod: p12
+        });
+      }
+    }
+    return result;
+  })();
 
-  // Build Course Legend for the currently viewed division
-  const curDivObj = divisions.find(d => d.name === selectedDivision) || divisions[0];
-  const divTimetableSessions = timetable.filter(t => t.section === (curDivObj?.name || selectedDivision));
+  const getDivKey = (d) => (d ? `${d.year || "Y"}-${d.name}` : "");
+  // Build Course Legend for the currently viewed division (strictly scoped by year + section)
+  const curDivObj = divisions.find(d => getDivKey(d) === selectedDivKey) || divisions.find(d => d.name === selectedDivision) || divisions[0];
+  const divTimetableSessions = timetable.filter(t =>
+    (t.section === curDivObj?.name || t.division === curDivObj?.name) &&
+    (!t.year || !curDivObj?.year || normalizeYearCode(t.year) === normalizeYearCode(curDivObj.year))
+  );
   const distinctSubjectNames = Array.from(new Set(divTimetableSessions.map(t => t.subject)));
 
   const courseLegend = distinctSubjectNames.map((sName, idx) => {
@@ -1728,13 +1836,17 @@ function TimetableView({ department, currentRole, notify }) {
         <div style={{ background: "#fff", padding: "10px 16px", borderRadius: "8px", border: "1px solid #e2e8f0", marginBottom: "16px", display: "flex", alignItems: "center", gap: "10px" }}>
           <label style={{ fontSize: "0.85rem", fontWeight: "700" }}>Select Division / Class:</label>
           <select
-            value={selectedDivision}
-            onChange={(e) => setSelectedDivision(e.target.value)}
+            value={selectedDivKey || getDivKey(curDivObj)}
+            onChange={(e) => {
+              setSelectedDivKey(e.target.value);
+              const found = divisions.find(d => getDivKey(d) === e.target.value);
+              if (found) setSelectedDivision(found.name);
+            }}
             style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #ccc", fontWeight: "600" }}
           >
-            {divisions.map((d) => (
-              <option key={d.name} value={d.name}>
-                {d.name} ({d.year || "Second Year"} - {d.department_code || department})
+            {divisions.map((d, dIdx) => (
+              <option key={`${getDivKey(d)}-${dIdx}`} value={getDivKey(d)}>
+                {d.year ? `${d.year} - ` : ""}Division {d.name} ({d.semester || "Semester"})
               </option>
             ))}
           </select>
@@ -1844,19 +1956,31 @@ function TimetableView({ department, currentRole, notify }) {
               </thead>
               <tbody>
                 {activeDays.map((day) => {
-                  const dayDivisions = divisions.length > 0 ? divisions : [{ name: "Division A", year: "Second Year" }];
+                  const dayDivisions = divisions;
+
+                  const formatYearTag = (yStr) => {
+                    if (!yStr) return "SY";
+                    const s = String(yStr).toLowerCase();
+                    if (s.includes("1") || s.includes("first")) return "FY";
+                    if (s.includes("2") || s.includes("second")) return "SY";
+                    if (s.includes("3") || s.includes("third")) return "TY";
+                    if (s.includes("4") || s.includes("final") || s.includes("fourth")) return "B.Tech";
+                    return String(yStr).replace(/Year\s*/i, "Y");
+                  };
 
                   return dayDivisions.map((div, divIdx) => {
                     return (
-                      <tr key={`${day}-${div.name}`}>
+                      <tr key={`${day}-${div.year || ""}-${div.name}-${divIdx}`}>
                         {divIdx === 0 && (
                           <td rowSpan={dayDivisions.length} className="cell-day">
                             {day.toUpperCase().slice(0, 3)}
                           </td>
                         )}
                         <td className="cell-class">
-                          <strong>{div.year ? div.year.split(" ")[0].slice(0, 2).toUpperCase() : "SY"}</strong>
-                          <div style={{ fontSize: "0.75rem", color: "#64748b" }}>{div.name}</div>
+                          <strong style={{ color: "#1e3a8a", fontSize: "0.85rem" }}>
+                            {div.year ? `${formatYearTag(div.year)} - ` : ""}{div.name}
+                          </strong>
+                          <div style={{ fontSize: "0.72rem", color: "#64748b" }}>{div.year || "Year not set"}</div>
                         </td>
 
                         {orderedSlots.map((slot, slotIdx) => {
@@ -1875,9 +1999,11 @@ function TimetableView({ department, currentRole, notify }) {
                             return null;
                           }
 
-                          // Teaching slot sessions for this day, slot, and division
+                          // Teaching slot sessions for this day, slot, and division (handles 2-hr lab blocks)
                           const slotSessions = timetable.filter(
-                            (t) => t.day === day && (t.period === slot.period || formatTime12Hour(t.period) === slot.displayPeriod) && t.section === div.name
+                            (t) => isSessionInSlot(t, day, slot) &&
+                                   (t.section === div.name || t.division === div.name) &&
+                                   (!t.year || !div.year || normalizeYearCode(t.year) === normalizeYearCode(div.year))
                           );
 
                           if (!slotSessions || slotSessions.length === 0) {
@@ -1886,6 +2012,15 @@ function TimetableView({ department, currentRole, notify }) {
 
                           // If batch lab sessions
                           if (slotSessions[0].is_lab) {
+                            if (isSessionSecondHour(slotSessions[0], day, slot)) {
+                              return (
+                                <td key={slotIdx} style={{ padding: "6px", background: "#f8fafc", textAlign: "center" }}>
+                                  <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600, fontStyle: "italic" }}>
+                                    ↳ {slotSessions[0].subject} <span style={{ color: "#94a3b8" }}>(Hr 2)</span>
+                                  </div>
+                                </td>
+                              );
+                            }
                             return (
                               <td key={slotIdx} style={{ padding: 0 }}>
                                 <div className="cell-lab-container">
@@ -1988,7 +2123,9 @@ function TimetableView({ department, currentRole, notify }) {
                       }
 
                       const slotSessions = timetable.filter(
-                        (t) => t.day === day && (t.period === slot.period || formatTime12Hour(t.period) === slot.displayPeriod) && t.section === selectedDivision
+                        (t) => isSessionInSlot(t, day, slot) &&
+                               (t.section === curDivObj?.name || t.division === curDivObj?.name) &&
+                               (!t.year || !curDivObj?.year || normalizeYearCode(t.year) === normalizeYearCode(curDivObj.year))
                       );
 
                       if (!slotSessions || slotSessions.length === 0) {
@@ -1996,6 +2133,15 @@ function TimetableView({ department, currentRole, notify }) {
                       }
 
                       if (slotSessions[0].is_lab) {
+                        if (isSessionSecondHour(slotSessions[0], day, slot)) {
+                          return (
+                            <td key={slotIdx} style={{ padding: "8px", background: "#f8fafc", textAlign: "center" }}>
+                              <div style={{ fontSize: "0.8rem", color: "#64748b", fontWeight: 600, fontStyle: "italic" }}>
+                                ↳ {slotSessions[0].subject} <span style={{ color: "#94a3b8" }}>(Hr 2)</span>
+                              </div>
+                            </td>
+                          );
+                        }
                         return (
                           <td key={slotIdx} style={{ padding: 0 }}>
                             <div className="cell-lab-container">
@@ -2112,7 +2258,7 @@ function TimetableView({ department, currentRole, notify }) {
                       }
 
                       const facSessions = timetable.filter(
-                        (t) => t.day === day && (t.period === slot.period || formatTime12Hour(t.period) === slot.displayPeriod) && t.faculty_code === selectedFaculty
+                        (t) => isSessionInSlot(t, day, slot) && t.faculty_code === selectedFaculty
                       );
 
                       if (facSessions.length === 0) {
@@ -2171,7 +2317,7 @@ function TimetableView({ department, currentRole, notify }) {
                       }
 
                       const roomSessions = timetable.filter(
-                        (t) => t.day === day && (t.period === slot.period || formatTime12Hour(t.period) === slot.displayPeriod) && t.room === selectedRoom
+                        (t) => isSessionInSlot(t, day, slot) && t.room === selectedRoom
                       );
 
                       if (roomSessions.length === 0) {
@@ -2230,7 +2376,7 @@ function TimetableView({ department, currentRole, notify }) {
                       }
 
                       const labSessions = timetable.filter(
-                        (t) => t.day === day && (t.period === slot.period || formatTime12Hour(t.period) === slot.displayPeriod) && t.room === selectedLab
+                        (t) => isSessionInSlot(t, day, slot) && t.room === selectedLab
                       );
 
                       if (labSessions.length === 0) {
@@ -2494,9 +2640,9 @@ function ConflictsView({ department }) {
 }
 
 // =============================================================
-// 8. IMPORT DATA VIEW (2-Step Validation & Single-Sheet Template)
+// 8. IMPORT DATA VIEW (2-Step Validation & Simple Workbook)
 // =============================================================
-function ImportView({ notify, onSuccess }) {
+function ImportView({ department = "CSE", notify, onSuccess }) {
   const [file, setFile] = useState(null);
   const [validating, setValidating] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -2514,10 +2660,10 @@ function ImportView({ notify, onSuccess }) {
     }
     setValidating(true);
     try {
-      const res = await api.validateExcelFile(file);
+      const res = await api.validateExcelFile(file, department);
       setValidationResult(res);
       if (res.valid) {
-        notify("File validated successfully! Review summary below.", "success");
+        notify(`File validated successfully for ${department}! Review summary below.`, "success");
       } else {
         notify("Validation errors found. Please review the report.", "error");
       }
@@ -2535,7 +2681,7 @@ function ImportView({ notify, onSuccess }) {
     }
     setImporting(true);
     try {
-      const res = await api.uploadExcelFile(file);
+      const res = await api.uploadExcelFile(file, department);
       if (res.success) {
         notify("Excel data successfully imported and synced with database!", "success");
         onSuccess();
@@ -2554,13 +2700,24 @@ function ImportView({ notify, onSuccess }) {
 
   return (
     <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+      {/* Target Scope Banner */}
+      <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: "8px", padding: "12px 18px", marginBottom: "16px", display: "flex", alignItems: "center", gap: "12px" }}>
+        <span style={{ fontSize: "1.4rem" }}>🎯</span>
+        <div>
+          <div style={{ fontWeight: 700, color: "#166534" }}>Department: {department} &bull; All years and semesters listed in the workbook</div>
+          <div style={{ fontSize: "0.82rem", color: "#475569", marginTop: "2px" }}>
+            The workbook's class rows define year, semester, and division. Choose the destination department before importing.
+          </div>
+        </div>
+      </div>
+
       {/* Top Header Card with Download Sample Button */}
       <div className="card" style={{ marginBottom: "20px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "14px" }}>
           <div>
-            <h2>📥 Import Academic Data (Single-Sheet Template)</h2>
+            <h2>Import Academic Data</h2>
             <p style={{ color: "#64748b", marginTop: "4px", fontSize: "0.9rem" }}>
-              Upload the human-friendly <code>CLASHFREE_INPUT</code> Excel template containing Teaching Requirements, Resource Configuration, and Time Configuration.
+              Complete the Faculty, Year, Resources, and Time Slots sheets. Add one row per division and subject, then validate the workbook.
             </p>
           </div>
           <a
@@ -2569,7 +2726,7 @@ function ImportView({ notify, onSuccess }) {
             className="btn btn-secondary"
             style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "8px", fontWeight: "600" }}
           >
-            📥 Download Sample Excel Template
+            Download Excel Template
           </a>
         </div>
       </div>
@@ -3003,15 +3160,205 @@ function OccupancyView({ department }) {
 // =============================================================
 // 12. GENERATE TIMETABLE VIEW (CSP + MRV + Backtracking)
 // =============================================================
-function GenerateTimetableView({ department, notify, onSuccess }) {
+
+// =============================================================
+// 9B. VERSION HISTORY VIEW (Product Requirement 38)
+// =============================================================
+function VersionHistoryView({ department, notify }) {
+  const [versions, setVersions] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    loadVersions();
+  }, [department]);
+
+  const loadVersions = async () => {
+    setLoading(true);
+    try {
+      const data = await api.fetchTimetableVersions(department);
+      setVersions(data || []);
+    } catch {
+      notify("Failed to load timetable versions", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleActivate = async (vid) => {
+    try {
+      await api.activateTimetableVersion(vid, department);
+      notify(`Activated timetable version #${vid} for ${department}`, "success");
+      loadVersions();
+    } catch {
+      notify("Failed to activate version", "error");
+    }
+  };
+
+  const handleRestore = async (vid) => {
+    try {
+      const res = await api.restoreTimetableVersion(vid, department);
+      if (res && res.success) {
+        notify(`Restored timetable version #${vid} as brand-new active version!`, "success");
+        loadVersions();
+      } else {
+        notify(res?.error || "Failed to restore version", "error");
+      }
+    } catch {
+      notify("Failed to restore version", "error");
+    }
+  };
+
+  return (
+    <div className="card">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+        <div>
+          <h3 style={{ margin: 0, color: "#1e3a8a" }}>📜 Academic Timetable Version History</h3>
+          <p style={{ color: "#64748b", margin: "4px 0 0", fontSize: "0.9rem" }}>
+            Audit trail of generated schedules for {department}. Activate any baseline or alternative timetable with 1-click.
+          </p>
+        </div>
+        <button className="btn btn-secondary" onClick={loadVersions} disabled={loading}>
+          🔄 Refresh Versions
+        </button>
+      </div>
+
+      <div className="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style={{ width: "70px" }}>Ver #</th>
+              <th>Version Name</th>
+              <th>Academic Year</th>
+              <th>Semester</th>
+              <th>Scope / Description</th>
+              <th>Created By</th>
+              <th>Status</th>
+              <th style={{ width: "120px" }}>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {versions.length === 0 ? (
+              <tr><td colSpan={8} style={{ textAlign: "center", color: "#94a3b8", padding: "24px" }}>No timetable versions generated yet.</td></tr>
+            ) : (
+              versions.map((v) => (
+                <tr key={v.id || v.version_number} style={{ background: v.is_active ? "#f0fdf4" : "inherit" }}>
+                  <td><strong>#{v.version_number || v.id}</strong></td>
+                  <td style={{ fontWeight: 600 }}>{v.name}</td>
+                  <td>{v.academic_year || "2026-2027"}</td>
+                  <td>{v.semester || "Semester III"}</td>
+                  <td style={{ fontSize: "0.85rem", color: "#475569" }}>{v.scope || v.description}</td>
+                  <td>{v.created_by || "HOD"}</td>
+                  <td>
+                    {v.is_active ? (
+                      <span className="badge badge-success">✓ Active Schedule</span>
+                    ) : (
+                      <span className="badge badge-warning">Archived</span>
+                    )}
+                  </td>
+                  <td>
+                    {!v.is_active && (
+                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                        <button
+                          className="btn btn-secondary"
+                          style={{ padding: "4px 8px", fontSize: "0.75rem", background: "#eff6ff", color: "#1e40af", border: "1px solid #bfdbfe" }}
+                          onClick={() => handleActivate(v.id || v.version_number)}
+                          title="Activate this historical version"
+                        >
+                          ⚡ Active
+                        </button>
+                        <button
+                          className="btn btn-secondary"
+                          style={{ padding: "4px 8px", fontSize: "0.75rem", background: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0" }}
+                          onClick={() => handleRestore(v.id || v.version_number)}
+                          title="Clone and restore as new active version (preserving audit history)"
+                        >
+                          🔄 Restore
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function GenerateTimetableView({ department, selectedYear, selectedSem, availableYears = [], availableSemesters = [], notify, onSuccess }) {
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState(null);
+  const [stageIndex, setStageIndex] = useState(0);
+
+  // Scope parameters
+  const [scopeYear, setScopeYear] = useState("");
+  const [scopeSem, setScopeSem] = useState("");
+
+  const yearsList = availableYears && availableYears.length > 0
+    ? availableYears
+    : ["Year 1", "Year 2", "Year 3", "Year 4"];
+  const semestersList = availableSemesters && availableSemesters.length > 0
+    ? availableSemesters
+    : ["Semester I", "Semester II", "Semester III", "Semester IV", "Semester V", "Semester VI"];
+  const [deptDivs, setDeptDivs] = useState([]);
+  const [selectedDivs, setSelectedDivs] = useState([]);
+  const [versionLabel, setVersionLabel] = useState("");
+
+  const STAGES = [
+    "Preparing teaching requirements from curriculum...",
+    "Building duration-aware 2-hr contiguous lab blocks (excluding breaks & lunch)...",
+    "Checking active classroom capacity and lab equipment compatibility...",
+    "Applying hard faculty availability & soft morning/afternoon preferences...",
+    "Executing Minimum Remaining Values (MRV) variable heuristic...",
+    "Running recursive backtracking search with dynamic clash resolution...",
+    "Verifying 0-clash hard constraints (Faculty, Room, Division, Batch)...",
+    "Finalizing timetable & saving version snapshot to database..."
+  ];
+
+  useEffect(() => {
+    api.fetchDivisions(department).then(divs => {
+      setDeptDivs(divs || []);
+      setSelectedDivs((divs || []).map(d => d.name));
+    });
+  }, [department]);
+
+  const toggleDiv = (dName) => {
+    if (selectedDivs.includes(dName)) {
+      if (selectedDivs.length <= 1) {
+        notify("At least one division must be selected for scheduling scope", "error");
+        return;
+      }
+      setSelectedDivs(selectedDivs.filter(d => d !== dName));
+    } else {
+      setSelectedDivs([...selectedDivs, dName]);
+    }
+  };
 
   const handleGenerate = async () => {
     setRunning(true);
     setResult(null);
+    setStageIndex(0);
+
+    // Progressive stage animation
+    const timer = setInterval(() => {
+      setStageIndex((prev) => (prev < STAGES.length - 1 ? prev + 1 : prev));
+    }, 180);
+
     try {
-      const res = await api.generateTimetable({ department });
+      const payload = {
+        department,
+        year: scopeYear || undefined,
+        semester: scopeSem || undefined,
+        division_filter: selectedDivs.length > 0 ? selectedDivs : undefined,
+        version_name: versionLabel.trim() || undefined
+      };
+
+      const res = await api.generateTimetable(payload);
+      clearInterval(timer);
+      setStageIndex(STAGES.length - 1);
+
       if (res.success) {
         setResult(res);
         notify(res.message, "success");
@@ -3020,6 +3367,7 @@ function GenerateTimetableView({ department, notify, onSuccess }) {
         setResult(res);
       }
     } catch (err) {
+      clearInterval(timer);
       notify("Failed to generate: " + err.message, "error");
     } finally {
       setRunning(false);
@@ -3029,41 +3377,149 @@ function GenerateTimetableView({ department, notify, onSuccess }) {
   const meta = result?.metadata || {};
 
   return (
-    <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+    <div style={{ maxWidth: "880px", margin: "0 auto" }}>
+      {/* Scope Configuration Card */}
+      <div className="card" style={{ marginBottom: "20px" }}>
+        <h3 style={{ margin: "0 0 6px", color: "#1e3a8a" }}>🎯 Scheduling Scope & Multi-Year Target Context</h3>
+        <p style={{ color: "#64748b", margin: "0 0 16px", fontSize: "0.9rem" }}>
+          Target specific academic years, semesters, or divisions. Department isolation is strictly enforced — Mechanical never affects CSE data.
+        </p>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px", marginBottom: "16px" }}>
+          <div>
+            <label style={{ fontSize: "0.85rem", fontWeight: 700, display: "block", marginBottom: "4px" }}>Department:</label>
+            <input
+              type="text"
+              readOnly
+              value={department}
+              style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", background: "#f8fafc", fontWeight: 700, color: "#1e40af" }}
+            />
+          </div>
+
+          <div>
+            <label style={{ fontSize: "0.85rem", fontWeight: 700, display: "block", marginBottom: "4px" }}>Academic Year / Class:</label>
+            <select
+              value={scopeYear}
+              onChange={(e) => setScopeYear(e.target.value)}
+              style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontWeight: 600 }}
+            >
+              <option value="">All Academic Years in Department</option>
+              {yearsList.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ fontSize: "0.85rem", fontWeight: 700, display: "block", marginBottom: "4px" }}>Semester:</label>
+            <select
+              value={scopeSem}
+              onChange={(e) => setScopeSem(e.target.value)}
+              style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontWeight: 600 }}
+            >
+              <option value="">All Semesters in Scope</option>
+              {semestersList.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ fontSize: "0.85rem", fontWeight: 700, display: "block", marginBottom: "4px" }}>Custom Version Name (Optional):</label>
+            <input
+              type="text"
+              placeholder="e.g. Baseline Mon-Fri Schedule"
+              value={versionLabel}
+              onChange={(e) => setVersionLabel(e.target.value)}
+              style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+            />
+          </div>
+        </div>
+
+        {/* Division Selection Pills */}
+        <div style={{ marginBottom: "16px", padding: "12px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+          <label style={{ fontSize: "0.85rem", fontWeight: 700, display: "block", marginBottom: "8px" }}>
+            Included Divisions / Sections ({selectedDivs.length} Selected):
+          </label>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            {deptDivs.map((d) => {
+              const active = selectedDivs.includes(d.name);
+              return (
+                <button
+                  key={d.name}
+                  type="button"
+                  onClick={() => toggleDiv(d.name)}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: "20px",
+                    border: active ? "1px solid #2563eb" : "1px solid #cbd5e1",
+                    background: active ? "#eff6ff" : "#fff",
+                    color: active ? "#1e40af" : "#64748b",
+                    fontWeight: active ? 700 : 500,
+                    cursor: "pointer",
+                    fontSize: "0.85rem"
+                  }}
+                >
+                  {active ? "✓ " : ""}{d.name} ({d.year || "Year 2"})
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Algorithm Engine Execution Card */}
       <div className="card" style={{ marginBottom: "20px" }}>
         <h2>⚡ Constraint Satisfaction (CSP) Timetable Engine</h2>
         <p style={{ color: "#64748b", marginTop: "6px", fontSize: "0.95rem" }}>
-          ClashFree utilizes <strong>Constraint Satisfaction Problem (CSP)</strong> formulation, <strong>MRV (Minimum Remaining Values)</strong> variable selection heuristic, and <strong>Backtracking Search</strong> with state restoration.
+          ClashFree utilizes <strong>CSP</strong> with <strong>MRV (Minimum Remaining Values)</strong> heuristic, <strong>duration-aware 2-hr contiguous lab blocks</strong>, and <strong>backtracking search with state restoration</strong>.
         </p>
 
-        {/* Algorithm Viva Highlights */}
+        {/* Algorithm Highlights */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginTop: "16px" }}>
           <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
             <div style={{ fontWeight: "700", color: "#1e3a8a" }}>1. CSP Variables</div>
             <div style={{ fontSize: "0.8rem", color: "#475569", marginTop: "4px" }}>
-              Every lecture and lab session to be scheduled across the academic week.
+              Lectures (1-hr) & Labs (2-hr contiguous blocks without breaks).
             </div>
           </div>
           <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
             <div style={{ fontWeight: "700", color: "#0f766e" }}>2. MRV Heuristic</div>
             <div style={{ fontSize: "0.8rem", color: "#475569", marginTop: "4px" }}>
-              Picks unscheduled session with FEWEST valid remaining options to fail fast and prune search branches.
+              Picks session with FEWEST valid remaining options to fail fast and prune search branches.
             </div>
           </div>
           <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
             <div style={{ fontWeight: "700", color: "#6d28d9" }}>3. Backtracking</div>
             <div style={{ fontSize: "0.8rem", color: "#475569", marginTop: "4px" }}>
-              Recursively attempts assignments. Undoes dead ends and automatically records clash resolutions.
+              Recursively attempts assignments. Undoes dead ends and records clash resolution history.
             </div>
           </div>
         </div>
+
+        {/* Staged Execution Progress Bar */}
+        {running && (
+          <div style={{ marginTop: "20px", padding: "16px", background: "#f0fdf4", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
+            <div style={{ fontSize: "0.9rem", fontWeight: 700, color: "#166534", marginBottom: "10px" }}>
+              ⚙️ Algorithmic Execution Pipeline (Step {stageIndex + 1} of {STAGES.length})
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              {STAGES.map((step, idx) => (
+                <div key={idx} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.82rem", color: idx <= stageIndex ? "#15803d" : "#94a3b8" }}>
+                  <span>{idx < stageIndex ? "✅" : idx === stageIndex ? "⏳" : "⚪"}</span>
+                  <span style={{ fontWeight: idx === stageIndex ? 700 : 400 }}>{step}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div style={{ marginTop: "24px", textAlign: "center" }}>
           <button
             className="btn"
             onClick={handleGenerate}
             disabled={running}
-            style={{ padding: "12px 28px", fontSize: "1rem", fontWeight: "700", background: "#2563eb" }}
+            style={{ padding: "12px 32px", fontSize: "1.05rem", fontWeight: "700", background: "#2563eb", boxShadow: "0 4px 6px -1px rgba(37, 99, 235, 0.3)" }}
           >
             {running ? "🔄 Running CSP + MRV Backtracking Engine..." : "⚡ Generate Clash-Free Timetable"}
           </button>
@@ -3072,13 +3528,19 @@ function GenerateTimetableView({ department, notify, onSuccess }) {
 
       {result && (
         <div className="card" style={{ borderLeft: result.success ? "4px solid #10b981" : "4px solid #ef4444" }}>
-          <h3>{result.success ? "✅ Timetable Generated Successfully!" : "❌ Generation Failed"}</h3>
+          <h3>{result.success ? "✅ Timetable Generated Successfully!" : "❌ Generation Infeasibility Diagnostic"}</h3>
           <p style={{ marginTop: "6px", color: result.success ? "#15803d" : "#b91c1c" }}>
             {result.message}
           </p>
 
+          {result.scope && (
+            <div style={{ fontSize: "0.85rem", color: "#475569", marginTop: "4px" }}>
+              <strong>Scope:</strong> {result.scope} | <strong>Version:</strong> {result.version?.name || "Version 1"}
+            </div>
+          )}
+
           {result.success && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", margin: "16px 0" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px", margin: "16px 0" }}>
               <div style={{ background: "#f0fdf4", padding: "12px", borderRadius: "6px" }}>
                 <div style={{ fontSize: "0.8rem", color: "#166534" }}>Sessions Scheduled</div>
                 <div style={{ fontSize: "1.4rem", fontWeight: "700", color: "#15803d" }}>{result.count || 0}</div>
@@ -3091,10 +3553,25 @@ function GenerateTimetableView({ department, notify, onSuccess }) {
                 <div style={{ fontSize: "0.8rem", color: "#5b21b6" }}>Backtrack Steps</div>
                 <div style={{ fontSize: "1.4rem", fontWeight: "700", color: "#6d28d9" }}>{meta.backtrack_steps || 0}</div>
               </div>
+              <div style={{ background: "#fefce8", padding: "12px", borderRadius: "6px" }}>
+                <div style={{ fontSize: "0.8rem", color: "#854d0e" }}>Active Resources</div>
+                <div style={{ fontSize: "1.4rem", fontWeight: "700", color: "#ca8a04" }}>{meta.active_rooms_count ?? 0}</div>
+              </div>
             </div>
           )}
 
-          <div style={{ marginTop: "16px" }}>
+          {result.conflicts && result.conflicts.length > 0 && (
+            <div style={{ marginTop: "12px", padding: "12px", background: "#fef2f2", borderRadius: "6px" }}>
+              <strong style={{ color: "#b91c1c" }}>Infeasibility Diagnostic Details:</strong>
+              <ul style={{ margin: "6px 0 0", paddingLeft: "20px", color: "#7f1d1d", fontSize: "0.85rem" }}>
+                {result.conflicts.map((c, i) => (
+                  <li key={i}>{typeof c === "object" ? c.issue || JSON.stringify(c) : c}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div style={{ marginTop: "16px", display: "flex", gap: "10px" }}>
             <button className="btn" onClick={onSuccess}>
               📅 Open Master Timetable View
             </button>
@@ -3188,7 +3665,7 @@ function ReportsView({ department }) {
 // =============================================================
 // 11. TIME SLOTS & SETTINGS VIEW (Requirement 21 - Configurable Break/Class Times)
 // =============================================================
-function SettingsView({ notify }) {
+function SettingsView({ department, notify }) {
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -3218,7 +3695,7 @@ function SettingsView({ notify }) {
   }, []);
 
   const load = async () => {
-    const data = await api.fetchTimeSlots();
+    const data = await api.fetchTimeSlots(department);
     setSlots(data || []);
     const cfg = await api.fetchTimeSettings();
     if (cfg && cfg.start_time) {
@@ -3423,7 +3900,7 @@ function SettingsView({ notify }) {
       };
 
       await api.saveTimeSettings(cfgPayload);
-      await api.saveTimeSlots(slots);
+      await api.saveTimeSlots(slots, department);
       notify("Academic time schedule, break durations, and working days saved successfully!");
     } catch {
       notify("Failed to save schedule settings", "error");

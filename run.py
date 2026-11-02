@@ -1,79 +1,75 @@
+"""Launch the Flask API and Vite UI for a one-click local development run."""
+
+from pathlib import Path
 import os
-import sys
+import shutil
 import subprocess
+import sys
 import time
 import webbrowser
 
+
+def start_process(command, cwd, new_console=False):
+    options = {"cwd": cwd}
+    if new_console and os.name == "nt":
+        options["creationflags"] = subprocess.CREATE_NEW_CONSOLE
+    return subprocess.Popen(command, **options)
+
+
 def main():
-    project_dir = os.path.dirname(os.path.abspath(__file__))
-    os.chdir(project_dir)
+    project_root = Path(__file__).resolve().parent
+    frontend_dir = project_root / "frontend"
+    npm = shutil.which("npm.cmd" if os.name == "nt" else "npm")
+    if not npm:
+        print("Node.js and npm are required. Install Node.js, then run run.bat again.")
+        return 1
 
-    print("=" * 60)
-    print("Starting ClashFree Timetable System...")
-    print("=" * 60)
+    if not (frontend_dir / "node_modules").is_dir():
+        print("Installing frontend packages for the first run...")
+        install = subprocess.run([npm, "install"], cwd=frontend_dir)
+        if install.returncode:
+            print("Frontend setup failed. Check the npm output above, then run run.bat again.")
+            return install.returncode
 
-    backend_script = os.path.join(project_dir, "backend", "app.py")
-    frontend_dir = os.path.join(project_dir, "frontend")
+    if os.name == "nt":
+        frontend_command = ["cmd.exe", "/c", npm, "run", "dev"]
+    else:
+        frontend_command = [npm, "run", "dev"]
 
-    # Ensure node_modules exists
-    node_modules = os.path.join(frontend_dir, "node_modules")
-    if not os.path.exists(node_modules):
-        print("[Setup] Installing frontend dependencies (npm install)...")
-        npm_cmd = "npm.cmd" if sys.platform == "win32" else "npm"
-        subprocess.run([npm_cmd, "install"], cwd=frontend_dir, check=True)
-
-    # 1. Start Flask backend server
-    print("[1/3] Starting Flask Backend Server (http://127.0.0.1:5000)...")
-    backend_proc = subprocess.Popen(
-        [sys.executable, backend_script],
-        cwd=project_dir,
-        creationflags=subprocess.CREATE_NEW_CONSOLE if sys.platform == "win32" else 0
-    )
-
-    # 2. Start React Vite frontend server
-    print("[2/3] Starting React Vite Frontend Server (http://localhost:5173)...")
-    npm_cmd = "npm.cmd" if sys.platform == "win32" else "npm"
-    frontend_proc = subprocess.Popen(
-        [npm_cmd, "run", "dev"],
-        cwd=frontend_dir,
-        creationflags=subprocess.CREATE_NEW_CONSOLE if sys.platform == "win32" else 0
-    )
-
-    # 3. Wait for servers to spin up
-    time.sleep(3)
-
-    # 4. Open default web browser safely
-    print("[3/3] Opening browser at http://localhost:5173...")
+    backend = None
+    frontend = None
     try:
+        backend = start_process(
+            [sys.executable, str(project_root / "backend" / "app.py")],
+            project_root,
+            new_console=True,
+        )
+        frontend = start_process(frontend_command, frontend_dir, new_console=True)
+        print("ClashFree is starting. API: http://127.0.0.1:5000")
+        print("The browser will open at http://localhost:5173")
+        time.sleep(3)
         webbrowser.open("http://localhost:5173")
-    except Exception as e:
-        print(f"Could not open browser automatically: {e}")
-        print("Please open http://localhost:5173 manually in your browser.")
-
-    print("\n" + "=" * 60)
-    print("ClashFree is running!")
-    print("Backend API:  http://127.0.0.1:5000")
-    print("Frontend UI:  http://localhost:5173")
-    print("Keep this window open. Press Ctrl+C to stop both servers.")
-    print("=" * 60 + "\n")
-
-    try:
-        while True:
-            time.sleep(1)
-            if backend_proc.poll() is not None and frontend_proc.poll() is not None:
-                break
+        print("Keep this launcher window open. Press Ctrl+C here to stop both servers.")
+        while backend.poll() is None and frontend.poll() is None:
+            time.sleep(0.5)
+        return backend.poll() or frontend.poll() or 0
     except KeyboardInterrupt:
-        print("\nShutting down ClashFree servers...")
-        try:
-            backend_proc.terminate()
-        except Exception:
-            pass
-        try:
-            frontend_proc.terminate()
-        except Exception:
-            pass
-        print("Servers stopped cleanly.")
+        print("Stopping ClashFree development servers...")
+        return 0
+    except OSError as error:
+        print(f"Could not start ClashFree: {error}")
+        return 1
+    finally:
+        for process in (frontend, backend):
+            if process is not None and process.poll() is None:
+                process.terminate()
+        for process in (frontend, backend):
+            if process is not None:
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+
 
 if __name__ == "__main__":
-    main()
-
+    raise SystemExit(main())
