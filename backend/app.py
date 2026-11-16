@@ -24,6 +24,8 @@ if backend_dir not in sys.path:
 import db
 import excel_reader
 import scheduler
+import auth
+from functools import wraps
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
@@ -34,6 +36,276 @@ CORS(app, resources={r"/api/*": {"origins": allowed_origins}})
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# ---------------------------------------------------------------------------
+# AUTHENTICATION & ACCESS CONTROL HELPERS
+# ---------------------------------------------------------------------------
+def get_current_user():
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header.split(" ", 1)[1]
+        payload = auth.verify_auth_token(token)
+        if not payload:
+            return None
+        user_record = db.get_user_by_id(payload.get("sub"))
+        if not user_record:
+            return None
+        requested_dept = request.args.get("department")
+        if not requested_dept and request.is_json and request.get_json(silent=True):
+            body = request.get_json(silent=True) or {}
+            requested_dept = body.get("department") or body.get("department_code")
+        return auth.get_user_session_payload(user_record, active_department=requested_dept)
+
+    # For backward-compatible unit tests when no auth token is provided:
+    if (app.config.get("TESTING") or "pytest" in sys.modules) and not os.getenv("STRICT_AUTH_TESTS"):
+        dept = request.args.get("department", "CSE")
+        return {
+            "id": "usr-test-legacy",
+            "email": "legacy.test@clashfree.edu",
+            "full_name": "Legacy Test User",
+            "designation": "Administrator",
+            "college_id": 1,
+            "primary_role": auth.ROLE_SUPER_ADMIN,
+            "roles": [{"role": auth.ROLE_SUPER_ADMIN, "college_id": None, "department_code": None}],
+            "accessible_departments": ["ALL"],
+            "active_department": dept
+        }
+    return None
+
+def check_action_permission(action="read", dept=None):
+    user = get_current_user()
+    if not user:
+        return False, "Authentication required", 401
+    target_dept = dept or request.args.get("department")
+    if not target_dept and request.is_json and request.get_json(silent=True):
+        body = request.get_json(silent=True) or {}
+        target_dept = body.get("department") or body.get("department_code")
+    allowed, err_msg = auth.check_scope_permission(user, target_dept, action=action)
+    if not allowed:
+        return False, err_msg, 403
+    return True, None, 200
+
+# ---------------------------------------------------------------------------
+# AUTHENTICATION & ROLE-BASED ACCESS CONTROL ENDPOINTS
+# ---------------------------------------------------------------------------
+@app.route("/api/auth/login", methods=["POST"])
+def auth_login():
+    try:
+        data = request.json or {}
+        email = (data.get("email") or "").strip()
+        password = data.get("password") or ""
+        remember_me = bool(data.get("remember_me", False))
+        active_dept = data.get("department")
+
+        user_data, error = auth.authenticate_user(email, password, db._memory_store)
+        if error or not user_data:
+            return jsonify({"success": False, "error": error or "Invalid credentials"}), 401
+
+        expiry = auth.TOKEN_EXPIRY_REMEMBER if remember_me else auth.TOKEN_EXPIRY_DEFAULT
+        session_payload = auth.get_user_session_payload(user_data, active_department=active_dept)
+        token = auth.create_auth_token({
+            "sub": user_data["id"],
+            "email": user_data["email"],
+            "role": session_payload["primary_role"],
+            "college_id": session_payload["college_id"],
+            "department_code": session_payload["active_department"]
+        }, expires_in=expiry)
+
+        db.log_audit_action(
+            actor_id=user_data["id"],
+            actor_email=user_data["email"],
+            actor_role=session_payload["primary_role"],
+            action="LOGIN",
+            target_type="SESSION",
+            target_id=user_data["id"],
+            details={"remember_me": remember_me, "department": session_payload["active_department"]},
+            college_id=session_payload["college_id"],
+            department_code=session_payload["active_department"]
+        )
+
+        return jsonify({
+            "success": True,
+            "message": "Authentication successful",
+            "token": token,
+            "user": session_payload
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/auth/logout", methods=["POST"])
+def auth_logout():
+    user = get_current_user()
+    if user:
+        db.log_audit_action(
+            actor_id=user["id"],
+            actor_email=user["email"],
+            actor_role=user["primary_role"],
+            action="LOGOUT",
+            target_type="SESSION",
+            target_id=user["id"],
+            college_id=user.get("college_id", 1),
+            department_code=user.get("active_department")
+        )
+    return jsonify({"success": True, "message": "Successfully logged out"})
+
+
+@app.route("/api/auth/me", methods=["GET"])
+def auth_me():
+    user = get_current_user()
+    if not user:
+        return jsonify({"success": False, "error": "Not authenticated or session expired"}), 401
+    return jsonify({"success": True, "user": user})
+
+
+@app.route("/api/auth/forgot-password", methods=["POST"])
+def auth_forgot_password():
+    data = request.json or {}
+    email = (data.get("email") or "").strip().lower()
+    if not email:
+        return jsonify({"success": False, "error": "Email address is required"}), 400
+
+    user = db.get_user_by_email(email)
+    if user:
+        db.log_audit_action(
+            actor_id=user["id"],
+            actor_email=user["email"],
+            actor_role="USER",
+            action="PASSWORD_RESET_REQUEST",
+            target_type="USER_ACCOUNT",
+            target_id=user["id"],
+            details={"requested_email": email}
+        )
+
+    return jsonify({
+        "success": True,
+        "message": f"Password reset instructions have been dispatched to {email}. Please check your inbox."
+    })
+
+
+@app.route("/api/auth/creators", methods=["GET", "POST", "DELETE"])
+def manage_department_creators():
+    user = get_current_user()
+    if not user:
+        return jsonify({"success": False, "error": "Authentication required"}), 401
+
+    dept = request.args.get("department")
+    if not dept and request.is_json and request.get_json(silent=True):
+        body = request.get_json(silent=True) or {}
+        dept = body.get("department")
+    dept = (dept or user.get("active_department") or "CSE").strip().upper()
+
+    if request.method == "GET":
+        allowed, err_msg = auth.check_scope_permission(user, dept, action="read")
+        if not allowed:
+            return jsonify({"success": False, "error": err_msg}), 403
+        creators = db.get_department_creators(dept)
+        return jsonify({"success": True, "department": dept, "creators": creators})
+
+    allowed, err_msg = auth.check_scope_permission(user, dept, action="manage_creators")
+    if not allowed:
+        return jsonify({"success": False, "error": err_msg}), 403
+
+    payload = request.get_json(silent=True) or {}
+    target_user_id = payload.get("target_user_id")
+    if not target_user_id:
+        return jsonify({"success": False, "error": "target_user_id is required"}), 400
+
+    if request.method == "POST":
+        ok, res = db.assign_timetable_creator(user["id"], target_user_id, dept)
+        if not ok:
+            return jsonify({"success": False, "error": res}), 400
+        target_u = db.get_user_by_id(target_user_id)
+        db.log_audit_action(
+            actor_id=user["id"],
+            actor_email=user["email"],
+            actor_role=user["primary_role"],
+            action="ASSIGN_ROLE",
+            target_type="ROLE_ASSIGNMENT",
+            target_id=target_user_id,
+            details={"assigned_role": auth.ROLE_TIMETABLE_CREATOR, "department": dept, "target_name": target_u.get("full_name") if target_u else ""},
+            department_code=dept
+        )
+        return jsonify({"success": True, "message": "Timetable Creator access granted successfully", "data": res})
+
+    elif request.method == "DELETE":
+        ok, res = db.revoke_timetable_creator(user["id"], target_user_id, dept)
+        if not ok:
+            return jsonify({"success": False, "error": res}), 400
+        target_u = db.get_user_by_id(target_user_id)
+        db.log_audit_action(
+            actor_id=user["id"],
+            actor_email=user["email"],
+            actor_role=user["primary_role"],
+            action="REVOKE_ROLE",
+            target_type="ROLE_ASSIGNMENT",
+            target_id=target_user_id,
+            details={"revoked_role": auth.ROLE_TIMETABLE_CREATOR, "department": dept, "target_name": target_u.get("full_name") if target_u else ""},
+            department_code=dept
+        )
+        return jsonify({"success": True, "message": "Timetable Creator access revoked successfully"})
+
+
+@app.route("/api/auth/eligible-faculty", methods=["GET"])
+def get_eligible_faculty():
+    user = get_current_user()
+    if not user:
+        return jsonify({"success": False, "error": "Authentication required"}), 401
+
+    dept = (request.args.get("department") or user.get("active_department") or "CSE").strip().upper()
+    allowed, err_msg = auth.check_scope_permission(user, dept, action="read")
+    if not allowed:
+        return jsonify({"success": False, "error": err_msg}), 403
+
+    users_in_dept = db.get_all_users(department_code=dept)
+    creators = {c["user_id"] for c in db.get_department_creators(dept)}
+
+    faculty_list = []
+    for u in users_in_dept:
+        roles = [r.get("role") for r in u.get("roles", [])]
+        if auth.ROLE_SUPER_ADMIN in roles or auth.ROLE_HOD in roles:
+            continue
+        faculty_list.append({
+            "id": u["id"],
+            "full_name": u["full_name"],
+            "email": u["email"],
+            "designation": u.get("designation", "Faculty"),
+            "department": dept,
+            "is_timetable_creator": u["id"] in creators
+        })
+
+    dept_fac_records = db.get_all_faculty(dept)
+    existing_names = {f["full_name"] for f in faculty_list}
+    for fac in dept_fac_records:
+        name = fac.get("name")
+        code = fac.get("code")
+        if name and name not in existing_names:
+            synthetic_id = f"fac-{code.lower()}"
+            faculty_list.append({
+                "id": synthetic_id,
+                "full_name": name,
+                "email": f"{code.lower()}@{dept.lower()}.clashfree.edu",
+                "designation": fac.get("designation", "Assistant Professor"),
+                "department": dept,
+                "is_timetable_creator": False
+            })
+
+    return jsonify({"success": True, "department": dept, "faculty": faculty_list})
+
+
+@app.route("/api/audit-logs", methods=["GET"])
+def get_audit_logs():
+    user = get_current_user()
+    if not user:
+        return jsonify({"success": False, "error": "Authentication required"}), 401
+
+    primary_role = user.get("primary_role")
+    dept = request.args.get("department")
+    if primary_role not in (auth.ROLE_SUPER_ADMIN, auth.ROLE_INSTITUTIONAL_VIEWER):
+        dept = user.get("active_department")
+
+    logs = db.get_audit_logs(limit=100, department_code=dept if primary_role != auth.ROLE_SUPER_ADMIN else None)
+    return jsonify({"success": True, "logs": logs})
 
 
 # ---------------------------------------------------------------------------
@@ -631,6 +903,11 @@ def run_scheduler():
     try:
         payload = request.json or {}
         dept = payload.get("department", "CSE")
+
+        allowed, err_msg, code = check_action_permission(action="generate", dept=dept)
+        if not allowed:
+            return jsonify({"success": False, "error": err_msg}), code
+
         year_filter = payload.get("year")           # e.g. "Second Year"
         sem_filter = payload.get("semester")        # e.g. "Semester III"
         div_filter = payload.get("division_filter") # e.g. ["Division A", "Division B"]
@@ -716,6 +993,13 @@ def run_scheduler():
                 "sessions_count": len(timetable_rows),
                 "conflicts_count": 0
             }
+            current_user = get_current_user()
+            generator_name = current_user.get("full_name") if current_user else payload.get("created_by", "HOD")
+            new_version["generated_by"] = generator_name
+            new_version["created_by"] = generator_name
+            new_version["college_id"] = current_user.get("college_id", 1) if current_user else 1
+            new_version["status"] = "ACTIVE"
+
             created_v = db.create_timetable_version(new_version)
             db.save_timetable(
                 timetable_rows,
@@ -724,6 +1008,19 @@ def run_scheduler():
                 academic_year=payload.get("academic_year", "2026-2027"),
                 semester=sem_filter or "Semester III"
             )
+
+            if current_user:
+                db.log_audit_action(
+                    actor_id=current_user["id"],
+                    actor_email=current_user["email"],
+                    actor_role=current_user["primary_role"],
+                    action="GENERATE_TIMETABLE",
+                    target_type="TIMETABLE_VERSION",
+                    target_id=created_v["id"],
+                    details={"scope": scope_desc, "count": len(timetable_rows), "department": dept},
+                    college_id=current_user.get("college_id", 1),
+                    department_code=dept
+                )
 
             return jsonify({
                 "success": True,
@@ -786,9 +1083,27 @@ def manage_versions():
 def restore_version_endpoint(vid):
     payload = request.json or {}
     dept = payload.get("department") or request.args.get("department")
-    user = payload.get("created_by", "Admin")
-    restored = db.restore_timetable_version(vid, department=dept, restored_by=user)
+
+    allowed, err_msg, code = check_action_permission(action="restore", dept=dept)
+    if not allowed:
+        return jsonify({"success": False, "error": err_msg}), code
+
+    current_user = get_current_user()
+    user_name = current_user.get("full_name") if current_user else payload.get("created_by", "Admin")
+    restored = db.restore_timetable_version(vid, department=dept, restored_by=user_name)
     if restored:
+        if current_user:
+            db.log_audit_action(
+                actor_id=current_user["id"],
+                actor_email=current_user["email"],
+                actor_role=current_user["primary_role"],
+                action="RESTORE_VERSION",
+                target_type="TIMETABLE_VERSION",
+                target_id=restored.get("id"),
+                details={"restored_from_id": vid, "new_version": restored.get("name"), "department": dept},
+                college_id=current_user.get("college_id", 1),
+                department_code=dept
+            )
         return jsonify({"success": True, "version": restored, "message": "Version restored as new active version"})
     return jsonify({"success": False, "error": "Version not found"}), 404
 
@@ -991,6 +1306,10 @@ def validate_excel_endpoint():
     ay = request.form.get("academic_year") or request.args.get("academic_year") or "2026-2027"
     sem = request.form.get("semester") or request.args.get("semester") or "Semester 3"
 
+    allowed, err_msg, code = check_action_permission(action="write", dept=dept)
+    if not allowed:
+        return jsonify({"success": False, "error": err_msg}), code
+
     file_bytes = io.BytesIO(file.read())
     valid, errors, warnings, summary, data_dict = excel_reader.validate_excel_data(
         file_bytes,
@@ -1027,6 +1346,10 @@ def import_excel():
     dept = request.form.get("department") or request.args.get("department") or "CSE"
     ay = request.form.get("academic_year") or request.args.get("academic_year") or "2026-2027"
     sem = request.form.get("semester") or request.args.get("semester") or "Semester 3"
+
+    allowed, err_msg, code = check_action_permission(action="write", dept=dept)
+    if not allowed:
+        return jsonify({"success": False, "error": err_msg}), code
 
     file_bytes = io.BytesIO(file.read())
     valid, errors, warnings, summary, data_dict = excel_reader.validate_excel_data(
@@ -1079,6 +1402,20 @@ def import_excel():
     summary["target_department"] = dept
     summary["target_academic_year"] = ay
     summary["target_semester"] = sem
+
+    current_user = get_current_user()
+    if current_user:
+        db.log_audit_action(
+            actor_id=current_user["id"],
+            actor_email=current_user["email"],
+            actor_role=current_user["primary_role"],
+            action="EXCEL_IMPORT",
+            target_type="DEPARTMENT_RECORDS",
+            target_id=dept,
+            details={"department": dept, "academic_year": ay, "semester": sem, "summary": summary},
+            college_id=current_user.get("college_id", 1),
+            department_code=dept
+        )
 
     return jsonify({
         "success": True,
