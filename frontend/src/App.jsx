@@ -4,13 +4,16 @@
 
 import React, { useState, useEffect } from "react";
 import * as api from "./api";
+import LoginPage from "./LoginPage";
+import DepartmentAccess from "./DepartmentAccess";
 
-const ROLES = [
-  { id: "ADMIN", label: "Admin (Full Access)", class: "role-admin" },
-  { id: "HOD", label: "HOD (Academic & Resources)", class: "role-hod" },
-  { id: "TIMETABLE_COORDINATOR", label: "Timetable Coordinator", class: "role-timetable" },
-  { id: "DEPARTMENT_COORDINATOR", label: "Dept Coordinator", class: "role-coordinator" },
-];
+const ROLE_BADGES = {
+  SUPER_ADMIN: { label: "Super Admin", className: "role-superadmin" },
+  INSTITUTIONAL_VIEWER: { label: "Institutional Viewer", className: "role-viewer" },
+  HOD: { label: "HOD", className: "role-hod" },
+  TIMETABLE_CREATOR: { label: "Timetable Creator", className: "role-creator" },
+  FACULTY: { label: "Faculty", className: "role-faculty" },
+};
 
 export function formatTime12Hour(val) {
   if (!val) return "";
@@ -40,7 +43,7 @@ export function formatTime12Hour(val) {
   return s;
 }
 
-const PAGES = [
+const ALL_PAGES = [
   { id: "dashboard", label: "Dashboard", icon: "📊" },
   { id: "timetable", label: "Timetable", icon: "📅" },
   { id: "faculty", label: "Faculty", icon: "👨‍🏫" },
@@ -55,15 +58,16 @@ const PAGES = [
   { id: "import", label: "Import Data", icon: "📥" },
   { id: "generate", label: "Generate Timetable", icon: "⚡" },
   { id: "versions", label: "Version History", icon: "📜" },
+  { id: "access", label: "Department Access", icon: "🔑" },
 ];
 
-
 export default function App() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authChecking, setAuthChecking] = useState(true);
   const [activePage, setActivePage] = useState("dashboard");
   const [selectedDept, setSelectedDept] = useState("CSE");
   const [selectedYear, setSelectedYear] = useState("ALL");
   const [selectedSem, setSelectedSem] = useState("ALL");
-  const [currentRole, setCurrentRole] = useState("HOD");
   const [departments, setDepartments] = useState([]);
   const [availableYears, setAvailableYears] = useState([]);
   const [availableSemesters, setAvailableSemesters] = useState([]);
@@ -74,13 +78,51 @@ export default function App() {
   useEffect(() => {
     checkStatus();
     loadDepartments();
+    restoreSession();
   }, []);
 
-  useEffect(() => {
-    loadDashboard();
-  }, [selectedDept]);
+  const restoreSession = async () => {
+    setAuthChecking(true);
+    try {
+      const user = await api.fetchCurrentUser();
+      if (user) {
+        setCurrentUser(user);
+        if (user.active_department && user.active_department !== "ALL") {
+          setSelectedDept(user.active_department);
+        }
+      } else {
+        setCurrentUser(null);
+      }
+    } catch {
+      setCurrentUser(null);
+    } finally {
+      setAuthChecking(false);
+    }
+  };
+
+  const handleLoginSuccess = (user) => {
+    setCurrentUser(user);
+    if (user.active_department && user.active_department !== "ALL") {
+      setSelectedDept(user.active_department);
+    }
+    setActivePage("dashboard");
+    notify(`Signed in as ${user.full_name} (${ROLE_BADGES[user.primary_role]?.label || user.primary_role})`, "success");
+  };
+
+  const handleSignOut = async () => {
+    await api.logout();
+    setCurrentUser(null);
+    notify("Signed out successfully", "success");
+  };
 
   useEffect(() => {
+    if (currentUser) {
+      loadDashboard();
+    }
+  }, [selectedDept, currentUser]);
+
+  useEffect(() => {
+    if (!currentUser) return;
     let cancelled = false;
     Promise.all([
       api.fetchAcademicYears(selectedDept),
@@ -94,7 +136,7 @@ export default function App() {
       if (selectedYear !== "ALL" && !nextYears.includes(selectedYear)) setSelectedYear("ALL");
     }).catch((error) => console.error("Could not load academic filters", error));
     return () => { cancelled = true; };
-  }, [selectedDept, selectedYear]);
+  }, [selectedDept, selectedYear, currentUser]);
 
   useEffect(() => {
     if (selectedSem !== "ALL" && !availableSemesters.includes(selectedSem)) setSelectedSem("ALL");
@@ -132,6 +174,55 @@ export default function App() {
     }
   };
 
+  // RBAC Role Resolution & Navigation Filter
+  const role = currentUser?.primary_role;
+  const isSuperAdmin = role === "SUPER_ADMIN";
+  const isViewer = role === "INSTITUTIONAL_VIEWER";
+  const isHod = role === "HOD";
+  const isCreator = role === "TIMETABLE_CREATOR";
+  const isFaculty = role === "FACULTY";
+
+  const allowedPageIds = (function() {
+    if (!currentUser) return [];
+    if (isSuperAdmin || isHod) return ALL_PAGES.map(p => p.id);
+    if (isCreator) return ALL_PAGES.filter(p => p.id !== "access").map(p => p.id);
+    if (isViewer) return ["dashboard", "timetable", "rooms", "occupancy", "conflicts", "reports", "versions"];
+    if (isFaculty) return ["dashboard", "timetable", "rooms", "occupancy", "conflicts", "reports"];
+    return ["dashboard", "timetable"];
+  })();
+
+  const visiblePages = ALL_PAGES.filter(p => allowedPageIds.includes(p.id));
+
+  useEffect(() => {
+    if (currentUser && allowedPageIds.length > 0 && !allowedPageIds.includes(activePage)) {
+      setActivePage("dashboard");
+    }
+  }, [activePage, currentUser]);
+
+  // Accessible departments for user
+  const userAllowedDepts = (function() {
+    if (!currentUser || isSuperAdmin || isViewer) return departments;
+    const accessible = currentUser.accessible_departments || [];
+    if (accessible.includes("ALL") || accessible.includes("ALL_COLLEGE")) return departments;
+    return departments.filter(d => accessible.includes(d.code));
+  })();
+
+  // 1. Loading screen while restoring session
+  if (authChecking) {
+    return (
+      <div className="login-root" style={{ justifyContent: "center", alignItems: "center" }}>
+        <div className="spinner-circle" style={{ width: "32px", height: "32px", borderTopColor: "#a855f7" }} />
+        <div style={{ marginTop: "16px", color: "#94a3b8", fontSize: "0.9rem" }}>Loading ClashFree session...</div>
+      </div>
+    );
+  }
+
+  // 2. Unauthenticated: Render polished Login Page
+  if (!currentUser) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  // 3. Authenticated: Render App Shell with Role-Aware Navigation
   return (
     <div className="app-container">
       {/* Sidebar */}
@@ -145,7 +236,7 @@ export default function App() {
         </div>
 
         <ul className="nav-links">
-          {PAGES.map((page) => (
+          {visiblePages.map((page) => (
             <li
               key={page.id}
               className={`nav-item ${activePage === page.id ? "active" : ""}`}
@@ -159,16 +250,16 @@ export default function App() {
 
         <div style={{ marginTop: "auto", paddingTop: "20px", borderTop: "1px solid #1e293b", fontSize: "0.8rem", color: "#64748b" }}>
           <div>CSP + MRV Engine Active</div>
-          <div style={{ marginTop: "4px" }}>B.Tech CSE Mini-Project</div>
+          <div style={{ marginTop: "4px" }}>Multi-College ERP • 2026-27</div>
         </div>
       </aside>
 
       {/* Main Content Area */}
       <main className="main-content">
         <header className="header">
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
             <div className="header-title">
-              {PAGES.find((p) => p.id === activePage)?.label}
+              {ALL_PAGES.find((p) => p.id === activePage)?.label}
             </div>
 
             {/* Department Context Pill */}
@@ -179,10 +270,10 @@ export default function App() {
                 onChange={(e) => setSelectedDept(e.target.value)}
                 style={{ border: "none", background: "transparent", fontWeight: "700", color: "#1e40af", outline: "none", cursor: "pointer" }}
               >
-                {departments.map((d) => (
+                {userAllowedDepts.map((d) => (
                   <option key={d.code} value={d.code}>{d.code} - {d.name}</option>
                 ))}
-                {departments.length === 0 && <option value="CSE">CSE</option>}
+                {userAllowedDepts.length === 0 && <option value="CSE">CSE</option>}
               </select>
             </div>
 
@@ -213,35 +304,60 @@ export default function App() {
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-            {/* Active User Role Switcher */}
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ fontSize: "0.8rem", color: "#64748b" }}>Role:</span>
-              <select
-                value={currentRole}
-                onChange={(e) => {
-                  setCurrentRole(e.target.value);
-                  notify(`Switched active view role to ${e.target.value}`);
-                }}
-                style={{ padding: "4px 8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "0.85rem", fontWeight: "600" }}
-              >
-                {ROLES.map((r) => (
-                  <option key={r.id} value={r.id}>{r.label}</option>
-                ))}
-              </select>
+          <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
+            {/* Authenticated User Profile Chip */}
+            <div className="user-profile-chip">
+              <div className="user-avatar-circle">
+                {currentUser.full_name?.split(" ").map(n => n[0]).slice(0, 2).join("") || "U"}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <div style={{ fontWeight: 700, color: "#1e293b", fontSize: "0.82rem", lineHeight: 1.1 }}>
+                  {currentUser.full_name}
+                </div>
+                <div style={{ fontSize: "0.7rem", color: "#64748b" }}>
+                  {currentUser.designation || "Faculty"}
+                </div>
+              </div>
+              <span className={`user-role-pill ${ROLE_BADGES[role]?.className || "role-faculty"}`}>
+                {ROLE_BADGES[role]?.label || role}
+              </span>
             </div>
 
-            <span className={`role-pill ${ROLES.find((r) => r.id === currentRole)?.class}`}>
-              {currentRole}
-            </span>
-
             {status.supabase ? (
-              <span className="badge badge-success">✓ Supabase PostgreSQL</span>
+              <span className="badge badge-success" title="Connected to Supabase PostgreSQL">✓ Supabase</span>
             ) : (
-              <span className="badge badge-warning">⚡ Resilient Store Active</span>
+              <span className="badge badge-warning" title="Resilient local storage active">⚡ Local Store</span>
             )}
+
+            <button
+              type="button"
+              className="btn-signout"
+              onClick={handleSignOut}
+              title="Sign out of ClashFree"
+            >
+              Sign Out 🚪
+            </button>
           </div>
         </header>
+
+        {/* Role Banners */}
+        {isViewer && (
+          <div className="banner-read-only">
+            <span>🏛️</span>
+            <div>
+              <strong>Institutional Viewer Mode ({currentUser.designation || "Dean / Principal"}):</strong> Viewing college-wide data for <strong>{selectedDept}</strong>. Modifying inputs, workbook imports, and timetable generation are restricted.
+            </div>
+          </div>
+        )}
+
+        {isFaculty && (
+          <div className="banner-read-only" style={{ background: "#f8fafc", borderColor: "#cbd5e1", color: "#334155" }}>
+            <span>👨‍🏫</span>
+            <div>
+              <strong>Faculty View Mode ({currentUser.full_name}):</strong> Department master timetable, room occupancy, and academic workload view.
+            </div>
+          </div>
+        )}
 
         {notification && (
           <div
@@ -265,11 +381,12 @@ export default function App() {
               department={selectedDept}
               setPage={setActivePage}
               onRefresh={loadDashboard}
+              currentUser={currentUser}
             />
           )}
 
           {activePage === "timetable" && (
-            <TimetableView department={selectedDept} selectedYear={selectedYear} selectedSem={selectedSem} currentRole={currentRole} notify={notify} />
+            <TimetableView department={selectedDept} selectedYear={selectedYear} selectedSem={selectedSem} currentRole={currentUser?.primary_role} notify={notify} />
           )}
 
           {activePage === "faculty" && (
@@ -277,7 +394,7 @@ export default function App() {
           )}
 
           {activePage === "rooms" && (
-            <RoomsView department={selectedDept} currentRole={currentRole} notify={notify} />
+            <RoomsView department={selectedDept} currentRole={currentUser?.primary_role} notify={notify} />
           )}
 
           {activePage === "subjects" && (
@@ -335,7 +452,11 @@ export default function App() {
           )}
 
           {activePage === "versions" && (
-            <VersionHistoryView department={selectedDept} notify={notify} />
+            <VersionHistoryView department={selectedDept} notify={notify} currentUser={currentUser} />
+          )}
+
+          {activePage === "access" && (
+            <DepartmentAccess department={selectedDept} currentUser={currentUser} onNotify={notify} />
           )}
         </div>
       </main>
@@ -346,10 +467,11 @@ export default function App() {
 // =============================================================
 // 1. DASHBOARD VIEW (Full ERP Metrics)
 // =============================================================
-function DashboardView({ data, department, setPage, onRefresh }) {
+function DashboardView({ data, department, setPage, onRefresh, currentUser }) {
   const c = data?.counts || {};
   const [dashDivs, setDashDivs] = useState([]);
   const [selectedDivExport, setSelectedDivExport] = useState("ALL");
+  const isReadOnly = currentUser?.primary_role === "INSTITUTIONAL_VIEWER" || currentUser?.primary_role === "FACULTY";
 
   useEffect(() => {
     api.fetchDivisions(department).then(divs => setDashDivs(divs || []));
@@ -480,15 +602,19 @@ function DashboardView({ data, department, setPage, onRefresh }) {
       <div className="card" style={{ marginTop: "24px" }}>
         <h3 style={{ marginBottom: "16px" }}>⚡ Quick Operational Actions</h3>
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-          <button className="btn" onClick={() => setPage("import")}>
-            📥 Import Excel
-          </button>
-          <button className="btn btn-secondary" onClick={() => setPage("import")}>
-            🔍 Validate Data
-          </button>
-          <button className="btn btn-secondary" style={{ background: "#2563eb", color: "#fff" }} onClick={() => setPage("generate")}>
-            ⚡ Generate Timetable
-          </button>
+          {!isReadOnly && (
+            <>
+              <button className="btn" onClick={() => setPage("import")}>
+                📥 Import Excel
+              </button>
+              <button className="btn btn-secondary" onClick={() => setPage("import")}>
+                🔍 Validate Data
+              </button>
+              <button className="btn btn-secondary" style={{ background: "#2563eb", color: "#fff" }} onClick={() => setPage("generate")}>
+                ⚡ Generate Timetable
+              </button>
+            </>
+          )}
           <button className="btn btn-secondary" onClick={() => setPage("timetable")}>
             📅 View Timetable
           </button>
@@ -3164,9 +3290,10 @@ function OccupancyView({ department }) {
 // =============================================================
 // 9B. VERSION HISTORY VIEW (Product Requirement 38)
 // =============================================================
-function VersionHistoryView({ department, notify }) {
+function VersionHistoryView({ department, notify, currentUser }) {
   const [versions, setVersions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const canRestore = currentUser?.primary_role === "SUPER_ADMIN" || currentUser?.primary_role === "HOD";
 
   useEffect(() => {
     loadVersions();
@@ -3258,22 +3385,30 @@ function VersionHistoryView({ department, notify }) {
                   <td>
                     {!v.is_active && (
                       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                        <button
-                          className="btn btn-secondary"
-                          style={{ padding: "4px 8px", fontSize: "0.75rem", background: "#eff6ff", color: "#1e40af", border: "1px solid #bfdbfe" }}
-                          onClick={() => handleActivate(v.id || v.version_number)}
-                          title="Activate this historical version"
-                        >
-                          ⚡ Active
-                        </button>
-                        <button
-                          className="btn btn-secondary"
-                          style={{ padding: "4px 8px", fontSize: "0.75rem", background: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0" }}
-                          onClick={() => handleRestore(v.id || v.version_number)}
-                          title="Clone and restore as new active version (preserving audit history)"
-                        >
-                          🔄 Restore
-                        </button>
+                        {canRestore ? (
+                          <>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ padding: "4px 8px", fontSize: "0.75rem", background: "#eff6ff", color: "#1e40af", border: "1px solid #bfdbfe" }}
+                              onClick={() => handleActivate(v.id || v.version_number)}
+                              title="Activate this historical version"
+                            >
+                              ⚡ Active
+                            </button>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ padding: "4px 8px", fontSize: "0.75rem", background: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0" }}
+                              onClick={() => handleRestore(v.id || v.version_number)}
+                              title="Clone and restore as new active version (preserving audit history)"
+                            >
+                              🔄 Restore
+                            </button>
+                          </>
+                        ) : (
+                          <span style={{ fontSize: "0.75rem", color: "#94a3b8", fontStyle: "italic" }}>
+                            Archived (Restore restricted to HOD)
+                          </span>
+                        )}
                       </div>
                     )}
                   </td>

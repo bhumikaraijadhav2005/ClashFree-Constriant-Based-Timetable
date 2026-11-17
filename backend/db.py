@@ -6,8 +6,10 @@
 
 import os
 import json
+from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
+import auth
 
 root_dir = Path(__file__).resolve().parent.parent
 load_dotenv(dotenv_path=root_dir / ".env")
@@ -110,8 +112,10 @@ DEFAULT_STORE = {
 
 def _load_local_store():
     if not STORE_FILE.exists():
-        _save_local_store(DEFAULT_STORE)
-        return dict(DEFAULT_STORE)
+        new_store = dict(DEFAULT_STORE)
+        auth.ensure_seed_auth_data(new_store)
+        _save_local_store(new_store)
+        return new_store
     try:
         with open(STORE_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -119,9 +123,12 @@ def _load_local_store():
             for k, v in DEFAULT_STORE.items():
                 if k not in data or (isinstance(data[k], list) and not data[k] and v):
                     data[k] = v
+            auth.ensure_seed_auth_data(data)
             return data
     except Exception:
-        return dict(DEFAULT_STORE)
+        fallback = dict(DEFAULT_STORE)
+        auth.ensure_seed_auth_data(fallback)
+        return fallback
 
 def _save_local_store(data):
     try:
@@ -1375,4 +1382,190 @@ def save_requirements(req_list: list, department: str = "CSE"):
         retained.append(r)
     _memory_store["requirements"] = retained
     _save_local_store(_memory_store)
+
+# ---------------------------------------------------------------------------
+# USERS, ROLES & AUDIT LOG ACCESS
+# ---------------------------------------------------------------------------
+def get_user_by_email(email: str):
+    if not email:
+        return None
+    clean_email = email.strip().lower()
+    client = get_client()
+    if client:
+        try:
+            res = client.table("user_profiles").select("*").eq("email", clean_email).limit(1).execute()
+            if res.data:
+                u = res.data[0]
+                roles_res = client.table("user_roles").select("*").eq("user_id", u["id"]).execute()
+                u["roles"] = roles_res.data or []
+                return u
+        except Exception:
+            pass
+    profiles = _memory_store.get("user_profiles", [])
+    u = next((p for p in profiles if p.get("email", "").strip().lower() == clean_email), None)
+    if u:
+        u_copy = dict(u)
+        u_copy["roles"] = [r for r in _memory_store.get("user_roles", []) if str(r.get("user_id")) == str(u["id"])]
+        return u_copy
+    return None
+
+def get_user_by_id(user_id: str):
+    if not user_id:
+        return None
+    client = get_client()
+    if client:
+        try:
+            res = client.table("user_profiles").select("*").eq("id", str(user_id)).limit(1).execute()
+            if res.data:
+                u = res.data[0]
+                roles_res = client.table("user_roles").select("*").eq("user_id", str(user_id)).execute()
+                u["roles"] = roles_res.data or []
+                return u
+        except Exception:
+            pass
+    profiles = _memory_store.get("user_profiles", [])
+    u = next((p for p in profiles if str(p.get("id")) == str(user_id)), None)
+    if u:
+        u_copy = dict(u)
+        u_copy["roles"] = [r for r in _memory_store.get("user_roles", []) if str(r.get("user_id")) == str(user_id)]
+        return u_copy
+    return None
+
+def get_all_users(college_id: int = None, department_code: str = None):
+    profiles = _memory_store.get("user_profiles", [])
+    roles = _memory_store.get("user_roles", [])
+    results = []
+    for p in profiles:
+        u_roles = [r for r in roles if str(r.get("user_id")) == str(p.get("id"))]
+        if department_code and not any(r.get("department_code") == department_code for r in u_roles):
+            continue
+        p_clean = dict(p)
+        p_clean.pop("password_hash", None)
+        p_clean["roles"] = u_roles
+        results.append(p_clean)
+    return results
+
+def get_department_creators(department_code: str):
+    """Return all faculty assigned as TIMETABLE_CREATOR for a given department."""
+    if not department_code:
+        return []
+    dept = department_code.strip().upper()
+    roles = _memory_store.get("user_roles", [])
+    profiles = {str(p.get("id")): p for p in _memory_store.get("user_profiles", [])}
+
+    creator_roles = [
+        r for r in roles 
+        if r.get("role") == auth.ROLE_TIMETABLE_CREATOR and (r.get("department_code") or "").upper() == dept
+    ]
+
+    creators = []
+    for r in creator_roles:
+        u = profiles.get(str(r.get("user_id")))
+        assigner = profiles.get(str(r.get("assigned_by")))
+        assigner_name = assigner.get("full_name") if assigner else r.get("assigned_by", "HOD")
+        if u:
+            creators.append({
+                "role_id": r.get("id"),
+                "user_id": u.get("id"),
+                "full_name": u.get("full_name"),
+                "email": u.get("email"),
+                "designation": u.get("designation"),
+                "department_code": dept,
+                "assigned_by": assigner_name,
+                "assigned_by_id": r.get("assigned_by"),
+                "created_at": r.get("created_at")
+            })
+    return creators
+
+def assign_timetable_creator(hod_user_id: str, target_user_id: str, department_code: str):
+    """HOD grants TIMETABLE_CREATOR role to eligible faculty in their department."""
+    if not target_user_id or not department_code:
+        return False, "Target user and department are required"
+    dept = department_code.strip().upper()
+    roles = _memory_store.setdefault("user_roles", [])
+
+    # Check if already has TIMETABLE_CREATOR in this department
+    existing = next(
+        (r for r in roles if str(r.get("user_id")) == str(target_user_id) 
+         and r.get("role") == auth.ROLE_TIMETABLE_CREATOR 
+         and (r.get("department_code") or "").upper() == dept),
+        None
+    )
+    if existing:
+        return True, "User is already a Timetable Creator for this department"
+
+    next_id = max([r.get("id", 0) for r in roles] or [0]) + 1
+    new_role = {
+        "id": next_id,
+        "user_id": str(target_user_id),
+        "role": auth.ROLE_TIMETABLE_CREATOR,
+        "college_id": 1,
+        "department_code": dept,
+        "assigned_by": str(hod_user_id),
+        "created_at": datetime.now().isoformat()
+    }
+    roles.append(new_role)
+
+    # Also sync to Supabase if client is available
+    client = get_client()
+    if client:
+        try:
+            client.table("user_roles").insert(new_role).execute()
+        except Exception:
+            pass
+
+    _save_local_store(_memory_store)
+    return True, new_role
+
+def revoke_timetable_creator(hod_user_id: str, target_user_id: str, department_code: str):
+    """HOD revokes TIMETABLE_CREATOR role from faculty in their department."""
+    if not target_user_id or not department_code:
+        return False, "Target user and department are required"
+    dept = department_code.strip().upper()
+    roles = _memory_store.get("user_roles", [])
+    before_len = len(roles)
+    updated = [
+        r for r in roles 
+        if not (str(r.get("user_id")) == str(target_user_id) 
+                and r.get("role") == auth.ROLE_TIMETABLE_CREATOR 
+                and (r.get("department_code") or "").upper() == dept)
+    ]
+    if len(updated) == before_len:
+        return False, "No active Timetable Creator assignment found for this user in this department"
+
+    _memory_store["user_roles"] = updated
+
+    client = get_client()
+    if client:
+        try:
+            client.table("user_roles").delete().eq("user_id", str(target_user_id)).eq("role", auth.ROLE_TIMETABLE_CREATOR).eq("department_code", dept).execute()
+        except Exception:
+            pass
+
+    _save_local_store(_memory_store)
+    return True, "Timetable Creator access revoked successfully"
+
+def get_audit_logs(limit: int = 100, department_code: str = None):
+    logs = _memory_store.get("audit_logs", [])
+    if department_code:
+        dept = department_code.strip().upper()
+        logs = [l for l in logs if not l.get("department_code") or l.get("department_code") == dept]
+    return logs[:limit]
+
+def log_audit_action(actor_id: str, actor_email: str, actor_role: str, action: str, target_type: str = None, target_id: str = None, details = None, college_id: int = 1, department_code: str = None):
+    entry = auth.record_audit_log(
+        _memory_store,
+        actor_id=actor_id,
+        actor_email=actor_email,
+        actor_role=actor_role,
+        action=action,
+        target_type=target_type,
+        target_id=target_id,
+        details=details,
+        college_id=college_id,
+        department_code=department_code
+    )
+    _save_local_store(_memory_store)
+    return entry
+
 
