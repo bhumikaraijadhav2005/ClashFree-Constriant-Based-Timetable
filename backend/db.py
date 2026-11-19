@@ -1568,4 +1568,183 @@ def log_audit_action(actor_id: str, actor_email: str, actor_role: str, action: s
     _save_local_store(_memory_store)
     return entry
 
+def create_user_with_credentials(email: str, password: str, full_name: str, designation: str, role: str, college_id: int = 1, department_code: str = None, assigned_by: str = "SUPER_ADMIN"):
+    """Super Admin creates a new user profile, sets their password, and assigns role and scope."""
+    if not email or not password or not full_name:
+        return False, "Email, password, and full name are required."
+
+    clean_email = email.strip().lower()
+    profiles = _memory_store.setdefault("user_profiles", [])
+    roles = _memory_store.setdefault("user_roles", [])
+
+    if any(p.get("email", "").strip().lower() == clean_email for p in profiles):
+        return False, f"A user with email '{clean_email}' already exists."
+
+    import secrets
+    tag = role.lower()[:3] if role else "usr"
+    user_id = f"usr-{tag}-{secrets.token_hex(4)}"
+    password_hash = auth.hash_password(password)
+
+    new_profile = {
+        "id": user_id,
+        "email": clean_email,
+        "full_name": full_name.strip(),
+        "designation": designation.strip() if designation else "Faculty",
+        "college_id": int(college_id or 1),
+        "account_status": "ACTIVE",
+        "password_hash": password_hash,
+        "created_at": datetime.now().isoformat()
+    }
+    profiles.append(new_profile)
+
+    next_role_id = max([r.get("id", 0) for r in roles] or [0]) + 1
+    clean_dept = department_code.strip().upper() if department_code else None
+    if role not in (auth.ROLE_HOD, auth.ROLE_TIMETABLE_CREATOR, auth.ROLE_FACULTY):
+        clean_dept = None  # Super Admin and Institutional Viewers don't have single department restriction
+
+    primary_role_entry = {
+        "id": next_role_id,
+        "user_id": user_id,
+        "role": role,
+        "college_id": int(college_id or 1) if role != auth.ROLE_SUPER_ADMIN else None,
+        "department_code": clean_dept,
+        "assigned_by": assigned_by,
+        "created_at": datetime.now().isoformat()
+    }
+    roles.append(primary_role_entry)
+
+    # If role is TIMETABLE_CREATOR, also assign underlying FACULTY role
+    if role == auth.ROLE_TIMETABLE_CREATOR:
+        roles.append({
+            "id": next_role_id + 1,
+            "user_id": user_id,
+            "role": auth.ROLE_FACULTY,
+            "college_id": int(college_id or 1),
+            "department_code": clean_dept,
+            "assigned_by": assigned_by,
+            "created_at": datetime.now().isoformat()
+        })
+
+    # Also synchronize to Supabase if connected
+    client = get_client()
+    if client:
+        try:
+            client.table("user_profiles").insert(new_profile).execute()
+            client.table("user_roles").insert(primary_role_entry).execute()
+        except Exception:
+            pass
+
+    _save_local_store(_memory_store)
+
+    safe_profile = dict(new_profile)
+    safe_profile.pop("password_hash", None)
+    safe_profile["roles"] = [r for r in roles if str(r.get("user_id")) == user_id]
+    return True, safe_profile
+
+def update_user(user_id: str, full_name: str = None, designation: str = None, role: str = None, department_code: str = None, account_status: str = None, college_id: int = None):
+    """Super Admin updates an existing user's attributes or role/scope."""
+    profiles = _memory_store.get("user_profiles", [])
+    target = next((p for p in profiles if str(p.get("id")) == str(user_id)), None)
+    if not target:
+        return False, "User not found"
+
+    if full_name is not None:
+        target["full_name"] = full_name.strip()
+    if designation is not None:
+        target["designation"] = designation.strip()
+    if account_status is not None:
+        target["account_status"] = account_status.strip().upper()
+    if college_id is not None:
+        target["college_id"] = int(college_id)
+
+    roles = _memory_store.get("user_roles", [])
+    if role is not None:
+        # Update primary role entry for user
+        user_roles = [r for r in roles if str(r.get("user_id")) == str(user_id)]
+        clean_dept = department_code.strip().upper() if department_code else None
+        if user_roles:
+            user_roles[0]["role"] = role
+            user_roles[0]["department_code"] = clean_dept
+        else:
+            next_role_id = max([r.get("id", 0) for r in roles] or [0]) + 1
+            roles.append({
+                "id": next_role_id,
+                "user_id": str(user_id),
+                "role": role,
+                "college_id": target.get("college_id", 1),
+                "department_code": clean_dept,
+                "assigned_by": "SUPER_ADMIN",
+                "created_at": datetime.now().isoformat()
+            })
+    elif department_code is not None:
+        clean_dept = department_code.strip().upper()
+        for r in roles:
+            if str(r.get("user_id")) == str(user_id):
+                r["department_code"] = clean_dept
+
+    client = get_client()
+    if client:
+        try:
+            update_data = {
+                "full_name": target.get("full_name"),
+                "designation": target.get("designation"),
+                "account_status": target.get("account_status"),
+                "college_id": target.get("college_id")
+            }
+            client.table("user_profiles").update(update_data).eq("id", str(user_id)).execute()
+        except Exception:
+            pass
+
+    _save_local_store(_memory_store)
+
+    safe_profile = dict(target)
+    safe_profile.pop("password_hash", None)
+    safe_profile["roles"] = [r for r in roles if str(r.get("user_id")) == str(user_id)]
+    return True, safe_profile
+
+def set_user_password(user_id: str, new_password: str):
+    """Super Admin resets a user's password."""
+    if not new_password or len(new_password.strip()) < 4:
+        return False, "Password must be at least 4 characters long."
+
+    profiles = _memory_store.get("user_profiles", [])
+    target = next((p for p in profiles if str(p.get("id")) == str(user_id)), None)
+    if not target:
+        return False, "User not found"
+
+    new_hash = auth.hash_password(new_password)
+    target["password_hash"] = new_hash
+
+    client = get_client()
+    if client:
+        try:
+            client.table("user_profiles").update({"password_hash": new_hash}).eq("id", str(user_id)).execute()
+        except Exception:
+            pass
+
+    _save_local_store(_memory_store)
+    return True, "Password updated successfully"
+
+def delete_user(user_id: str):
+    """Super Admin deletes a user account."""
+    profiles = _memory_store.get("user_profiles", [])
+    target = next((p for p in profiles if str(p.get("id")) == str(user_id)), None)
+    if not target:
+        return False, "User not found"
+
+    _memory_store["user_profiles"] = [p for p in profiles if str(p.get("id")) != str(user_id)]
+    _memory_store["user_roles"] = [r for r in _memory_store.get("user_roles", []) if str(r.get("user_id")) != str(user_id)]
+
+    client = get_client()
+    if client:
+        try:
+            client.table("user_roles").delete().eq("user_id", str(user_id)).execute()
+            client.table("user_profiles").delete().eq("id", str(user_id)).execute()
+        except Exception:
+            pass
+
+    _save_local_store(_memory_store)
+    return True, "User deleted successfully"
+
+
 

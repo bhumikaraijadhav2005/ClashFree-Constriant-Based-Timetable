@@ -25,6 +25,7 @@ import db
 import excel_reader
 import scheduler
 import auth
+import mailer
 from functools import wraps
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -167,6 +168,10 @@ def auth_forgot_password():
 
     user = db.get_user_by_email(email)
     if user:
+        reset_token = auth.create_password_reset_token(user["id"], user["email"], expires_in=900)
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+        reset_url = f"{frontend_url}/?reset_token={reset_token}"
+
         db.log_audit_action(
             actor_id=user["id"],
             actor_email=user["email"],
@@ -177,9 +182,59 @@ def auth_forgot_password():
             details={"requested_email": email}
         )
 
+        mailer.send_password_reset_email(
+            to_email=user["email"],
+            recipient_name=user.get("full_name") or "Faculty Member",
+            reset_url=reset_url
+        )
+
+    # Standard security best-practice: always return positive message so attackers cannot enumerate valid user accounts
     return jsonify({
         "success": True,
-        "message": f"Password reset instructions have been dispatched to {email}. Please check your inbox."
+        "message": f"If an account exists for {email}, password reset instructions have been dispatched to your institutional inbox."
+    })
+
+
+@app.route("/api/auth/reset-password", methods=["POST"])
+def auth_reset_password():
+    data = request.json or {}
+    token = (data.get("token") or "").strip()
+    new_password = data.get("password") or ""
+
+    if not token:
+        return jsonify({"success": False, "error": "Password reset token is required"}), 400
+    if not new_password or len(new_password) < 6:
+        return jsonify({"success": False, "error": "Password must be at least 6 characters long"}), 400
+
+    payload = auth.verify_password_reset_token(token)
+    if not payload:
+        return jsonify({
+            "success": False,
+            "error": "The password reset link is invalid or has expired (valid for 15 minutes). Please request a new one."
+        }), 400
+
+    user_id = payload.get("sub")
+    target_user = db.get_user_by_id(user_id)
+    if not target_user:
+        return jsonify({"success": False, "error": "User account no longer exists."}), 404
+
+    ok, msg = db.set_user_password(user_id, new_password)
+    if not ok:
+        return jsonify({"success": False, "error": msg}), 400
+
+    db.log_audit_action(
+        actor_id=target_user["id"],
+        actor_email=target_user["email"],
+        actor_role=target_user.get("primary_role", "USER"),
+        action="PASSWORD_RESET_SUCCESS",
+        target_type="USER_ACCOUNT",
+        target_id=target_user["id"],
+        details={"reset_by": "USER_SELF_RESET"}
+    )
+
+    return jsonify({
+        "success": True,
+        "message": "Password updated successfully! You can now sign in with your new password."
     })
 
 
@@ -306,6 +361,168 @@ def get_audit_logs():
 
     logs = db.get_audit_logs(limit=100, department_code=dept if primary_role != auth.ROLE_SUPER_ADMIN else None)
     return jsonify({"success": True, "logs": logs})
+
+
+# ---------------------------------------------------------------------------
+# SUPER ADMIN USER & ACCESS CONTROL MANAGEMENT
+# ---------------------------------------------------------------------------
+@app.route("/api/auth/users", methods=["GET", "POST"])
+def manage_users():
+    user = get_current_user()
+    if not user:
+        return jsonify({"success": False, "error": "Authentication required"}), 401
+
+    # Super Admin can manage all users; HOD can view department users
+    if request.method == "GET":
+        primary_role = user.get("primary_role")
+        if primary_role == auth.ROLE_SUPER_ADMIN:
+            users = db.get_all_users()
+            return jsonify({"success": True, "users": users})
+        elif primary_role in (auth.ROLE_HOD, auth.ROLE_INSTITUTIONAL_VIEWER):
+            dept = user.get("active_department") if primary_role == auth.ROLE_HOD else None
+            users = db.get_all_users(department_code=dept)
+            return jsonify({"success": True, "users": users})
+        return jsonify({"success": False, "error": "Unauthorized: Super Admin or HOD required"}), 403
+
+    # POST (create user) strictly restricted to SUPER_ADMIN
+    if user.get("primary_role") != auth.ROLE_SUPER_ADMIN:
+        return jsonify({"success": False, "error": "Unauthorized: Only Super Admin can create accounts and assign access control."}), 403
+
+    data = request.json or {}
+    email = (data.get("email") or "").strip()
+    password = data.get("password") or ""
+    full_name = (data.get("full_name") or "").strip()
+    designation = (data.get("designation") or "Faculty").strip()
+    role = (data.get("role") or auth.ROLE_FACULTY).strip().upper()
+    department = data.get("department") or data.get("department_code")
+    college_id = data.get("college_id", 1)
+
+    if not email:
+        return jsonify({"success": False, "error": "Email address is required"}), 400
+    if not password:
+        return jsonify({"success": False, "error": "Initial password is required"}), 400
+    if not full_name:
+        return jsonify({"success": False, "error": "Full name is required"}), 400
+    if role not in auth.ALL_ROLES:
+        return jsonify({"success": False, "error": f"Invalid role. Must be one of: {', '.join(auth.ALL_ROLES)}"}), 400
+
+    if role in (auth.ROLE_HOD, auth.ROLE_TIMETABLE_CREATOR, auth.ROLE_FACULTY) and not department:
+        return jsonify({"success": False, "error": f"Department is required for role {role}"}), 400
+
+    ok, res = db.create_user_with_credentials(
+        email=email,
+        password=password,
+        full_name=full_name,
+        designation=designation,
+        role=role,
+        college_id=college_id,
+        department_code=department,
+        assigned_by=user.get("full_name") or "SUPER_ADMIN"
+    )
+
+    if not ok:
+        return jsonify({"success": False, "error": res}), 400
+
+    db.log_audit_action(
+        actor_id=user["id"],
+        actor_email=user["email"],
+        actor_role=user["primary_role"],
+        action="USER_CREATED",
+        target_type="USER_ACCOUNT",
+        target_id=res["id"],
+        details={"created_email": email, "role": role, "department": department, "designation": designation},
+        department_code=department
+    )
+
+    return jsonify({
+        "success": True,
+        "message": f"User account created for {full_name} ({email}) with role {role}.",
+        "user": res
+    }), 201
+
+
+@app.route("/api/auth/users/<user_id>", methods=["PUT", "DELETE"])
+def update_or_delete_user(user_id):
+    user = get_current_user()
+    if not user:
+        return jsonify({"success": False, "error": "Authentication required"}), 401
+    if user.get("primary_role") != auth.ROLE_SUPER_ADMIN:
+        return jsonify({"success": False, "error": "Unauthorized: Only Super Admin can modify accounts."}), 403
+
+    if request.method == "DELETE":
+        if str(user["id"]) == str(user_id):
+            return jsonify({"success": False, "error": "Cannot delete your own active Super Admin account."}), 400
+        target_u = db.get_user_by_id(user_id)
+        ok, msg = db.delete_user(user_id)
+        if not ok:
+            return jsonify({"success": False, "error": msg}), 400
+
+        db.log_audit_action(
+            actor_id=user["id"],
+            actor_email=user["email"],
+            actor_role=user["primary_role"],
+            action="USER_DELETED",
+            target_type="USER_ACCOUNT",
+            target_id=str(user_id),
+            details={"deleted_user": target_u.get("email") if target_u else str(user_id)}
+        )
+        return jsonify({"success": True, "message": "User deleted successfully."})
+
+    elif request.method == "PUT":
+        data = request.json or {}
+        ok, res = db.update_user(
+            user_id=user_id,
+            full_name=data.get("full_name"),
+            designation=data.get("designation"),
+            role=data.get("role"),
+            department_code=data.get("department") or data.get("department_code"),
+            account_status=data.get("account_status"),
+            college_id=data.get("college_id")
+        )
+        if not ok:
+            return jsonify({"success": False, "error": res}), 400
+
+        db.log_audit_action(
+            actor_id=user["id"],
+            actor_email=user["email"],
+            actor_role=user["primary_role"],
+            action="USER_UPDATED",
+            target_type="USER_ACCOUNT",
+            target_id=str(user_id),
+            details=data
+        )
+        return jsonify({"success": True, "message": "User updated successfully.", "user": res})
+
+
+@app.route("/api/auth/users/<user_id>/reset-password", methods=["POST"])
+def admin_reset_password(user_id):
+    user = get_current_user()
+    if not user:
+        return jsonify({"success": False, "error": "Authentication required"}), 401
+    if user.get("primary_role") != auth.ROLE_SUPER_ADMIN:
+        return jsonify({"success": False, "error": "Unauthorized: Only Super Admin can reset user credentials."}), 403
+
+    data = request.json or {}
+    new_password = data.get("password") or ""
+    if not new_password:
+        return jsonify({"success": False, "error": "New password is required"}), 400
+
+    ok, msg = db.set_user_password(user_id, new_password)
+    if not ok:
+        return jsonify({"success": False, "error": msg}), 400
+
+    target_u = db.get_user_by_id(user_id)
+    db.log_audit_action(
+        actor_id=user["id"],
+        actor_email=user["email"],
+        actor_role=user["primary_role"],
+        action="ADMIN_PASSWORD_RESET",
+        target_type="USER_ACCOUNT",
+        target_id=str(user_id),
+        details={"user_email": target_u.get("email") if target_u else str(user_id)}
+    )
+
+    return jsonify({"success": True, "message": f"Password reset successfully for {target_u.get('full_name', 'user')}."})
 
 
 # ---------------------------------------------------------------------------

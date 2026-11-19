@@ -132,6 +132,29 @@ def verify_auth_token(token: str) -> dict | None:
     except Exception:
         return None
 
+
+def create_password_reset_token(user_id: str, email: str, expires_in: int = 900) -> str:
+    """Create a short-lived (default 15 min) signed password reset token."""
+    payload = {
+        "sub": str(user_id),
+        "email": email.strip().lower(),
+        "type": "password_reset"
+    }
+    return create_auth_token(payload, expires_in=expires_in)
+
+
+def verify_password_reset_token(token: str) -> dict | None:
+    """
+    Verify password reset token signature, expiration, and token type.
+    Returns payload containing 'sub' (user_id) and 'email' if valid, None otherwise.
+    """
+    payload = verify_auth_token(token)
+    if not payload:
+        return None
+    if payload.get("type") != "password_reset":
+        return None
+    return payload
+
 # ---------------------------------------------------------------------------
 # SEED ACCOUNTS & INITIALIZATION
 # ---------------------------------------------------------------------------
@@ -296,7 +319,15 @@ def ensure_seed_auth_data(store: dict) -> None:
                 "created_at": datetime.now().isoformat()
             }
             store["user_profiles"].append(profile)
-            for r in seed_u.get("roles", []):
+            existing_emails[email] = profile
+
+        # Ensure seed roles are present for this user
+        existing_role_names = {
+            r.get("role") for r in store["user_roles"]
+            if str(r.get("user_id")) == str(seed_u["id"])
+        }
+        for r in seed_u.get("roles", []):
+            if r["role"] not in existing_role_names:
                 role_entry = {
                     "id": next_role_id,
                     "user_id": seed_u["id"],
@@ -307,6 +338,7 @@ def ensure_seed_auth_data(store: dict) -> None:
                     "created_at": datetime.now().isoformat()
                 }
                 store["user_roles"].append(role_entry)
+                existing_role_names.add(r["role"])
                 next_role_id += 1
 
 # ---------------------------------------------------------------------------
