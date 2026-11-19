@@ -275,3 +275,128 @@ def test_audit_logs_recorded_and_retrieved():
     logs = res.get_json()["logs"]
     assert isinstance(logs, list)
     assert len(logs) > 0
+
+# ---------------------------------------------------------------------------
+# 7. SUPER ADMIN USER ACCESS MANAGEMENT & CREDENTIAL PROVISIONING
+# ---------------------------------------------------------------------------
+def test_super_admin_creates_user_and_user_can_login():
+    import uuid
+    client = app.app.test_client()
+    admin_token = get_auth_token("superadmin@clashfree.edu")
+    test_email = f"dr.kulkarni.{uuid.uuid4().hex[:6]}@college.edu"
+
+    # 1. Super Admin creates new faculty user with custom password
+    new_user_payload = {
+        "email": test_email,
+        "password": "InitialPass@2026",
+        "full_name": "Dr. Pradeep Kulkarni",
+        "designation": "Associate Professor",
+        "role": "FACULTY",
+        "department": "CSE"
+    }
+    res_create = client.post("/api/auth/users", json=new_user_payload, headers={"Authorization": f"Bearer {admin_token}"})
+    assert res_create.status_code == 201
+    created_user = res_create.get_json()["user"]
+    assert created_user["email"] == test_email
+
+    # 2. Newly created faculty logs in immediately with provided password
+    res_login = client.post("/api/auth/login", json={
+        "email": test_email,
+        "password": "InitialPass@2026"
+    })
+    assert res_login.status_code == 200
+    login_data = res_login.get_json()
+    assert login_data["success"] is True
+    assert login_data["user"]["primary_role"] == "FACULTY"
+    assert login_data["user"]["active_department"] == "CSE"
+
+    # 3. Super Admin resets the password for this user
+    user_id = created_user["id"]
+    res_reset = client.post(f"/api/auth/users/{user_id}/reset-password", json={
+        "password": "UpdatedPassword@2027"
+    }, headers={"Authorization": f"Bearer {admin_token}"})
+    assert res_reset.status_code == 200
+
+    # 4. Old password fails
+    res_old_login = client.post("/api/auth/login", json={
+        "email": test_email,
+        "password": "InitialPass@2026"
+    })
+    assert res_old_login.status_code == 401
+
+    # 5. New password succeeds
+    res_new_login = client.post("/api/auth/login", json={
+        "email": test_email,
+        "password": "UpdatedPassword@2027"
+    })
+    assert res_new_login.status_code == 200
+
+    # 6. Clean up created test user
+    client.delete(f"/api/auth/users/{user_id}", headers={"Authorization": f"Bearer {admin_token}"})
+
+def test_non_super_admin_cannot_manage_users():
+    client = app.app.test_client()
+    hod_token = get_auth_token("hod.cse@clashfree.edu")
+
+    # HOD attempts to create user -> must be 403 Forbidden
+    res = client.post("/api/auth/users", json={
+        "email": "unauthorized.faculty@college.edu",
+        "password": "Pass@123",
+        "full_name": "Unauthorized Faculty",
+        "role": "FACULTY",
+        "department": "CSE"
+    }, headers={"Authorization": f"Bearer {hod_token}"})
+    assert res.status_code == 403
+    assert "Super Admin" in res.get_json()["error"]
+
+
+# ---------------------------------------------------------------------------
+# 8. SELF-SERVICE PASSWORD RESET FLOW (OFFICIAL EMAIL & TOKEN VERIFICATION)
+# ---------------------------------------------------------------------------
+def test_forgot_password_and_token_reset_flow():
+    client = app.app.test_client()
+    email = "faculty.cse@clashfree.edu"
+    initial_pass = "ClashFree@2026"
+    new_reset_pass = "NewResetPassword@2026"
+
+    # 1. Request password reset for official email
+    res_forgot = client.post("/api/auth/forgot-password", json={"email": email})
+    assert res_forgot.status_code == 200
+    assert res_forgot.get_json()["success"] is True
+
+    # 2. Verify token generation and verification
+    user = app.db.get_user_by_email(email)
+    assert user is not None
+    token = app.auth.create_password_reset_token(user["id"], user["email"], expires_in=900)
+    payload = app.auth.verify_password_reset_token(token)
+    assert payload is not None
+    assert payload["sub"] == user["id"]
+    assert payload["email"] == email
+
+    # 3. Test invalid token rejection
+    res_bad = client.post("/api/auth/reset-password", json={"token": "invalid.fake.token", "password": new_reset_pass})
+    assert res_bad.status_code == 400
+    assert "invalid or has expired" in res_bad.get_json()["error"]
+
+    # 4. Test short password rejection
+    res_short = client.post("/api/auth/reset-password", json={"token": token, "password": "123"})
+    assert res_short.status_code == 400
+    assert "at least 6 characters" in res_short.get_json()["error"]
+
+    # 5. Reset password with valid token
+    res_reset = client.post("/api/auth/reset-password", json={"token": token, "password": new_reset_pass})
+    assert res_reset.status_code == 200
+    assert res_reset.get_json()["success"] is True
+
+    # 6. Verify login with newly set password
+    res_new_login = client.post("/api/auth/login", json={"email": email, "password": new_reset_pass})
+    assert res_new_login.status_code == 200
+    assert res_new_login.get_json()["success"] is True
+
+    # 7. Old password no longer works
+    res_old_login = client.post("/api/auth/login", json={"email": email, "password": initial_pass})
+    assert res_old_login.status_code == 401
+
+    # 8. Restore initial password so other tests are not affected
+    app.db.set_user_password(user["id"], initial_pass)
+
