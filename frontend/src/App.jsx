@@ -6,6 +6,8 @@ import React, { useState, useEffect } from "react";
 import * as api from "./api";
 import LoginPage from "./LoginPage";
 import DepartmentAccess from "./DepartmentAccess";
+import UserManagement from "./UserManagement";
+import ResetPasswordPage from "./ResetPasswordPage";
 
 const ROLE_BADGES = {
   SUPER_ADMIN: { label: "Super Admin", className: "role-superadmin" },
@@ -45,6 +47,7 @@ export function formatTime12Hour(val) {
 
 const ALL_PAGES = [
   { id: "dashboard", label: "Dashboard", icon: "📊" },
+  { id: "users", label: "User Management", icon: "🛡️" },
   { id: "timetable", label: "Timetable", icon: "📅" },
   { id: "faculty", label: "Faculty", icon: "👨‍🏫" },
   { id: "rooms", label: "Rooms", icon: "🏫" },
@@ -64,6 +67,14 @@ const ALL_PAGES = [
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [authChecking, setAuthChecking] = useState(true);
+  const [resetToken, setResetToken] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("reset_token");
+    } catch {
+      return null;
+    }
+  });
   const [activePage, setActivePage] = useState("dashboard");
   const [selectedDept, setSelectedDept] = useState("CSE");
   const [selectedYear, setSelectedYear] = useState("ALL");
@@ -184,8 +195,9 @@ export default function App() {
 
   const allowedPageIds = (function() {
     if (!currentUser) return [];
-    if (isSuperAdmin || isHod) return ALL_PAGES.map(p => p.id);
-    if (isCreator) return ALL_PAGES.filter(p => p.id !== "access").map(p => p.id);
+    if (isSuperAdmin) return ALL_PAGES.map(p => p.id);
+    if (isHod) return ALL_PAGES.filter(p => p.id !== "users").map(p => p.id);
+    if (isCreator) return ALL_PAGES.filter(p => p.id !== "access" && p.id !== "users").map(p => p.id);
     if (isViewer) return ["dashboard", "timetable", "rooms", "occupancy", "conflicts", "reports", "versions"];
     if (isFaculty) return ["dashboard", "timetable", "rooms", "occupancy", "conflicts", "reports"];
     return ["dashboard", "timetable"];
@@ -207,7 +219,23 @@ export default function App() {
     return departments.filter(d => accessible.includes(d.code));
   })();
 
-  // 1. Loading screen while restoring session
+  // 1. Password Reset Link opened from Email
+  if (resetToken) {
+    return (
+      <ResetPasswordPage
+        token={resetToken}
+        onComplete={() => {
+          try {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          } catch {}
+          setResetToken(null);
+          notify("Password reset complete. Please sign in with your new credentials.", "success");
+        }}
+      />
+    );
+  }
+
+  // 2. Loading screen while restoring session
   if (authChecking) {
     return (
       <div className="login-root" style={{ justifyContent: "center", alignItems: "center" }}>
@@ -382,6 +410,14 @@ export default function App() {
               setPage={setActivePage}
               onRefresh={loadDashboard}
               currentUser={currentUser}
+            />
+          )}
+
+          {activePage === "users" && (
+            <UserManagement
+              departments={departments}
+              currentUser={currentUser}
+              onNotify={notify}
             />
           )}
 

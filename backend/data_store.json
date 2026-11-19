@@ -11750,14 +11750,34 @@
       "created_at": "2026-11-16T08:46:19.154630"
     },
     {
+      "id": "usr-sup-4e3160aa",
+      "email": "patilkunal2466@gmail.com",
+      "full_name": "Kunal Patil",
+      "designation": "Owner",
+      "college_id": 1,
+      "account_status": "ACTIVE",
+      "password_hash": "pbkdf2:sha256:100000$1ac918a770c44bddaff6cf0a522f4124$c4db402a7eba3a357f9c0fde45a121719dc6e313b01b81863803ce4e2ef9a0f3",
+      "created_at": "2026-11-20T00:01:37.047848"
+    },
+    {
+      "id": "usr-fac-51518537",
+      "email": "atharva@gmail.com",
+      "full_name": "Atharva Chakote",
+      "designation": "Assistant Professor",
+      "college_id": 1,
+      "account_status": "ACTIVE",
+      "password_hash": "pbkdf2:sha256:100000$ae01dbb7c20a8d1998ca7b406f07c6fb$33b98235a1e0cf4622e7d975c69ce9be7c7e1a17e8a46a9c92b161d7d9485055",
+      "created_at": "2026-11-20T00:03:34.133571"
+    },
+    {
       "id": "usr-faculty-cse-01",
       "email": "faculty.cse@clashfree.edu",
       "full_name": "Mrs. Sneha P. Desai",
       "designation": "Assistant Professor",
       "college_id": 1,
       "account_status": "ACTIVE",
-      "password_hash": "pbkdf2:sha256:100000$15489679eff6e5e2ecae437abac47736$81106b00659c1333fb0d13e6b119937552ca60483db1e28532c91f41f94f565b",
-      "created_at": "2026-11-16T08:46:19.154630"
+      "password_hash": "pbkdf2:sha256:100000$c53885cdaf4478f95153781136f93f5a$c89de2c61777ec615951808c7c5875cb6f7bfe910c52499ee07d1f9f88d2c715",
+      "created_at": "2026-11-20T00:20:21.463529"
     }
   ],
   "user_roles": [
@@ -11807,15 +11827,6 @@
       "created_at": "2026-11-16T08:46:19.154630"
     },
     {
-      "id": 6,
-      "user_id": "usr-creator-cse-01",
-      "role": "TIMETABLE_CREATOR",
-      "college_id": 1,
-      "department_code": "CSE",
-      "assigned_by": "usr-hod-cse-01",
-      "created_at": "2026-11-16T08:46:19.154630"
-    },
-    {
       "id": 7,
       "user_id": "usr-creator-cse-01",
       "role": "FACULTY",
@@ -11825,16 +11836,1533 @@
       "created_at": "2026-11-16T08:46:19.154630"
     },
     {
-      "id": 8,
+      "id": 9,
+      "user_id": "fac-ks",
+      "role": "TIMETABLE_CREATOR",
+      "college_id": 1,
+      "department_code": "CSE",
+      "assigned_by": "usr-hod-cse-01",
+      "created_at": "2026-11-19T23:40:02.164543"
+    },
+    {
+      "id": 10,
+      "user_id": "fac-aam",
+      "role": "TIMETABLE_CREATOR",
+      "college_id": 1,
+      "department_code": "CSE",
+      "assigned_by": "usr-hod-cse-01",
+      "created_at": "2026-11-19T23:40:11.141775"
+    },
+    {
+      "id": 12,
+      "user_id": "usr-creator-cse-01",
+      "role": "TIMETABLE_CREATOR",
+      "college_id": 1,
+      "department_code": "CSE",
+      "assigned_by": "usr-hod-cse-01",
+      "created_at": "2026-11-19T23:45:58.473926"
+    },
+    {
+      "id": 14,
+      "user_id": "usr-sup-4e3160aa",
+      "role": "SUPER_ADMIN",
+      "college_id": null,
+      "department_code": null,
+      "assigned_by": "Platform Administrator",
+      "created_at": "2026-11-20T00:01:37.047848"
+    },
+    {
+      "id": 15,
+      "user_id": "usr-fac-51518537",
+      "role": "FACULTY",
+      "college_id": 1,
+      "department_code": "CSE",
+      "assigned_by": "Kunal Patil",
+      "created_at": "2026-11-20T00:03:34.133571"
+    },
+    {
+      "id": 16,
       "user_id": "usr-faculty-cse-01",
       "role": "FACULTY",
       "college_id": 1,
       "department_code": "CSE",
       "assigned_by": "usr-hod-cse-01",
-      "created_at": "2026-11-16T08:46:19.154630"
+      "created_at": "2026-11-20T00:20:21.463529"
     }
   ],
   "audit_logs": [
+    {
+      "id": 105,
+      "actor_id": "usr-sup-4e3160aa",
+      "actor_email": "patilkunal2466@gmail.com",
+      "actor_role": "USER",
+      "action": "PASSWORD_RESET_REQUEST",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-sup-4e3160aa",
+      "details": {
+        "requested_email": "patilkunal2466@gmail.com"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-20 00:48:15",
+      "created_at": "2026-11-20T00:48:15.437053"
+    },
+    {
+      "id": 104,
+      "actor_id": "usr-sup-4e3160aa",
+      "actor_email": "patilkunal2466@gmail.com",
+      "actor_role": "USER",
+      "action": "PASSWORD_RESET_REQUEST",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-sup-4e3160aa",
+      "details": {
+        "requested_email": "patilkunal2466@gmail.com"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-20 00:45:07",
+      "created_at": "2026-11-20T00:45:07.545885"
+    },
+    {
+      "id": 103,
+      "actor_id": "usr-sup-4e3160aa",
+      "actor_email": "patilkunal2466@gmail.com",
+      "actor_role": "USER",
+      "action": "PASSWORD_RESET_REQUEST",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-sup-4e3160aa",
+      "details": {
+        "requested_email": "patilkunal2466@gmail.com"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-20 00:43:53",
+      "created_at": "2026-11-20T00:43:53.202193"
+    },
+    {
+      "id": 102,
+      "actor_id": "usr-test-legacy",
+      "actor_email": "legacy.test@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "EXCEL_IMPORT",
+      "target_type": "DEPARTMENT_RECORDS",
+      "target_id": "ECE",
+      "details": {
+        "department": "ECE",
+        "academic_year": "2026-2027",
+        "semester": "Semester 3",
+        "summary": {
+          "teaching_requirements_count": 13,
+          "faculty_count": 5,
+          "subjects_count": 7,
+          "divisions_count": 4,
+          "classrooms_count": 5,
+          "labs_count": 4,
+          "teaching_slots_count": 30,
+          "total_slots_count": 40,
+          "target_department": "ECE",
+          "target_academic_year": "2026-2027",
+          "target_semester": "Semester 3"
+        }
+      },
+      "college_id": 1,
+      "department_code": "ECE",
+      "timestamp": "2026-11-20 00:42:39",
+      "created_at": "2026-11-20T00:42:39.751771"
+    },
+    {
+      "id": 101,
+      "actor_id": "usr-faculty-cse-01",
+      "actor_email": "faculty.cse@clashfree.edu",
+      "actor_role": "FACULTY",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-faculty-cse-01",
+      "details": {
+        "remember_me": false,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-20 00:42:39",
+      "created_at": "2026-11-20T00:42:39.517473"
+    },
+    {
+      "id": 100,
+      "actor_id": "usr-faculty-cse-01",
+      "actor_email": "faculty.cse@clashfree.edu",
+      "actor_role": "USER",
+      "action": "PASSWORD_RESET_SUCCESS",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-faculty-cse-01",
+      "details": {
+        "reset_by": "USER_SELF_RESET"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-20 00:42:39",
+      "created_at": "2026-11-20T00:42:39.473711"
+    },
+    {
+      "id": 99,
+      "actor_id": "usr-faculty-cse-01",
+      "actor_email": "faculty.cse@clashfree.edu",
+      "actor_role": "USER",
+      "action": "PASSWORD_RESET_REQUEST",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-faculty-cse-01",
+      "details": {
+        "requested_email": "faculty.cse@clashfree.edu"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-20 00:42:39",
+      "created_at": "2026-11-20T00:42:39.400807"
+    },
+    {
+      "id": 98,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "USER_DELETED",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-fac-5fbff8b4",
+      "details": {
+        "deleted_user": "dr.kulkarni.0098e8@college.edu"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-20 00:42:39",
+      "created_at": "2026-11-20T00:42:39.346651"
+    },
+    {
+      "id": 97,
+      "actor_id": "usr-fac-5fbff8b4",
+      "actor_email": "dr.kulkarni.0098e8@college.edu",
+      "actor_role": "FACULTY",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-fac-5fbff8b4",
+      "details": {
+        "remember_me": false,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-20 00:42:39",
+      "created_at": "2026-11-20T00:42:39.327912"
+    },
+    {
+      "id": 96,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "ADMIN_PASSWORD_RESET",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-fac-5fbff8b4",
+      "details": {
+        "user_email": "dr.kulkarni.0098e8@college.edu"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-20 00:42:39",
+      "created_at": "2026-11-20T00:42:39.244317"
+    },
+    {
+      "id": 95,
+      "actor_id": "usr-fac-5fbff8b4",
+      "actor_email": "dr.kulkarni.0098e8@college.edu",
+      "actor_role": "FACULTY",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-fac-5fbff8b4",
+      "details": {
+        "remember_me": false,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-20 00:42:39",
+      "created_at": "2026-11-20T00:42:39.179901"
+    },
+    {
+      "id": 94,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "USER_CREATED",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-fac-5fbff8b4",
+      "details": {
+        "created_email": "dr.kulkarni.0098e8@college.edu",
+        "role": "FACULTY",
+        "department": "CSE",
+        "designation": "Associate Professor"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-20 00:42:39",
+      "created_at": "2026-11-20T00:42:39.140333"
+    },
+    {
+      "id": 93,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "REVOKE_ROLE",
+      "target_type": "ROLE_ASSIGNMENT",
+      "target_id": "usr-faculty-cse-01",
+      "details": {
+        "revoked_role": "TIMETABLE_CREATOR",
+        "department": "CSE",
+        "target_name": "Mrs. Sneha P. Desai"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-20 00:42:38",
+      "created_at": "2026-11-20T00:42:38.932428"
+    },
+    {
+      "id": 92,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "ASSIGN_ROLE",
+      "target_type": "ROLE_ASSIGNMENT",
+      "target_id": "usr-faculty-cse-01",
+      "details": {
+        "assigned_role": "TIMETABLE_CREATOR",
+        "department": "CSE",
+        "target_name": "Mrs. Sneha P. Desai"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-20 00:42:38",
+      "created_at": "2026-11-20T00:42:38.904779"
+    },
+    {
+      "id": 91,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "USER",
+      "action": "PASSWORD_RESET_REQUEST",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-hod-cse-01",
+      "details": {
+        "requested_email": "hod.cse@clashfree.edu"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-20 00:42:38",
+      "created_at": "2026-11-20T00:42:38.496896"
+    },
+    {
+      "id": 90,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-hod-cse-01",
+      "details": {
+        "remember_me": false,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-20 00:42:38",
+      "created_at": "2026-11-20T00:42:38.395876"
+    },
+    {
+      "id": 89,
+      "actor_id": "usr-sup-4e3160aa",
+      "actor_email": "patilkunal2466@gmail.com",
+      "actor_role": "USER",
+      "action": "PASSWORD_RESET_REQUEST",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-sup-4e3160aa",
+      "details": {
+        "requested_email": "patilkunal2466@gmail.com"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-20 00:21:31",
+      "created_at": "2026-11-20T00:21:31.477556"
+    },
+    {
+      "id": 88,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "LOGOUT",
+      "target_type": "SESSION",
+      "target_id": "usr-superadmin-01",
+      "details": "None",
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-20 00:20:44",
+      "created_at": "2026-11-20T00:20:44.934020"
+    },
+    {
+      "id": 87,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-superadmin-01",
+      "details": {
+        "remember_me": true,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-20 00:20:29",
+      "created_at": "2026-11-20T00:20:29.860313"
+    },
+    {
+      "id": 86,
+      "actor_id": "usr-sup-4e3160aa",
+      "actor_email": "patilkunal2466@gmail.com",
+      "actor_role": "USER",
+      "action": "PASSWORD_RESET_REQUEST",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-sup-4e3160aa",
+      "details": {
+        "requested_email": "patilkunal2466@gmail.com"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-20 00:19:36",
+      "created_at": "2026-11-20T00:19:36.638294"
+    },
+    {
+      "id": 85,
+      "actor_id": "usr-sup-4e3160aa",
+      "actor_email": "patilkunal2466@gmail.com",
+      "actor_role": "SUPER_ADMIN",
+      "action": "LOGOUT",
+      "target_type": "SESSION",
+      "target_id": "usr-sup-4e3160aa",
+      "details": "None",
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-20 00:19:04",
+      "created_at": "2026-11-20T00:19:04.396716"
+    },
+    {
+      "id": 84,
+      "actor_id": "usr-sup-4e3160aa",
+      "actor_email": "patilkunal2466@gmail.com",
+      "actor_role": "SUPER_ADMIN",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-sup-4e3160aa",
+      "details": {
+        "remember_me": true,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-20 00:05:59",
+      "created_at": "2026-11-20T00:05:59.253124"
+    },
+    {
+      "id": 83,
+      "actor_id": "usr-sup-4e3160aa",
+      "actor_email": "patilkunal2466@gmail.com",
+      "actor_role": "USER",
+      "action": "PASSWORD_RESET_REQUEST",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-sup-4e3160aa",
+      "details": {
+        "requested_email": "patilkunal2466@gmail.com"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-20 00:04:48",
+      "created_at": "2026-11-20T00:04:48.227023"
+    },
+    {
+      "id": 82,
+      "actor_id": "usr-fac-51518537",
+      "actor_email": "atharva@gmail.com",
+      "actor_role": "FACULTY",
+      "action": "LOGOUT",
+      "target_type": "SESSION",
+      "target_id": "usr-fac-51518537",
+      "details": "None",
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-20 00:04:21",
+      "created_at": "2026-11-20T00:04:21.363838"
+    },
+    {
+      "id": 81,
+      "actor_id": "usr-fac-51518537",
+      "actor_email": "atharva@gmail.com",
+      "actor_role": "FACULTY",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-fac-51518537",
+      "details": {
+        "remember_me": true,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-20 00:04:10",
+      "created_at": "2026-11-20T00:04:10.171845"
+    },
+    {
+      "id": 80,
+      "actor_id": "usr-sup-4e3160aa",
+      "actor_email": "patilkunal2466@gmail.com",
+      "actor_role": "SUPER_ADMIN",
+      "action": "LOGOUT",
+      "target_type": "SESSION",
+      "target_id": "usr-sup-4e3160aa",
+      "details": "None",
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-20 00:03:45",
+      "created_at": "2026-11-20T00:03:45.387049"
+    },
+    {
+      "id": 79,
+      "actor_id": "usr-sup-4e3160aa",
+      "actor_email": "patilkunal2466@gmail.com",
+      "actor_role": "SUPER_ADMIN",
+      "action": "USER_CREATED",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-fac-51518537",
+      "details": {
+        "created_email": "atharva@gmail.com",
+        "role": "FACULTY",
+        "department": "CSE",
+        "designation": "Assistant Professor"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-20 00:03:34",
+      "created_at": "2026-11-20T00:03:34.158186"
+    },
+    {
+      "id": 78,
+      "actor_id": "usr-sup-4e3160aa",
+      "actor_email": "patilkunal2466@gmail.com",
+      "actor_role": "SUPER_ADMIN",
+      "action": "USER_DELETED",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-faculty-cse-01",
+      "details": {
+        "deleted_user": "faculty.cse@clashfree.edu"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-20 00:02:52",
+      "created_at": "2026-11-20T00:02:52.648695"
+    },
+    {
+      "id": 77,
+      "actor_id": "usr-sup-4e3160aa",
+      "actor_email": "patilkunal2466@gmail.com",
+      "actor_role": "SUPER_ADMIN",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-sup-4e3160aa",
+      "details": {
+        "remember_me": true,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-20 00:02:39",
+      "created_at": "2026-11-20T00:02:39.148191"
+    },
+    {
+      "id": 76,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "LOGOUT",
+      "target_type": "SESSION",
+      "target_id": "usr-superadmin-01",
+      "details": "None",
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-20 00:02:13",
+      "created_at": "2026-11-20T00:02:13.834812"
+    },
+    {
+      "id": 75,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "USER_UPDATED",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-sup-4e3160aa",
+      "details": {
+        "full_name": "Kunal Patil",
+        "designation": "Owner",
+        "role": "SUPER_ADMIN",
+        "department": null,
+        "account_status": "ACTIVE"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-20 00:02:03",
+      "created_at": "2026-11-20T00:02:03.729567"
+    },
+    {
+      "id": 74,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "USER_DELETED",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-sup-7d3e0a8e",
+      "details": {
+        "deleted_user": "patilkunal140307@gmail.com"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-20 00:01:45",
+      "created_at": "2026-11-20T00:01:45.013050"
+    },
+    {
+      "id": 73,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "USER_CREATED",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-sup-4e3160aa",
+      "details": {
+        "created_email": "patilkunal2466@gmail.com",
+        "role": "SUPER_ADMIN",
+        "department": null,
+        "designation": "Owner"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-20 00:01:37",
+      "created_at": "2026-11-20T00:01:37.075763"
+    },
+    {
+      "id": 72,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "USER_CREATED",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-sup-7d3e0a8e",
+      "details": {
+        "created_email": "patilkunal140307@gmail.com",
+        "role": "SUPER_ADMIN",
+        "department": null,
+        "designation": "Super Control"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-20 00:00:04",
+      "created_at": "2026-11-20T00:00:04.643142"
+    },
+    {
+      "id": 71,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-superadmin-01",
+      "details": {
+        "remember_me": true,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:57:39",
+      "created_at": "2026-11-19T23:57:39.432506"
+    },
+    {
+      "id": 70,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "LOGOUT",
+      "target_type": "SESSION",
+      "target_id": "usr-hod-cse-01",
+      "details": "None",
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:57:31",
+      "created_at": "2026-11-19T23:57:31.481159"
+    },
+    {
+      "id": 69,
+      "actor_id": "usr-test-legacy",
+      "actor_email": "legacy.test@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "EXCEL_IMPORT",
+      "target_type": "DEPARTMENT_RECORDS",
+      "target_id": "ECE",
+      "details": {
+        "department": "ECE",
+        "academic_year": "2026-2027",
+        "semester": "Semester 3",
+        "summary": {
+          "teaching_requirements_count": 13,
+          "faculty_count": 5,
+          "subjects_count": 7,
+          "divisions_count": 4,
+          "classrooms_count": 5,
+          "labs_count": 4,
+          "teaching_slots_count": 30,
+          "total_slots_count": 40,
+          "target_department": "ECE",
+          "target_academic_year": "2026-2027",
+          "target_semester": "Semester 3"
+        }
+      },
+      "college_id": 1,
+      "department_code": "ECE",
+      "timestamp": "2026-11-19 23:56:24",
+      "created_at": "2026-11-19T23:56:24.429146"
+    },
+    {
+      "id": 68,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "USER_DELETED",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-fac-9d554f55",
+      "details": {
+        "deleted_user": "dr.kulkarni.e6b554@college.edu"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-19 23:56:24",
+      "created_at": "2026-11-19T23:56:24.193448"
+    },
+    {
+      "id": 67,
+      "actor_id": "usr-fac-9d554f55",
+      "actor_email": "dr.kulkarni.e6b554@college.edu",
+      "actor_role": "FACULTY",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-fac-9d554f55",
+      "details": {
+        "remember_me": false,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:56:24",
+      "created_at": "2026-11-19T23:56:24.160298"
+    },
+    {
+      "id": 66,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "ADMIN_PASSWORD_RESET",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-fac-9d554f55",
+      "details": {
+        "user_email": "dr.kulkarni.e6b554@college.edu"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-19 23:56:24",
+      "created_at": "2026-11-19T23:56:24.068071"
+    },
+    {
+      "id": 65,
+      "actor_id": "usr-fac-9d554f55",
+      "actor_email": "dr.kulkarni.e6b554@college.edu",
+      "actor_role": "FACULTY",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-fac-9d554f55",
+      "details": {
+        "remember_me": false,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:56:23",
+      "created_at": "2026-11-19T23:56:23.998314"
+    },
+    {
+      "id": 64,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "USER_CREATED",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-fac-9d554f55",
+      "details": {
+        "created_email": "dr.kulkarni.e6b554@college.edu",
+        "role": "FACULTY",
+        "department": "CSE",
+        "designation": "Associate Professor"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:56:23",
+      "created_at": "2026-11-19T23:56:23.936412"
+    },
+    {
+      "id": 63,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "REVOKE_ROLE",
+      "target_type": "ROLE_ASSIGNMENT",
+      "target_id": "usr-faculty-cse-01",
+      "details": {
+        "revoked_role": "TIMETABLE_CREATOR",
+        "department": "CSE",
+        "target_name": "Mrs. Sneha P. Desai"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:56:23",
+      "created_at": "2026-11-19T23:56:23.687359"
+    },
+    {
+      "id": 62,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "ASSIGN_ROLE",
+      "target_type": "ROLE_ASSIGNMENT",
+      "target_id": "usr-faculty-cse-01",
+      "details": {
+        "assigned_role": "TIMETABLE_CREATOR",
+        "department": "CSE",
+        "target_name": "Mrs. Sneha P. Desai"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:56:23",
+      "created_at": "2026-11-19T23:56:23.646762"
+    },
+    {
+      "id": 61,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "USER",
+      "action": "PASSWORD_RESET_REQUEST",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-hod-cse-01",
+      "details": {
+        "requested_email": "hod.cse@clashfree.edu"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-19 23:56:23",
+      "created_at": "2026-11-19T23:56:23.165700"
+    },
+    {
+      "id": 60,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-hod-cse-01",
+      "details": {
+        "remember_me": false,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:56:23",
+      "created_at": "2026-11-19T23:56:23.046516"
+    },
+    {
+      "id": 59,
+      "actor_id": "usr-test-legacy",
+      "actor_email": "legacy.test@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "EXCEL_IMPORT",
+      "target_type": "DEPARTMENT_RECORDS",
+      "target_id": "ECE",
+      "details": {
+        "department": "ECE",
+        "academic_year": "2026-2027",
+        "semester": "Semester 3",
+        "summary": {
+          "teaching_requirements_count": 13,
+          "faculty_count": 5,
+          "subjects_count": 7,
+          "divisions_count": 4,
+          "classrooms_count": 5,
+          "labs_count": 4,
+          "teaching_slots_count": 30,
+          "total_slots_count": 40,
+          "target_department": "ECE",
+          "target_academic_year": "2026-2027",
+          "target_semester": "Semester 3"
+        }
+      },
+      "college_id": 1,
+      "department_code": "ECE",
+      "timestamp": "2026-11-19 23:49:58",
+      "created_at": "2026-11-19T23:49:58.855137"
+    },
+    {
+      "id": 58,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "USER_DELETED",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-fac-88273b22",
+      "details": {
+        "deleted_user": "dr.kulkarni.0820f4@college.edu"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-19 23:49:58",
+      "created_at": "2026-11-19T23:49:58.546044"
+    },
+    {
+      "id": 57,
+      "actor_id": "usr-fac-88273b22",
+      "actor_email": "dr.kulkarni.0820f4@college.edu",
+      "actor_role": "FACULTY",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-fac-88273b22",
+      "details": {
+        "remember_me": false,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:49:58",
+      "created_at": "2026-11-19T23:49:58.521678"
+    },
+    {
+      "id": 56,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "ADMIN_PASSWORD_RESET",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-fac-88273b22",
+      "details": {
+        "user_email": "dr.kulkarni.0820f4@college.edu"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-19 23:49:58",
+      "created_at": "2026-11-19T23:49:58.414463"
+    },
+    {
+      "id": 55,
+      "actor_id": "usr-fac-88273b22",
+      "actor_email": "dr.kulkarni.0820f4@college.edu",
+      "actor_role": "FACULTY",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-fac-88273b22",
+      "details": {
+        "remember_me": false,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:49:58",
+      "created_at": "2026-11-19T23:49:58.339009"
+    },
+    {
+      "id": 54,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "USER_CREATED",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-fac-88273b22",
+      "details": {
+        "created_email": "dr.kulkarni.0820f4@college.edu",
+        "role": "FACULTY",
+        "department": "CSE",
+        "designation": "Associate Professor"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:49:58",
+      "created_at": "2026-11-19T23:49:58.278156"
+    },
+    {
+      "id": 53,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "REVOKE_ROLE",
+      "target_type": "ROLE_ASSIGNMENT",
+      "target_id": "usr-faculty-cse-01",
+      "details": {
+        "revoked_role": "TIMETABLE_CREATOR",
+        "department": "CSE",
+        "target_name": "Mrs. Sneha P. Desai"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:49:58",
+      "created_at": "2026-11-19T23:49:58.018151"
+    },
+    {
+      "id": 52,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "ASSIGN_ROLE",
+      "target_type": "ROLE_ASSIGNMENT",
+      "target_id": "usr-faculty-cse-01",
+      "details": {
+        "assigned_role": "TIMETABLE_CREATOR",
+        "department": "CSE",
+        "target_name": "Mrs. Sneha P. Desai"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:49:57",
+      "created_at": "2026-11-19T23:49:57.985334"
+    },
+    {
+      "id": 51,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "USER",
+      "action": "PASSWORD_RESET_REQUEST",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-hod-cse-01",
+      "details": {
+        "requested_email": "hod.cse@clashfree.edu"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-19 23:49:57",
+      "created_at": "2026-11-19T23:49:57.477295"
+    },
+    {
+      "id": 50,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-hod-cse-01",
+      "details": {
+        "remember_me": false,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:49:57",
+      "created_at": "2026-11-19T23:49:57.344491"
+    },
+    {
+      "id": 49,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "USER_DELETED",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-fac-b9de2b75",
+      "details": {
+        "deleted_user": "dr.kulkarni.ece029@college.edu"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-19 23:49:47",
+      "created_at": "2026-11-19T23:49:47.599149"
+    },
+    {
+      "id": 48,
+      "actor_id": "usr-fac-b9de2b75",
+      "actor_email": "dr.kulkarni.ece029@college.edu",
+      "actor_role": "FACULTY",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-fac-b9de2b75",
+      "details": {
+        "remember_me": false,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:49:47",
+      "created_at": "2026-11-19T23:49:47.565621"
+    },
+    {
+      "id": 47,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "ADMIN_PASSWORD_RESET",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-fac-b9de2b75",
+      "details": {
+        "user_email": "dr.kulkarni.ece029@college.edu"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-19 23:49:47",
+      "created_at": "2026-11-19T23:49:47.461210"
+    },
+    {
+      "id": 46,
+      "actor_id": "usr-fac-b9de2b75",
+      "actor_email": "dr.kulkarni.ece029@college.edu",
+      "actor_role": "FACULTY",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-fac-b9de2b75",
+      "details": {
+        "remember_me": false,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:49:47",
+      "created_at": "2026-11-19T23:49:47.382739"
+    },
+    {
+      "id": 45,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "USER_CREATED",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-fac-b9de2b75",
+      "details": {
+        "created_email": "dr.kulkarni.ece029@college.edu",
+        "role": "FACULTY",
+        "department": "CSE",
+        "designation": "Associate Professor"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:49:47",
+      "created_at": "2026-11-19T23:49:47.325576"
+    },
+    {
+      "id": 44,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "REVOKE_ROLE",
+      "target_type": "ROLE_ASSIGNMENT",
+      "target_id": "usr-faculty-cse-01",
+      "details": {
+        "revoked_role": "TIMETABLE_CREATOR",
+        "department": "CSE",
+        "target_name": "Mrs. Sneha P. Desai"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:49:47",
+      "created_at": "2026-11-19T23:49:47.050099"
+    },
+    {
+      "id": 43,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "ASSIGN_ROLE",
+      "target_type": "ROLE_ASSIGNMENT",
+      "target_id": "usr-faculty-cse-01",
+      "details": {
+        "assigned_role": "TIMETABLE_CREATOR",
+        "department": "CSE",
+        "target_name": "Mrs. Sneha P. Desai"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:49:47",
+      "created_at": "2026-11-19T23:49:47.020011"
+    },
+    {
+      "id": 42,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "USER",
+      "action": "PASSWORD_RESET_REQUEST",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-hod-cse-01",
+      "details": {
+        "requested_email": "hod.cse@clashfree.edu"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-19 23:49:46",
+      "created_at": "2026-11-19T23:49:46.534229"
+    },
+    {
+      "id": 41,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-hod-cse-01",
+      "details": {
+        "remember_me": false,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:49:46",
+      "created_at": "2026-11-19T23:49:46.397641"
+    },
+    {
+      "id": 40,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "REVOKE_ROLE",
+      "target_type": "ROLE_ASSIGNMENT",
+      "target_id": "usr-faculty-cse-01",
+      "details": {
+        "revoked_role": "TIMETABLE_CREATOR",
+        "department": "CSE",
+        "target_name": "Mrs. Sneha P. Desai"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:45:59",
+      "created_at": "2026-11-19T23:45:59.958649"
+    },
+    {
+      "id": 39,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "ASSIGN_ROLE",
+      "target_type": "ROLE_ASSIGNMENT",
+      "target_id": "usr-faculty-cse-01",
+      "details": {
+        "assigned_role": "TIMETABLE_CREATOR",
+        "department": "CSE",
+        "target_name": "Mrs. Sneha P. Desai"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:45:59",
+      "created_at": "2026-11-19T23:45:59.929768"
+    },
+    {
+      "id": 38,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "USER",
+      "action": "PASSWORD_RESET_REQUEST",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-hod-cse-01",
+      "details": {
+        "requested_email": "hod.cse@clashfree.edu"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-19 23:45:59",
+      "created_at": "2026-11-19T23:45:59.393632"
+    },
+    {
+      "id": 37,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-hod-cse-01",
+      "details": {
+        "remember_me": false,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:45:59",
+      "created_at": "2026-11-19T23:45:59.245910"
+    },
+    {
+      "id": 36,
+      "actor_id": "usr-fac-6385ea3a",
+      "actor_email": "dr.kulkarni@college.edu",
+      "actor_role": "FACULTY",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-fac-6385ea3a",
+      "details": {
+        "remember_me": false,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:42:19",
+      "created_at": "2026-11-19T23:42:19.019671"
+    },
+    {
+      "id": 35,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "ADMIN_PASSWORD_RESET",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-fac-6385ea3a",
+      "details": {
+        "user_email": "dr.kulkarni@college.edu"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-19 23:42:18",
+      "created_at": "2026-11-19T23:42:18.911911"
+    },
+    {
+      "id": 34,
+      "actor_id": "usr-fac-6385ea3a",
+      "actor_email": "dr.kulkarni@college.edu",
+      "actor_role": "FACULTY",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-fac-6385ea3a",
+      "details": {
+        "remember_me": false,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:42:18",
+      "created_at": "2026-11-19T23:42:18.845174"
+    },
+    {
+      "id": 33,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "USER_CREATED",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-fac-6385ea3a",
+      "details": {
+        "created_email": "dr.kulkarni@college.edu",
+        "role": "FACULTY",
+        "department": "CSE",
+        "designation": "Associate Professor"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:42:18",
+      "created_at": "2026-11-19T23:42:18.786323"
+    },
+    {
+      "id": 32,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "REVOKE_ROLE",
+      "target_type": "ROLE_ASSIGNMENT",
+      "target_id": "usr-faculty-cse-01",
+      "details": {
+        "revoked_role": "TIMETABLE_CREATOR",
+        "department": "CSE",
+        "target_name": "Mrs. Sneha P. Desai"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:42:18",
+      "created_at": "2026-11-19T23:42:18.525981"
+    },
+    {
+      "id": 31,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "ASSIGN_ROLE",
+      "target_type": "ROLE_ASSIGNMENT",
+      "target_id": "usr-faculty-cse-01",
+      "details": {
+        "assigned_role": "TIMETABLE_CREATOR",
+        "department": "CSE",
+        "target_name": "Mrs. Sneha P. Desai"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:42:18",
+      "created_at": "2026-11-19T23:42:18.489693"
+    },
+    {
+      "id": 30,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "USER",
+      "action": "PASSWORD_RESET_REQUEST",
+      "target_type": "USER_ACCOUNT",
+      "target_id": "usr-hod-cse-01",
+      "details": {
+        "requested_email": "hod.cse@clashfree.edu"
+      },
+      "college_id": 1,
+      "department_code": null,
+      "timestamp": "2026-11-19 23:42:17",
+      "created_at": "2026-11-19T23:42:17.586351"
+    },
+    {
+      "id": 29,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-hod-cse-01",
+      "details": {
+        "remember_me": false,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:42:17",
+      "created_at": "2026-11-19T23:42:17.452611"
+    },
+    {
+      "id": 28,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "REVOKE_ROLE",
+      "target_type": "ROLE_ASSIGNMENT",
+      "target_id": "usr-creator-cse-01",
+      "details": {
+        "revoked_role": "TIMETABLE_CREATOR",
+        "department": "CSE",
+        "target_name": "Mr. Vishal H. Pundikar"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:40:15",
+      "created_at": "2026-11-19T23:40:15.693943"
+    },
+    {
+      "id": 27,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "ASSIGN_ROLE",
+      "target_type": "ROLE_ASSIGNMENT",
+      "target_id": "fac-aam",
+      "details": {
+        "assigned_role": "TIMETABLE_CREATOR",
+        "department": "CSE",
+        "target_name": ""
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:40:11",
+      "created_at": "2026-11-19T23:40:11.168964"
+    },
+    {
+      "id": 26,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "ASSIGN_ROLE",
+      "target_type": "ROLE_ASSIGNMENT",
+      "target_id": "fac-ks",
+      "details": {
+        "assigned_role": "TIMETABLE_CREATOR",
+        "department": "CSE",
+        "target_name": ""
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:40:02",
+      "created_at": "2026-11-19T23:40:02.187706"
+    },
+    {
+      "id": 25,
+      "actor_id": "usr-hod-cse-01",
+      "actor_email": "hod.cse@clashfree.edu",
+      "actor_role": "HOD",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-hod-cse-01",
+      "details": {
+        "remember_me": true,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:39:55",
+      "created_at": "2026-11-19T23:39:55.550663"
+    },
+    {
+      "id": 24,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-superadmin-01",
+      "details": {
+        "remember_me": true,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:35:15",
+      "created_at": "2026-11-19T23:35:15.067601"
+    },
+    {
+      "id": 23,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "LOGOUT",
+      "target_type": "SESSION",
+      "target_id": "usr-superadmin-01",
+      "details": "None",
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:35:06",
+      "created_at": "2026-11-19T23:35:06.223674"
+    },
+    {
+      "id": 22,
+      "actor_id": "usr-superadmin-01",
+      "actor_email": "superadmin@clashfree.edu",
+      "actor_role": "SUPER_ADMIN",
+      "action": "LOGIN",
+      "target_type": "SESSION",
+      "target_id": "usr-superadmin-01",
+      "details": {
+        "remember_me": true,
+        "department": "CSE"
+      },
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:35:03",
+      "created_at": "2026-11-19T23:35:03.768688"
+    },
+    {
+      "id": 21,
+      "actor_id": "usr-faculty-cse-01",
+      "actor_email": "faculty.cse@clashfree.edu",
+      "actor_role": "FACULTY",
+      "action": "LOGOUT",
+      "target_type": "SESSION",
+      "target_id": "usr-faculty-cse-01",
+      "details": "None",
+      "college_id": 1,
+      "department_code": "CSE",
+      "timestamp": "2026-11-19 23:34:44",
+      "created_at": "2026-11-19T23:34:44.188331"
+    },
     {
       "id": 20,
       "actor_id": "usr-faculty-cse-01",

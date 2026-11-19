@@ -109,6 +109,15 @@ export async function requestPasswordReset(email) {
   return res.json();
 }
 
+export async function resetPasswordWithToken(token, newPassword) {
+  const res = await fetch(`${API_BASE}/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, password: newPassword }),
+  });
+  return res.json();
+}
+
 export async function fetchDepartmentCreators(department) {
   const res = await authFetch(`${API_BASE}/auth/creators?department=${encodeURIComponent(department)}`);
   return res.json();
@@ -134,6 +143,50 @@ export async function revokeDepartmentCreator(targetUserId, department) {
 
 export async function fetchEligibleFaculty(department) {
   const res = await authFetch(`${API_BASE}/auth/eligible-faculty?department=${encodeURIComponent(department)}`);
+  return res.json();
+}
+
+// ---------------------------------------------------------------------------
+// Super Admin User & Access Control Management
+// ---------------------------------------------------------------------------
+export async function fetchUsers(department = "") {
+  let url = `${API_BASE}/auth/users`;
+  if (department) url += `?department=${encodeURIComponent(department)}`;
+  const res = await authFetch(url);
+  return res.json();
+}
+
+export async function createUser(userData) {
+  const res = await authFetch(`${API_BASE}/auth/users`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(userData),
+  });
+  return res.json();
+}
+
+export async function updateUser(userId, userData) {
+  const res = await authFetch(`${API_BASE}/auth/users/${userId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(userData),
+  });
+  return res.json();
+}
+
+export async function adminResetPassword(userId, newPassword) {
+  const res = await authFetch(`${API_BASE}/auth/users/${userId}/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password: newPassword }),
+  });
+  return res.json();
+}
+
+export async function deleteUser(userId) {
+  const res = await authFetch(`${API_BASE}/auth/users/${userId}`, {
+    method: "DELETE",
+  });
   return res.json();
 }
 
